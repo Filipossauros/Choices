@@ -57,6 +57,21 @@ describe('deriveWeights', () => {
     expect(r.consistencyMargin).toBeGreaterThan(0);
   });
 
+  it('admissible ranges are within [0,1] and contain the central weight', async () => {
+    const judgments: Record<string, MacbethJudgment> = {
+      [`c1__c2`]: j(3),
+      [`c1__${ALL_NEUTRAL}`]: j(5),
+      [`c2__${ALL_NEUTRAL}`]: j(2),
+    };
+    const r = await deriveWeights(['c1', 'c2'], judgments);
+    for (const w of r.weights) {
+      expect(w.admissibleRange[0]).toBeGreaterThanOrEqual(-0.001);
+      expect(w.admissibleRange[1]).toBeLessThanOrEqual(1.001);
+      expect(w.admissibleRange[0]).toBeLessThanOrEqual(w.weight + 0.001);
+      expect(w.admissibleRange[1]).toBeGreaterThanOrEqual(w.weight - 0.001);
+    }
+  });
+
   it('three criteria: ordering preserved relative to all-neutral swings', async () => {
     // c1 (C5) > c2 (C3) > c3 (C1) in swing attractiveness
     const judgments: Record<string, MacbethJudgment> = {

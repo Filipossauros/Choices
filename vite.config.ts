@@ -9,7 +9,11 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: { glpk: ['glpk.js'] },
+        manualChunks: {
+          glpk: ['glpk.js'],
+          recharts: ['recharts'],
+          pdf: ['jspdf', 'jspdf-autotable'],
+        },
       },
     },
   },

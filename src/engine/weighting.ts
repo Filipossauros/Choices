@@ -5,10 +5,9 @@
  *   - one per qualification criterion: Bom on that criterion, Neutro on all others
  *   - plus the all-Neutro option (weight = 0, the normalization anchor)
  *
- * The LP structure is identical to the consistency/scale LP,
- * with criterion ids as "alternatives" and the all-Neutro as the fixed anchor.
- *
- * After solving, raw weights are normalised to Σwᵢ = 1.
+ * The LP adds Σwᵢ = 1 (normalization) so the problem is bounded and weights
+ * are extracted directly. Admissible ranges are computed via parallel min/max
+ * LPs using the same constraint set (identical approach to scaling.ts).
  *
  * MULTI-ASSESSOR EXTENSION POINT:
  *   Future aggregateAssessments(matrices: JudgmentMatrix[]): Weights
@@ -27,6 +26,10 @@ function safeVar(id: string): string {
 
 function sName(k: number): string {
   return `sw_${k}`;
+}
+
+function round2(n: number): number {
+  return Math.round(n * 100) / 100;
 }
 
 export async function deriveWeights(
@@ -57,7 +60,7 @@ export async function deriveWeights(
     rhs: 0,
   });
 
-  // Normalization: Σ wᵢ = 1 (bounds the LP; weights extracted directly without re-scaling)
+  // Normalization: Σ wᵢ = 1 — bounds the LP so weights are already normalised
   constraints.push({
     name: 'normalization',
     vars: criterionIds.map((id) => ({ name: safeVar(id), coef: 1 })),
@@ -155,24 +158,45 @@ export async function deriveWeights(
     bounds,
   });
 
-  // Extract and normalise
-  const rawWeights: Record<string, number> = {};
-  let total = 0;
-  for (const id of criterionIds) {
-    const w = Math.max(0, result.vars[safeVar(id)] ?? 0);
-    rawWeights[id] = w;
-    total += w;
-  }
+  const consistencyMargin = result.status === 'optimal' ? result.objectiveValue : -1;
 
-  const weights: CriterionWeight[] = criterionIds.map((id) => ({
-    criterionId: id,
-    weight: total > 0 ? rawWeights[id] / total : 1 / criterionIds.length,
-    admissibleRange: [0, 1] as [number, number],
-  }));
+  // Compute central weight + admissible [min, max] for each criterion via parallel LPs
+  const weights: CriterionWeight[] = await Promise.all(
+    criterionIds.map(async (id) => {
+      const varName = safeVar(id);
+      const centralValue = Math.max(0, result.vars[varName] ?? 0);
+
+      const [minRes, maxRes] = await Promise.all([
+        solveLP({
+          name: `wmin_${id}`,
+          direction: 'MIN',
+          objective: [{ name: varName, coef: 1 }],
+          constraints,
+          bounds,
+        }),
+        solveLP({
+          name: `wmax_${id}`,
+          direction: 'MAX',
+          objective: [{ name: varName, coef: 1 }],
+          constraints,
+          bounds,
+        }),
+      ]);
+
+      const lo = minRes.status === 'optimal' ? Math.max(0, round2(minRes.objectiveValue)) : 0;
+      const hi = maxRes.status === 'optimal' ? Math.min(1, round2(maxRes.objectiveValue)) : 1;
+
+      return {
+        criterionId: id,
+        weight: round2(centralValue),
+        admissibleRange: [lo, hi] as [number, number],
+      };
+    }),
+  );
 
   return {
     weights,
-    consistencyMargin: result.status === 'optimal' ? result.objectiveValue : -1,
+    consistencyMargin,
     derivedAt: new Date().toISOString(),
   };
 }

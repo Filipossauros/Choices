@@ -125,6 +125,9 @@ export default function Weighting() {
                   <span className="w-16 text-right text-sm font-mono font-medium">
                     {(w.weight * 100).toFixed(1)}%
                   </span>
+                  <span className="w-36 text-xs text-gray-400 font-mono">
+                    [{(w.admissibleRange[0] * 100).toFixed(1)}%, {(w.admissibleRange[1] * 100).toFixed(1)}%]
+                  </span>
                 </div>
               );
             })}
