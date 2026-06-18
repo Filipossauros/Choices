@@ -13,6 +13,13 @@ const CATEGORIES: { value: MacbethCategory; label: string; short: string }[] = [
   { value: 6, label: 'Extrema (C6)', short: 'C6' },
 ];
 
+function jLo(j: MacbethJudgment): MacbethCategory {
+  return j.kind === 'exact' ? j.category : j.lo;
+}
+function jHi(j: MacbethJudgment): MacbethCategory {
+  return j.kind === 'exact' ? j.category : j.hi;
+}
+
 interface Item {
   id: string;
   label: string;
@@ -45,9 +52,30 @@ export default function JudgmentMatrixEditor({ items, judgments, onChange, readO
       .finally(() => setChecking(false));
   }, [judgments, items, buildEntries]);
 
-  function setJudgment(idA: string, idB: string, cat: MacbethCategory) {
+  function getJudgment(idA: string, idB: string): MacbethJudgment | undefined {
+    return judgments[`${idA}__${idB}`];
+  }
+
+  function setLo(idA: string, idB: string, lo: MacbethCategory) {
     const key = `${idA}__${idB}`;
-    onChange({ ...judgments, [key]: { kind: 'exact', category: cat } });
+    const existing = judgments[key];
+    const prevHi = existing ? jHi(existing) : lo;
+    const hi = (prevHi >= lo ? prevHi : lo) as MacbethCategory;
+    onChange({ ...judgments, [key]: lo === hi ? { kind: 'exact', category: lo } : { kind: 'interval', lo, hi } });
+  }
+
+  function setHi(idA: string, idB: string, hi: MacbethCategory) {
+    const key = `${idA}__${idB}`;
+    const existing = judgments[key];
+    if (!existing) return;
+    const lo = jLo(existing);
+    onChange({ ...judgments, [key]: lo === hi ? { kind: 'exact', category: lo } : { kind: 'interval', lo, hi } });
+  }
+
+  function clearJudgment(idA: string, idB: string) {
+    const key = `${idA}__${idB}`;
+    const { [key]: _, ...rest } = judgments;
+    onChange(rest);
   }
 
   function applyCorrection(pair: ConsistencyReport['inconsistentPairs'][0]) {
@@ -55,14 +83,13 @@ export default function JudgmentMatrixEditor({ items, judgments, onChange, readO
     onChange({ ...judgments, [key]: pair.suggestedJudgment });
   }
 
-  function getJudgment(idA: string, idB: string): MacbethCategory | undefined {
-    const j = judgments[`${idA}__${idB}`];
-    if (!j) return undefined;
-    return j.kind === 'exact' ? j.category : j.lo;
-  }
-
   function labelOf(id: string) {
     return items.find((i) => i.id === id)?.label ?? id;
+  }
+
+  function displayJudgment(j: MacbethJudgment): string {
+    if (j.kind === 'exact') return CATEGORIES[j.category].short;
+    return `${CATEGORIES[j.lo].short}–${CATEGORIES[j.hi].short}`;
   }
 
   if (items.length < 2) {
@@ -74,6 +101,7 @@ export default function JudgmentMatrixEditor({ items, judgments, onChange, readO
       <div className="flex items-center justify-between">
         <p className="text-xs text-gray-500">
           Preencha a diferença de atratividade entre cada par (linha mais atrativa que coluna).
+          Para juízos intervalares, ajuste o limite superior.
         </p>
         <ConsistencyBadge report={report} loading={checking} />
       </div>
@@ -86,7 +114,7 @@ export default function JudgmentMatrixEditor({ items, judgments, onChange, readO
               {items.slice(1).map((item) => (
                 <th
                   key={item.id}
-                  className="px-2 py-1 text-center text-gray-600 font-medium border border-gray-200 bg-gray-50 max-w-20"
+                  className="px-2 py-1 text-center text-gray-600 font-medium border border-gray-200 bg-gray-50 max-w-24"
                 >
                   <span className="block truncate" title={item.label}>{item.label}</span>
                 </th>
@@ -100,7 +128,10 @@ export default function JudgmentMatrixEditor({ items, judgments, onChange, readO
                   <span className="block truncate" title={rowItem.label}>{rowItem.label}</span>
                 </td>
                 {items.slice(ri + 1).map((colItem) => {
-                  const cat = getJudgment(rowItem.id, colItem.id);
+                  const j = getJudgment(rowItem.id, colItem.id);
+                  const lo = j ? jLo(j) : undefined;
+                  const hi = j ? jHi(j) : undefined;
+                  const isInterval = j && j.kind === 'interval';
                   const isConflict = report?.inconsistentPairs.some(
                     (p) => p.idA === rowItem.id && p.idB === colItem.id,
                   );
@@ -110,31 +141,53 @@ export default function JudgmentMatrixEditor({ items, judgments, onChange, readO
                       className={`border border-gray-200 p-0 ${isConflict ? 'bg-red-50' : ''}`}
                     >
                       {readOnly ? (
-                        <span className="flex items-center justify-center h-8 text-gray-600 font-medium">
-                          {cat !== undefined ? CATEGORIES[cat].short : '—'}
+                        <span className="flex items-center justify-center h-8 text-gray-600 font-medium text-xs">
+                          {j ? displayJudgment(j) : '—'}
                         </span>
                       ) : (
-                        <select
-                          value={cat ?? ''}
-                          onChange={(e) =>
-                            setJudgment(
-                              rowItem.id,
-                              colItem.id,
-                              parseInt(e.target.value) as MacbethCategory,
-                            )
-                          }
-                          className={`w-full h-8 text-center text-xs border-0 bg-transparent focus:ring-1 focus:ring-blue-400 cursor-pointer ${
-                            isConflict ? 'text-red-700 font-semibold' : ''
-                          }`}
-                          aria-label={`Juízo: ${rowItem.label} vs ${colItem.label}`}
-                        >
-                          <option value="">—</option>
-                          {CATEGORIES.map((c) => (
-                            <option key={c.value} value={c.value}>
-                              {c.short}
-                            </option>
-                          ))}
-                        </select>
+                        <div className="flex items-center justify-center h-8 px-0.5 gap-0.5">
+                          {/* Lo / exact select */}
+                          <select
+                            value={lo ?? ''}
+                            onChange={(e) => {
+                              if (e.target.value === '') {
+                                clearJudgment(rowItem.id, colItem.id);
+                              } else {
+                                setLo(rowItem.id, colItem.id, parseInt(e.target.value) as MacbethCategory);
+                              }
+                            }}
+                            className={`w-12 h-6 text-center text-xs border border-gray-200 rounded bg-white focus:ring-1 focus:ring-blue-400 cursor-pointer ${
+                              isConflict ? 'text-red-700 font-semibold border-red-300' : ''
+                            }`}
+                            aria-label={`Juízo lo: ${rowItem.label} vs ${colItem.label}`}
+                          >
+                            <option value="">—</option>
+                            {CATEGORIES.map((c) => (
+                              <option key={c.value} value={c.value}>{c.short}</option>
+                            ))}
+                          </select>
+
+                          {/* Hi select — only when lo ≥ 1 (C0 means identical, no interval) */}
+                          {lo !== undefined && lo >= 1 && (
+                            <select
+                              value={hi ?? lo}
+                              onChange={(e) =>
+                                setHi(rowItem.id, colItem.id, parseInt(e.target.value) as MacbethCategory)
+                              }
+                              className={`w-12 h-6 text-center text-xs rounded cursor-pointer focus:ring-1 focus:ring-blue-400 ${
+                                isInterval
+                                  ? 'border border-blue-400 bg-blue-50 text-blue-700 font-medium'
+                                  : 'border border-gray-100 bg-transparent text-gray-300'
+                              }`}
+                              title="Limite superior do intervalo (opcional — igual ao inferior = juízo exacto)"
+                              aria-label={`Juízo hi: ${rowItem.label} vs ${colItem.label}`}
+                            >
+                              {CATEGORIES.filter((c) => c.value >= lo).map((c) => (
+                                <option key={c.value} value={c.value}>{c.short}</option>
+                              ))}
+                            </select>
+                          )}
+                        </div>
                       )}
                     </td>
                   );
@@ -152,6 +205,7 @@ export default function JudgmentMatrixEditor({ items, judgments, onChange, readO
             <strong>{c.short}</strong> = {c.label}
           </span>
         ))}
+        <span className="text-gray-400">· O segundo campo define o limite superior de um juízo intervalar (ex.: C3–C5).</span>
       </div>
 
       {/* Inconsistency corrections */}
