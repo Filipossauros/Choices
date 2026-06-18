@@ -2,11 +2,9 @@ import { useState } from 'react';
 import { useApp } from '../store';
 import type { MacbethJudgment, JudgmentMatrix } from '../../domain/types';
 import { DEFAULT_ASSESSOR_ID } from '../../domain/types';
-import { deriveWeights } from '../../engine/weighting';
+import { deriveWeights, ALL_NEUTRAL } from '../../engine/weighting';
 import JudgmentMatrixEditor from '../components/JudgmentMatrixEditor';
 import { v4 as uuidv4 } from 'uuid';
-
-const ALL_NEUTRAL = '__all_neutral__';
 
 export default function Weighting() {
   const { state, dispatch } = useApp();

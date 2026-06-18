@@ -6,6 +6,13 @@ export default defineConfig({
   optimizeDeps: {
     exclude: ['glpk.js'],
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: { glpk: ['glpk.js'] },
+      },
+    },
+  },
   test: {
     globals: true,
     environment: 'jsdom',

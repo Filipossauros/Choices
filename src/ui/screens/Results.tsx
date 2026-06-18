@@ -47,6 +47,10 @@ export default function Results() {
   }
 
   const result = model.aggregationResult;
+  const isStale = result != null && (
+    (model.weights?.derivedAt != null && model.weights.derivedAt > result.computedAt) ||
+    model.derivedScales.some((s) => s.derivedAt > result.computedAt)
+  );
   const qualCriteria = Object.values(model.valueTree.criteria).filter(
     (c) => c.type === 'qualification',
   );
@@ -81,7 +85,14 @@ export default function Results() {
   return (
     <div className="max-w-5xl mx-auto py-6 px-4 space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-gray-800">Resultados da Avaliação</h2>
+        <div className="flex items-center gap-3">
+          <h2 className="text-xl font-semibold text-gray-800">Resultados da Avaliação</h2>
+          {isStale && (
+            <span className="text-xs text-amber-600 font-medium">
+              ⚠ Pesos ou escalas alterados — recalcule
+            </span>
+          )}
+        </div>
         <button
           onClick={handleAggregate}
           className="px-4 py-1.5 text-sm bg-blue-700 text-white rounded hover:bg-blue-800"

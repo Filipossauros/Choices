@@ -19,7 +19,7 @@ import type { Weights, CriterionWeight, MacbethJudgment } from '../domain/types'
 import { solveLP, type LPConstraint, type LPBound } from './lp';
 import { catLo, catHi } from './consistency';
 
-const ALL_NEUTRAL = '__all_neutral__';
+export const ALL_NEUTRAL = 'all_neutral_ref';
 
 function safeVar(id: string): string {
   return `w__${id.replace(/[^a-zA-Z0-9]/g, '_')}`;
@@ -55,6 +55,14 @@ export async function deriveWeights(
     vars: [{ name: safeVar(ALL_NEUTRAL), coef: 1 }],
     type: 'EQ',
     rhs: 0,
+  });
+
+  // Normalization: Σ wᵢ = 1 (bounds the LP; weights extracted directly without re-scaling)
+  constraints.push({
+    name: 'normalization',
+    vars: criterionIds.map((id) => ({ name: safeVar(id), coef: 1 })),
+    type: 'EQ',
+    rhs: 1,
   });
 
   // All criterion weights ≥ 0
