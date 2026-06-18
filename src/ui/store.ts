@@ -2,12 +2,15 @@ import {
   createContext,
   useContext,
   useReducer,
+  useEffect,
+  useRef,
   type ReactNode,
 } from 'react';
 import { createElement } from 'react';
 import type { MacbethModel } from '../domain/types';
 import { MODEL_VERSION, DEFAULT_ASSESSOR_ID } from '../domain/types';
 import { v4 as uuidv4 } from 'uuid';
+import { repository } from '../repository';
 
 export type Screen =
   | 'home'
@@ -87,6 +90,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
     currentScreen: 'home',
     model: null,
   });
+
+  // Auto-save to IndexedDB 400 ms after the last model change
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (!state.model) return;
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    const m = state.model;
+    saveTimer.current = setTimeout(() => {
+      repository.saveModel(m).catch(() => {});
+    }, 400);
+    return () => {
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+    };
+  }, [state.model]);
+
   return createElement(
     AppContext.Provider,
     { value: { state, dispatch } },
