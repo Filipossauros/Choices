@@ -231,6 +231,7 @@ export default function Structuring() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showNew, setShowNew] = useState(false);
   const [modelLabel, setModelLabel] = useState(model.label);
+  const [saveFlash, setSaveFlash] = useState(false);
 
   const criteria = model.valueTree.criteria;
   const leafIds = model.valueTree.root.children.map((n) => n.criterionId);
@@ -274,11 +275,11 @@ export default function Structuring() {
     });
   }
 
-  async function saveModel() {
-    const updated = { ...model, label: modelLabel, updatedAt: new Date().toISOString() };
-    dispatch({ type: 'SET_MODEL', model: updated });
-    await repository.saveModel(updated);
-    alert('Modelo guardado.');
+  function saveModel() {
+    // Label is already kept in sync via UPDATE_MODEL on every keystroke;
+    // auto-save in AppProvider handles IndexedDB persistence.
+    setSaveFlash(true);
+    setTimeout(() => setSaveFlash(false), 2000);
   }
 
   async function exportModel() {
@@ -300,16 +301,23 @@ export default function Structuring() {
           <label className="block text-xs text-gray-500 font-medium">Designação do modelo</label>
           <input
             value={modelLabel}
-            onChange={(e) => setModelLabel(e.target.value)}
+            onChange={(e) => {
+              setModelLabel(e.target.value);
+              dispatch({ type: 'UPDATE_MODEL', patch: { label: e.target.value } });
+            }}
             className="w-full text-xl font-semibold border-0 border-b border-gray-200 focus:border-blue-400 outline-none pb-1"
           />
         </div>
         <div className="flex gap-2 shrink-0 pt-4">
           <button
             onClick={saveModel}
-            className="px-3 py-1.5 text-sm bg-blue-700 text-white rounded hover:bg-blue-800"
+            className={`px-3 py-1.5 text-sm rounded transition-colors ${
+              saveFlash
+                ? 'bg-green-600 text-white'
+                : 'bg-blue-700 text-white hover:bg-blue-800'
+            }`}
           >
-            Guardar
+            {saveFlash ? '✓ Guardado' : 'Guardar'}
           </button>
           <button
             onClick={exportModel}

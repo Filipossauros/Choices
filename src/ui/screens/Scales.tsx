@@ -113,11 +113,19 @@ export default function Scales() {
               }`}
             >
               <span className="block truncate">{c.label}</span>
-              {scale ? (
-                <span className={`text-xs ${scale.consistencyMargin > 0 ? 'text-green-600' : 'text-red-500'}`}>
-                  {scale.consistencyMargin > 0 ? '✓ Derivada' : '✗ Inconsistente'}
-                </span>
-              ) : (
+              {scale ? (() => {
+                const matrix = model.judgmentMatrices.find(
+                  (m) => m.kind === 'scale' && m.criterionId === c.id,
+                );
+                const stale = matrix && matrix.updatedAt > scale.derivedAt;
+                return stale ? (
+                  <span className="text-xs text-amber-600">⚠ Desatualizada</span>
+                ) : scale.consistencyMargin > 0 ? (
+                  <span className="text-xs text-green-600">✓ Derivada</span>
+                ) : (
+                  <span className="text-xs text-red-500">✗ Inconsistente</span>
+                );
+              })() : (
                 <span className="text-xs text-gray-400">Por derivar</span>
               )}
             </button>
