@@ -102,13 +102,18 @@ export default function Weighting() {
         <div className="border border-gray-200 rounded-xl p-4 bg-white space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="font-semibold text-gray-800">Pesos Derivados (normalizados Σ = 1)</h3>
-            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-              model.weights.consistencyMargin > 0
-                ? 'bg-green-100 text-green-700'
-                : 'bg-red-100 text-red-700'
-            }`}>
-              z = {model.weights.consistencyMargin.toFixed(4)}
-            </span>
+            <div className="flex items-center gap-2">
+              {weightingMatrix.updatedAt > model.weights.derivedAt && (
+                <span className="text-xs text-amber-600 font-medium">⚠ Desatualizados</span>
+              )}
+              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                model.weights.consistencyMargin > 0
+                  ? 'bg-green-100 text-green-700'
+                  : 'bg-red-100 text-red-700'
+              }`}>
+                z = {model.weights.consistencyMargin.toFixed(4)}
+              </span>
+            </div>
           </div>
           <div className="space-y-2">
             {model.weights.weights.map((w) => {
