@@ -23,26 +23,20 @@ function LevelEditor({
   function addLevel() {
     onChange([...levels, { id: uuidv4(), label: 'Novo nível' }], neutralIndex, goodIndex, vetoLevelId);
   }
-
   function removeLevel(i: number) {
     const next = levels.filter((_, j) => j !== i);
-    const newNeutral = Math.min(neutralIndex, next.length - 1);
-    const newGood = Math.min(goodIndex, next.length - 1);
-    onChange(next, newNeutral, newGood, vetoLevelId);
+    onChange(next, Math.min(neutralIndex, next.length - 1), Math.min(goodIndex, next.length - 1), vetoLevelId);
   }
-
   function updateLabel(i: number, label: string) {
     onChange(levels.map((l, j) => (j === i ? { ...l, label } : l)), neutralIndex, goodIndex, vetoLevelId);
   }
-
   function move(i: number, dir: -1 | 1) {
     const j = i + dir;
     if (j < 0 || j >= levels.length) return;
     const next = [...levels];
     [next[i], next[j]] = [next[j], next[i]];
-    // update anchor indices if they moved
-    let ni = neutralIndex === i ? j : neutralIndex === j ? i : neutralIndex;
-    let gi = goodIndex === i ? j : goodIndex === j ? i : goodIndex;
+    const ni = neutralIndex === i ? j : neutralIndex === j ? i : neutralIndex;
+    const gi = goodIndex === i ? j : goodIndex === j ? i : goodIndex;
     onChange(next, ni, gi, vetoLevelId);
   }
 
@@ -62,44 +56,21 @@ function LevelEditor({
             placeholder="Descrição do nível"
           />
           <label className="flex items-center gap-1 text-xs text-blue-600 cursor-pointer">
-            <input
-              type="radio"
-              name={`neutral-${levels[0]?.id}`}
-              checked={neutralIndex === i}
-              onChange={() => onChange(levels, i, goodIndex, vetoLevelId)}
-            />
+            <input type="radio" name={`neutral-${levels[0]?.id}`} checked={neutralIndex === i} onChange={() => onChange(levels, i, goodIndex, vetoLevelId)} />
             Neutro
           </label>
           <label className="flex items-center gap-1 text-xs text-green-600 cursor-pointer">
-            <input
-              type="radio"
-              name={`good-${levels[0]?.id}`}
-              checked={goodIndex === i}
-              onChange={() => onChange(levels, neutralIndex, i, vetoLevelId)}
-            />
+            <input type="radio" name={`good-${levels[0]?.id}`} checked={goodIndex === i} onChange={() => onChange(levels, neutralIndex, i, vetoLevelId)} />
             Bom
           </label>
           <label className="flex items-center gap-1 text-xs text-orange-600 cursor-pointer" title="Veto: reprova abaixo deste nível">
-            <input
-              type="checkbox"
-              checked={vetoLevelId === level.id}
-              onChange={(e) => onChange(levels, neutralIndex, goodIndex, e.target.checked ? level.id : undefined)}
-            />
+            <input type="checkbox" checked={vetoLevelId === level.id} onChange={(e) => onChange(levels, neutralIndex, goodIndex, e.target.checked ? level.id : undefined)} />
             Veto
           </label>
-          <button
-            onClick={() => removeLevel(i)}
-            className="text-red-400 hover:text-red-600 text-sm px-1"
-            aria-label="Remover nível"
-          >
-            ✕
-          </button>
+          <button onClick={() => removeLevel(i)} className="text-red-400 hover:text-red-600 text-sm px-1" aria-label="Remover nível">✕</button>
         </div>
       ))}
-      <button
-        onClick={addLevel}
-        className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1"
-      >
+      <button onClick={addLevel} className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1">
         + Adicionar nível
       </button>
     </div>
@@ -126,24 +97,24 @@ function CriterionForm({
   const [neutralIndex, setNeutralIndex] = useState(initQ?.descriptor.neutralIndex ?? 3);
   const [goodIndex, setGoodIndex] = useState(initQ?.descriptor.goodIndex ?? 1);
   const [vetoLevelId, setVetoLevelId] = useState<string | undefined>(initQ?.vetoLevelId);
+  const [continuous, setContinuous] = useState<boolean>(initQ?.continuous ?? false);
 
   function handleSave() {
     if (!label.trim()) return alert('Introduza um nome para o critério.');
     const id = initial?.id ?? uuidv4();
     if (type === 'gate') {
-      const c: GateCriterion = { id, label: label.trim(), description, type: 'gate' };
-      onSave(c);
+      onSave({ id, label: label.trim(), description, type: 'gate' } as GateCriterion);
     } else {
       if (levels.length < 2) return alert('São necessários pelo menos 2 níveis.');
-      const c: QualificationCriterion = {
+      onSave({
         id,
         label: label.trim(),
         description,
         type: 'qualification',
         descriptor: { levels, neutralIndex, goodIndex },
         vetoLevelId,
-      };
-      onSave(c);
+        continuous,
+      } as QualificationCriterion);
     }
   }
 
@@ -152,38 +123,21 @@ function CriterionForm({
       <div className="grid grid-cols-2 gap-3">
         <div className="col-span-2">
           <label className="block text-sm font-medium text-gray-700 mb-1">Nome</label>
-          <input
-            value={label}
-            onChange={(e) => setLabel(e.target.value)}
-            className="w-full border border-gray-200 rounded px-3 py-2 text-sm"
-            placeholder="Ex.: Disponibilidade, Segurança, Custo, Usabilidade…"
-          />
+          <input value={label} onChange={(e) => setLabel(e.target.value)} className="w-full border border-gray-200 rounded px-3 py-2 text-sm" placeholder="Ex.: Disponibilidade, Segurança, Custo, Usabilidade…" />
         </div>
         <div className="col-span-2">
           <label className="block text-sm font-medium text-gray-700 mb-1">Descrição (opcional)</label>
-          <input
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            className="w-full border border-gray-200 rounded px-3 py-2 text-sm"
-          />
+          <input value={description} onChange={(e) => setDescription(e.target.value)} className="w-full border border-gray-200 rounded px-3 py-2 text-sm" />
         </div>
         <div className="col-span-2">
           <label className="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
           <div className="flex gap-4">
             <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="radio"
-                checked={type === 'gate'}
-                onChange={() => setType('gate')}
-              />
+              <input type="radio" checked={type === 'gate'} onChange={() => setType('gate')} />
               <span className="text-sm">🚪 Porta (habilitação binária — cumpre/não cumpre)</span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="radio"
-                checked={type === 'qualification'}
-                onChange={() => setType('qualification')}
-              />
+              <input type="radio" checked={type === 'qualification'} onChange={() => setType('qualification')} />
               <span className="text-sm">📊 Qualificação (escala graduada)</span>
             </label>
           </div>
@@ -191,8 +145,8 @@ function CriterionForm({
       </div>
 
       {type === 'qualification' && (
-        <div>
-          <p className="text-sm font-medium text-gray-700 mb-2">Descritor de Desempenho</p>
+        <div className="space-y-3">
+          <p className="text-sm font-medium text-gray-700">Descritor de Desempenho</p>
           <LevelEditor
             levels={levels}
             neutralIndex={neutralIndex}
@@ -205,28 +159,22 @@ function CriterionForm({
               setVetoLevelId(veto);
             }}
           />
+          <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+            <input type="checkbox" checked={continuous} onChange={(e) => setContinuous(e.target.checked)} />
+            Permitir desempenho contínuo (posição entre níveis, lida da curva suave)
+          </label>
         </div>
       )}
 
       <div className="flex gap-2 pt-2">
-        <button
-          onClick={handleSave}
-          className="px-4 py-2 bg-blue-700 text-white text-sm rounded hover:bg-blue-800"
-        >
-          Guardar critério
-        </button>
-        <button
-          onClick={onCancel}
-          className="px-4 py-2 border border-gray-300 text-sm rounded hover:bg-gray-50"
-        >
-          Cancelar
-        </button>
+        <button onClick={handleSave} className="px-4 py-2 bg-blue-700 text-white text-sm rounded hover:bg-blue-800">Guardar critério</button>
+        <button onClick={onCancel} className="px-4 py-2 border border-gray-300 text-sm rounded hover:bg-gray-50">Cancelar</button>
       </div>
     </div>
   );
 }
 
-export default function Structuring() {
+export default function Criteria() {
   const { state, dispatch } = useApp();
   const model = state.model!;
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -244,11 +192,7 @@ export default function Structuring() {
     dispatch({
       type: 'UPDATE_MODEL',
       patch: {
-        valueTree: {
-          ...model.valueTree,
-          criteria: updatedCriteria,
-          root: { ...model.valueTree.root, children: updatedChildren },
-        },
+        valueTree: { ...model.valueTree, criteria: updatedCriteria, root: { ...model.valueTree.root, children: updatedChildren } },
       },
     });
     setEditingId(null);
@@ -264,10 +208,7 @@ export default function Structuring() {
         valueTree: {
           ...model.valueTree,
           criteria: rest,
-          root: {
-            ...model.valueTree.root,
-            children: model.valueTree.root.children.filter((n) => n.criterionId !== id),
-          },
+          root: { ...model.valueTree.root, children: model.valueTree.root.children.filter((n) => n.criterionId !== id) },
         },
         judgmentMatrices: model.judgmentMatrices.filter((m) => m.criterionId !== id),
         derivedScales: model.derivedScales.filter((s) => s.criterionId !== id),
@@ -275,21 +216,18 @@ export default function Structuring() {
     });
   }
 
-  async function saveModel() {
-    const updated = { ...model, label: modelLabel, updatedAt: new Date().toISOString() };
-    dispatch({ type: 'SET_MODEL', model: updated });
-    await repository.saveModel(updated);
-    alert('Modelo guardado.');
+  function commitLabel() {
+    if (modelLabel !== model.label) dispatch({ type: 'UPDATE_MODEL', patch: { label: modelLabel } });
   }
 
   async function exportModel() {
-    await repository.saveModel(model);
+    await repository.saveModel({ ...model, label: modelLabel });
     const json = await repository.exportModel(model.id);
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `choices-${model.id.slice(0, 8)}.json`;
+    a.download = `choices-modelo-${model.id.slice(0, 8)}.json`;
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -302,61 +240,17 @@ export default function Structuring() {
           <input
             value={modelLabel}
             onChange={(e) => setModelLabel(e.target.value)}
+            onBlur={commitLabel}
             className="w-full text-xl font-semibold border-0 border-b border-gray-200 focus:border-blue-400 outline-none pb-1"
           />
         </div>
-        <div className="flex gap-2 shrink-0 pt-4">
-          <button
-            onClick={saveModel}
-            className="px-3 py-1.5 text-sm bg-blue-700 text-white rounded hover:bg-blue-800"
-          >
-            Guardar
-          </button>
-          <button
-            onClick={exportModel}
-            className="px-3 py-1.5 text-sm border border-gray-300 rounded hover:bg-gray-50"
-          >
-            Exportar JSON
-          </button>
-        </div>
+        <button onClick={exportModel} className="px-3 py-1.5 mt-4 text-sm border border-gray-300 rounded hover:bg-gray-50 shrink-0">
+          Exportar modelo
+        </button>
       </div>
 
       <div className="space-y-1">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
-            Critérios ({leafIds.length})
-          </h2>
-          <div className="flex gap-2">
-            <label className="text-sm text-gray-500">Recomendado ≥</label>
-            <input
-              type="number"
-              min={0}
-              max={100}
-              value={model.approvedThreshold}
-              onChange={(e) =>
-                dispatch({
-                  type: 'UPDATE_MODEL',
-                  patch: { approvedThreshold: Number(e.target.value) },
-                })
-              }
-              className="w-16 border border-gray-200 rounded px-2 py-0.5 text-sm text-center"
-            />
-            <label className="text-sm text-gray-500">Com reservas ≥</label>
-            <input
-              type="number"
-              min={0}
-              max={100}
-              value={model.conditionalThreshold}
-              onChange={(e) =>
-                dispatch({
-                  type: 'UPDATE_MODEL',
-                  patch: { conditionalThreshold: Number(e.target.value) },
-                })
-              }
-              className="w-16 border border-gray-200 rounded px-2 py-0.5 text-sm text-center"
-            />
-          </div>
-        </div>
+        <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Critérios ({leafIds.length})</h2>
 
         {leafIds.length === 0 && (
           <p className="text-sm text-gray-400 italic py-4 text-center">
@@ -371,39 +265,24 @@ export default function Structuring() {
             return (
               <li key={id}>
                 {editingId === id ? (
-                  <CriterionForm
-                    initial={c}
-                    onSave={saveCriterion}
-                    onCancel={() => setEditingId(null)}
-                  />
+                  <CriterionForm initial={c} onSave={saveCriterion} onCancel={() => setEditingId(null)} />
                 ) : (
                   <div className="flex items-start gap-3 p-3 border border-gray-200 rounded-lg bg-white hover:border-gray-300">
                     <span className="text-lg">{c.type === 'gate' ? '🚪' : '📊'}</span>
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-gray-800">{c.label}</p>
-                      {c.description && (
-                        <p className="text-xs text-gray-500">{c.description}</p>
-                      )}
+                      {c.description && <p className="text-xs text-gray-500">{c.description}</p>}
                       {c.type === 'qualification' && (
                         <p className="text-xs text-gray-400 mt-0.5">
                           {c.descriptor.levels.length} níveis · Neutro: «{c.descriptor.levels[c.descriptor.neutralIndex]?.label}» · Bom: «{c.descriptor.levels[c.descriptor.goodIndex]?.label}»
+                          {c.continuous && ' · contínuo'}
                           {c.vetoLevelId && ` · Veto: «${c.descriptor.levels.find((l) => l.id === c.vetoLevelId)?.label}»`}
                         </p>
                       )}
                     </div>
                     <div className="flex gap-1 shrink-0">
-                      <button
-                        onClick={() => setEditingId(id)}
-                        className="px-2 py-1 text-xs border border-gray-200 rounded hover:bg-gray-50"
-                      >
-                        Editar
-                      </button>
-                      <button
-                        onClick={() => deleteCriterion(id)}
-                        className="px-2 py-1 text-xs text-red-500 border border-red-200 rounded hover:bg-red-50"
-                      >
-                        Eliminar
-                      </button>
+                      <button onClick={() => setEditingId(id)} className="px-2 py-1 text-xs border border-gray-200 rounded hover:bg-gray-50">Editar</button>
+                      <button onClick={() => deleteCriterion(id)} className="px-2 py-1 text-xs text-red-500 border border-red-200 rounded hover:bg-red-50">Eliminar</button>
                     </div>
                   </div>
                 )}
@@ -413,23 +292,17 @@ export default function Structuring() {
         </ul>
 
         {showNew ? (
-          <CriterionForm
-            onSave={saveCriterion}
-            onCancel={() => setShowNew(false)}
-          />
+          <CriterionForm onSave={saveCriterion} onCancel={() => setShowNew(false)} />
         ) : (
-          <button
-            onClick={() => setShowNew(true)}
-            className="w-full py-3 border-2 border-dashed border-gray-200 rounded-lg text-sm text-gray-500 hover:border-blue-300 hover:text-blue-600 transition-colors"
-          >
+          <button onClick={() => setShowNew(true)} className="w-full py-3 border-2 border-dashed border-gray-200 rounded-lg text-sm text-gray-500 hover:border-blue-300 hover:text-blue-600 transition-colors">
             + Adicionar critério
           </button>
         )}
       </div>
 
       <ScreenNav
-        next="proposals"
-        nextLabel="Propostas"
+        next="decision"
+        nextLabel="Escala de decisão"
         hint="Defina os critérios antes de avançar."
         blockedBy={leafIds.length === 0 ? 'Adicione pelo menos um critério para continuar.' : undefined}
       />

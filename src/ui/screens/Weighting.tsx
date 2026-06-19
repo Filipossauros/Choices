@@ -4,7 +4,6 @@ import type { MacbethJudgment, JudgmentMatrix } from '../../domain/types';
 import { DEFAULT_ASSESSOR_ID } from '../../domain/types';
 import { deriveWeights, ALL_NEUTRAL } from '../../engine/weighting';
 import JudgmentMatrixEditor from '../components/JudgmentMatrixEditor';
-import ScreenNav from '../components/ScreenNav';
 import { v4 as uuidv4 } from 'uuid';
 
 export default function Weighting() {
@@ -136,16 +135,19 @@ export default function Weighting() {
         </div>
       )}
 
-      <ScreenNav
-        next="results"
-        nextLabel="Resultados"
-        hint="Calcule os pesos antes de agregar."
-        blockedBy={
-          !model.weights || model.weights.consistencyMargin <= 0
-            ? 'Calcule pesos consistentes antes de avançar.'
-            : undefined
-        }
-      />
+      <div className="mt-8 pt-4 border-t border-gray-100 flex items-center gap-3">
+        <p className="flex-1 text-xs text-gray-400">
+          O modelo está completo. Aplique-o para registar propostas e obter resultados.
+        </p>
+        <button
+          className="ml-auto flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition-colors bg-green-700 text-white hover:bg-green-800 disabled:opacity-40 disabled:cursor-not-allowed"
+          disabled={!model.weights || model.weights.consistencyMargin <= 0}
+          title={!model.weights || model.weights.consistencyMargin <= 0 ? 'Calcule pesos consistentes antes de aplicar.' : undefined}
+          onClick={() => dispatch({ type: 'START_EVALUATION', model })}
+        >
+          Aplicar este modelo →
+        </button>
+      </div>
     </div>
   );
 }

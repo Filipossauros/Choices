@@ -3,15 +3,15 @@
  * redistributing remaining weight proportionally to other criteria.
  */
 
-import type { MacbethModel, SensitivityScenario, SensitivityPoint } from '../domain/types';
+import type { Evaluation, SensitivityScenario, SensitivityPoint } from '../domain/types';
 import { aggregate } from './aggregation';
 
 export function computeSensitivity(
-  model: MacbethModel,
+  evaluation: Evaluation,
   variedCriterionId: string,
   steps = 21,
 ): SensitivityScenario {
-  const weights = model.weights?.weights ?? [];
+  const weights = evaluation.model.weights?.weights ?? [];
   const otherWeights = weights.filter((w) => w.criterionId !== variedCriterionId);
   const otherTotal = otherWeights.reduce((s, w) => s + w.weight, 0);
 
@@ -28,12 +28,15 @@ export function computeSensitivity(
       return { ...w, weight: w.weight * scale };
     });
 
-    const modifiedModel: MacbethModel = {
-      ...model,
-      weights: { ...model.weights!, weights: newWeights },
+    const modified: Evaluation = {
+      ...evaluation,
+      model: {
+        ...evaluation.model,
+        weights: { ...evaluation.model.weights!, weights: newWeights },
+      },
     };
 
-    const result = aggregate(modifiedModel);
+    const result = aggregate(modified);
     const optionValues: Record<string, number> = {};
     for (const or of result.optionResults) {
       optionValues[or.optionId] = or.globalValue ?? 0;

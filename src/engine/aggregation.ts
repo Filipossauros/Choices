@@ -1,31 +1,33 @@
 /**
- * Two-tier MACBETH aggregation.
+ * Two-tier MACBETH aggregation over an Evaluation.
  *
  * Tier 1 (Gate): binary pass/fail — any fail vetos the proposal upstream.
  * Tier 2 (Qualification): additive model V(p) = Σᵢ kᵢ · vᵢ(p), scale [0,100].
  *
- * CONFORMITY MODULE EXTENSION POINT (deferred):
- *   The OptionResult shape is designed so that a future conformity module can
- *   compute ICO = U × Weight × Severity from criterionScores without changing
- *   the engine. Add it as a post-processing step on AggregationResult.
+ * Proposals may score on a discrete level OR a continuous position (read from
+ * the smooth value curve). The global value is then classified by the model's
+ * decision scale (N named bands) rather than fixed thresholds.
  */
 
 import type {
-  MacbethModel,
+  Evaluation,
   OptionResult,
   AggregationResult,
   GateResult,
-  OverallVerdict,
+  GateVerdict,
 } from '../domain/types';
+import { classify } from '../domain/decision';
+import { scoreAtPosition } from './scaling';
 
-export function aggregate(model: MacbethModel): AggregationResult {
-  const { valueTree, options, performances, derivedScales, weights } = model;
+export function aggregate(evaluation: Evaluation): AggregationResult {
+  const { model, options, performances } = evaluation;
+  const { valueTree, derivedScales, weights, decisionScale } = model;
   const { criteria } = valueTree;
 
-  const perfMap = new Map<string, Map<string, string>>();
+  const perfMap = new Map<string, Map<string, { value: string; position?: number }>>();
   for (const p of performances) {
     if (!perfMap.has(p.optionId)) perfMap.set(p.optionId, new Map());
-    perfMap.get(p.optionId)!.set(p.criterionId, p.value);
+    perfMap.get(p.optionId)!.set(p.criterionId, { value: p.value, position: p.position });
   }
 
   const scaleMap = new Map(derivedScales.map((s) => [s.criterionId, s]));
@@ -34,7 +36,7 @@ export function aggregate(model: MacbethModel): AggregationResult {
   );
 
   const optionResults: OptionResult[] = options.map((option) => {
-    const perf = perfMap.get(option.id) ?? new Map<string, string>();
+    const perf = perfMap.get(option.id) ?? new Map<string, { value: string; position?: number }>();
     const gateResults: GateResult[] = [];
     let rejectedByGate: string | undefined;
     let vetoedByCriterion: string | undefined;
@@ -42,7 +44,7 @@ export function aggregate(model: MacbethModel): AggregationResult {
     // ── Tier 1: Gate checks ─────────────────────────────────────────────
     for (const [critId, crit] of Object.entries(criteria)) {
       if (crit.type !== 'gate') continue;
-      const val = perf.get(critId) ?? 'pending';
+      const val = perf.get(critId)?.value ?? 'pending';
       const verdict: GateVerdict =
         val === 'pass' ? 'pass' : val === 'fail' ? 'fail' : 'pending';
       gateResults.push({ criterionId: critId, optionId: option.id, verdict });
@@ -53,7 +55,8 @@ export function aggregate(model: MacbethModel): AggregationResult {
       return {
         optionId: option.id,
         globalValue: null,
-        verdict: 'rejected',
+        bandId: null,
+        hardRejected: true,
         gateResults,
         criterionScores: {},
         rejectedByGate,
@@ -68,31 +71,39 @@ export function aggregate(model: MacbethModel): AggregationResult {
     for (const [critId, crit] of Object.entries(criteria)) {
       if (crit.type !== 'qualification') continue;
 
-      const levelId = perf.get(critId);
+      const entry = perf.get(critId);
       const scale = scaleMap.get(critId);
       const w = weightMap.get(critId) ?? 0;
 
-      if (!levelId || !scale) {
+      if (!entry || !scale) {
         criterionScores[critId] = null;
         continue;
       }
 
-      const sv = scale.values.find((v) => v.levelId === levelId);
-      if (!sv) {
+      let score: number | null = null;
+      if (entry.position != null) {
+        // Continuous performance — read from the smooth curve.
+        score = scoreAtPosition(crit.descriptor, scale, entry.position);
+      } else if (entry.value) {
+        // Discrete level.
+        score = scale.values.find((v) => v.levelId === entry.value)?.value ?? null;
+      }
+
+      if (score === null) {
         criterionScores[critId] = null;
         continue;
       }
 
-      criterionScores[critId] = sv.value;
+      criterionScores[critId] = score;
 
       if (crit.vetoLevelId) {
         const vetoSv = scale.values.find((v) => v.levelId === crit.vetoLevelId);
-        if (vetoSv && sv.value < vetoSv.value && !vetoedByCriterion) {
+        if (vetoSv && score < vetoSv.value && !vetoedByCriterion) {
           vetoedByCriterion = critId;
         }
       }
 
-      weightedSum += w * sv.value;
+      weightedSum += w * score;
       totalWeight += w;
     }
 
@@ -100,7 +111,8 @@ export function aggregate(model: MacbethModel): AggregationResult {
       return {
         optionId: option.id,
         globalValue: null,
-        verdict: 'rejected',
+        bandId: null,
+        hardRejected: true,
         gateResults,
         criterionScores,
         vetoedByCriterion,
@@ -110,16 +122,13 @@ export function aggregate(model: MacbethModel): AggregationResult {
     const globalValue =
       totalWeight > 0 ? Math.round((weightedSum / totalWeight) * 100) / 100 : null;
 
-    let verdict: OverallVerdict = 'rejected';
-    if (globalValue !== null) {
-      if (globalValue >= model.approvedThreshold) verdict = 'approved';
-      else if (globalValue >= model.conditionalThreshold) verdict = 'conditional';
-    }
+    const band = globalValue !== null ? classify(globalValue, decisionScale) : null;
 
     return {
       optionId: option.id,
       globalValue,
-      verdict,
+      bandId: band?.id ?? null,
+      hardRejected: false,
       gateResults,
       criterionScores,
     };
@@ -127,10 +136,7 @@ export function aggregate(model: MacbethModel): AggregationResult {
 
   return {
     optionResults,
-    approvedThreshold: model.approvedThreshold,
-    conditionalThreshold: model.conditionalThreshold,
+    decisionScale,
     computedAt: new Date().toISOString(),
   };
 }
-
-type GateVerdict = 'pass' | 'fail' | 'pending';

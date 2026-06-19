@@ -18,6 +18,7 @@ import type {
 } from '../domain/types';
 import { solveLP, type LPConstraint, type LPBound } from './lp';
 import { catLo, catHi } from './consistency';
+import { monotoneCubic, type SplinePoint } from './interpolation';
 
 function safeVar(id: string): string {
   return `v__${id.replace(/[^a-zA-Z0-9]/g, '_')}`;
@@ -217,4 +218,42 @@ export async function deriveScale(
 
 function round2(n: number): number {
   return Math.round(n * 100) / 100;
+}
+
+// ── Continuous scoring ────────────────────────────────────────────────────────
+//
+// A derived scale gives a cardinal value at each discrete descriptor level. To
+// score a *continuous* performance we place the levels on a normalized position
+// axis — 0 = least attractive level, 1 = most attractive — and read the value
+// from a smooth monotone-cubic curve through those points.
+
+/** Normalized position [0,1] of a descriptor level (0 = least attractive). */
+export function levelPosition(descriptor: Descriptor, levelId: string): number {
+  const n = descriptor.levels.length;
+  if (n <= 1) return 0;
+  const idx = descriptor.levels.findIndex((l) => l.id === levelId);
+  if (idx < 0) return 0;
+  // descriptor index 0 = most attractive, so invert to get position
+  return (n - 1 - idx) / (n - 1);
+}
+
+/** (position, value) nodes for a derived scale, ascending by position. */
+export function scalePoints(descriptor: Descriptor, scale: DerivedScale): SplinePoint[] {
+  const valueByLevel = new Map(scale.values.map((v) => [v.levelId, v.value]));
+  return descriptor.levels
+    .map((lvl) => ({
+      x: levelPosition(descriptor, lvl.id),
+      y: valueByLevel.get(lvl.id) ?? 0,
+    }))
+    .sort((a, b) => a.x - b.x);
+}
+
+/** Smooth value at a continuous position [0,1] along the descriptor. */
+export function scoreAtPosition(
+  descriptor: Descriptor,
+  scale: DerivedScale,
+  position: number,
+): number {
+  const f = monotoneCubic(scalePoints(descriptor, scale));
+  return round2(f(position));
 }

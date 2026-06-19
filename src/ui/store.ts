@@ -7,74 +7,118 @@ import {
   type ReactNode,
 } from 'react';
 import { createElement } from 'react';
-import type { MacbethModel } from '../domain/types';
-import { MODEL_VERSION, DEFAULT_ASSESSOR_ID } from '../domain/types';
+import type { EvaluationModel, Evaluation } from '../domain/types';
+import { MODEL_VERSION } from '../domain/types';
+import { defaultDecisionScale } from '../domain/decision';
 import { v4 as uuidv4 } from 'uuid';
 import { repository } from '../repository';
 
 export type Screen =
   | 'home'
-  | 'structuring'
-  | 'proposals'
-  | 'qualification'
+  // criação do modelo
+  | 'criteria'
+  | 'decision'
   | 'scales'
   | 'weighting'
+  // aplicação do modelo
+  | 'analysis'
   | 'results'
   | 'sensitivity'
   | 'report';
 
+export const CREATE_SCREENS: Screen[] = ['criteria', 'decision', 'scales', 'weighting'];
+export const APPLY_SCREENS: Screen[] = ['analysis', 'results', 'sensitivity', 'report'];
+
+export type Mode = 'create' | 'apply';
+
 interface AppState {
   currentScreen: Screen;
-  model: MacbethModel | null;
+  mode: Mode | null;
+  model: EvaluationModel | null;
+  evaluation: Evaluation | null;
 }
 
 type Action =
+  | { type: 'GO_HOME' }
   | { type: 'SET_SCREEN'; screen: Screen }
-  | { type: 'SET_MODEL'; model: MacbethModel }
-  | { type: 'UPDATE_MODEL'; patch: Partial<MacbethModel> }
-  | { type: 'NEW_MODEL' };
+  | { type: 'NEW_MODEL' }
+  | { type: 'EDIT_MODEL'; model: EvaluationModel }
+  | { type: 'UPDATE_MODEL'; patch: Partial<EvaluationModel> }
+  | { type: 'START_EVALUATION'; model: EvaluationModel; label?: string }
+  | { type: 'OPEN_EVALUATION'; evaluation: Evaluation }
+  | { type: 'UPDATE_EVALUATION'; patch: Partial<Evaluation> };
 
-export function createEmptyModel(): MacbethModel {
+export function createEmptyModel(): EvaluationModel {
+  const now = new Date().toISOString();
   return {
+    kind: 'model',
     id: uuidv4(),
     modelVersion: MODEL_VERSION,
     label: 'Novo Modelo de Avaliação',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    valueTree: {
-      root: { criterionId: 'root', children: [] },
-      criteria: {},
-    },
-    options: [],
-    performances: [],
+    createdAt: now,
+    updatedAt: now,
+    valueTree: { root: { criterionId: 'root', children: [] }, criteria: {} },
     judgmentMatrices: [],
     derivedScales: [],
-    approvedThreshold: 70,
-    conditionalThreshold: 40,
+    decisionScale: defaultDecisionScale(),
   };
 }
 
-// Suppress TS warning — DEFAULT_ASSESSOR_ID used at runtime when creating matrices
-void DEFAULT_ASSESSOR_ID;
+/** Begin applying a model to proposals — embeds a deep snapshot of the model. */
+export function createEvaluation(model: EvaluationModel, label?: string): Evaluation {
+  const now = new Date().toISOString();
+  return {
+    kind: 'evaluation',
+    id: uuidv4(),
+    modelVersion: MODEL_VERSION,
+    label: label ?? `Avaliação — ${model.label}`,
+    createdAt: now,
+    updatedAt: now,
+    model: structuredClone(model),
+    options: [],
+    performances: [],
+  };
+}
 
 function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
+    case 'GO_HOME':
+      return { currentScreen: 'home', mode: null, model: null, evaluation: null };
+
     case 'SET_SCREEN':
       return { ...state, currentScreen: action.screen };
-    case 'SET_MODEL':
-      return { ...state, model: action.model };
+
+    case 'NEW_MODEL':
+      return { currentScreen: 'criteria', mode: 'create', model: createEmptyModel(), evaluation: null };
+
+    case 'EDIT_MODEL':
+      return { currentScreen: 'criteria', mode: 'create', model: action.model, evaluation: null };
+
     case 'UPDATE_MODEL':
       if (!state.model) return state;
       return {
         ...state,
-        model: {
-          ...state.model,
-          ...action.patch,
-          updatedAt: new Date().toISOString(),
-        },
+        model: { ...state.model, ...action.patch, updatedAt: new Date().toISOString() },
       };
-    case 'NEW_MODEL':
-      return { ...state, model: createEmptyModel(), currentScreen: 'structuring' };
+
+    case 'START_EVALUATION':
+      return {
+        currentScreen: 'analysis',
+        mode: 'apply',
+        model: null,
+        evaluation: createEvaluation(action.model, action.label),
+      };
+
+    case 'OPEN_EVALUATION':
+      return { currentScreen: 'analysis', mode: 'apply', model: null, evaluation: action.evaluation };
+
+    case 'UPDATE_EVALUATION':
+      if (!state.evaluation) return state;
+      return {
+        ...state,
+        evaluation: { ...state.evaluation, ...action.patch, updatedAt: new Date().toISOString() },
+      };
+
     default:
       return state;
   }
@@ -88,38 +132,50 @@ const AppContext = createContext<{
 export function AppProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, {
     currentScreen: 'home',
+    mode: null,
     model: null,
+    evaluation: null,
   });
 
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const modelRef = useRef<MacbethModel | null>(null);
   const dirtyRef = useRef(false);
+  const docRef = useRef<{ kind: 'model' | 'evaluation'; data: EvaluationModel | Evaluation } | null>(null);
 
-  // Auto-save to IndexedDB 400 ms after the last model change
+  function persist(doc: { kind: 'model' | 'evaluation'; data: EvaluationModel | Evaluation }) {
+    if (doc.kind === 'model') repository.saveModel(doc.data as EvaluationModel).catch(() => {});
+    else repository.saveEvaluation(doc.data as Evaluation).catch(() => {});
+  }
+
+  // Auto-save the active document (model in create mode, evaluation in apply mode)
   useEffect(() => {
-    modelRef.current = state.model;
-    if (!state.model) return;
+    const doc =
+      state.mode === 'create' && state.model
+        ? ({ kind: 'model', data: state.model } as const)
+        : state.mode === 'apply' && state.evaluation
+        ? ({ kind: 'evaluation', data: state.evaluation } as const)
+        : null;
+    docRef.current = doc;
+    if (!doc) return;
     dirtyRef.current = true;
     if (saveTimer.current) clearTimeout(saveTimer.current);
-    const m = state.model;
     saveTimer.current = setTimeout(() => {
-      repository.saveModel(m).catch(() => {});
+      persist(doc);
       dirtyRef.current = false;
     }, 400);
     return () => {
       if (saveTimer.current) clearTimeout(saveTimer.current);
     };
-  }, [state.model]);
+  }, [state.mode, state.model, state.evaluation]);
 
   // Flush immediately when the tab is hidden or closed so no edit is lost
   useEffect(() => {
     function flush() {
-      if (!dirtyRef.current || !modelRef.current) return;
+      if (!dirtyRef.current || !docRef.current) return;
       if (saveTimer.current) {
         clearTimeout(saveTimer.current);
         saveTimer.current = null;
       }
-      repository.saveModel(modelRef.current).catch(() => {});
+      persist(docRef.current);
       dirtyRef.current = false;
     }
     function onVisibility() {
@@ -131,13 +187,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       document.removeEventListener('visibilitychange', onVisibility);
       window.removeEventListener('beforeunload', flush);
     };
-  }, []); // stable — reads refs only, never stale
+  }, []); // stable — reads refs only
 
-  return createElement(
-    AppContext.Provider,
-    { value: { state, dispatch } },
-    children,
-  );
+  return createElement(AppContext.Provider, { value: { state, dispatch } }, children);
 }
 
 export function useApp() {

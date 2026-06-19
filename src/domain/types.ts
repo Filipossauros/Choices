@@ -12,8 +12,6 @@ export type MacbethJudgment =
 
 export type GateVerdict = 'pass' | 'fail' | 'pending';
 
-export type OverallVerdict = 'approved' | 'conditional' | 'rejected';
-
 // ─── Descriptor / Performance levels ───────────────────────────────────────
 
 export interface PerformanceLevel {
@@ -51,6 +49,11 @@ export interface QualificationCriterion extends BaseCriterion {
   descriptor: Descriptor;
   /** Level id below which the proposal is vetoed regardless of aggregate */
   vetoLevelId?: string;
+  /**
+   * When true, proposals score on a continuous position along the descriptor
+   * (read from the smooth value curve) instead of picking a single level.
+   */
+  continuous?: boolean;
 }
 
 export type Criterion = GateCriterion | QualificationCriterion;
@@ -81,8 +84,14 @@ export interface Option {
 export interface Performance {
   optionId: string;
   criterionId: string;
-  /** gate: 'pass'|'fail'; qualification: a level id from the descriptor */
+  /** gate: 'pass'|'fail'; qualification (discrete): a level id from the descriptor */
   value: string;
+  /**
+   * Qualification (continuous): normalized position on the descriptor in [0,1],
+   * where 0 = least attractive level and 1 = most attractive level. When set,
+   * the score is read from the smooth value curve at this position.
+   */
+  position?: number;
 }
 
 // ─── Judgment matrices ─────────────────────────────────────────────────────
@@ -90,7 +99,6 @@ export interface Performance {
 /**
  * Stores judgments for ONE criterion scale matrix or the weighting matrix.
  * MULTI-ASSESSOR EXTENSION POINT: assessorId is 'assessor-default' in MVP.
- * Future: aggregateAssessments(matrices: JudgmentMatrix[]) combines multiple.
  */
 export interface JudgmentMatrix {
   id: string;
@@ -135,6 +143,22 @@ export interface Weights {
   derivedAt: string;
 }
 
+// ─── Decision scale ────────────────────────────────────────────────────────
+
+/**
+ * A named decision band over the global value V(p). Bands partition the score
+ * axis: a proposal falls in the highest band whose `minScore` it reaches.
+ * Replaces the old fixed approved/conditional thresholds with N named outcomes.
+ */
+export interface DecisionBand {
+  id: string;
+  label: string;
+  /** Inclusive lower bound of the band on the V(p) axis. */
+  minScore: number;
+  /** Hex colour for charts and badges. */
+  color: string;
+}
+
 // ─── Gate results ──────────────────────────────────────────────────────────
 
 export interface GateResult {
@@ -148,7 +172,10 @@ export interface GateResult {
 export interface OptionResult {
   optionId: string;
   globalValue: number | null;
-  verdict: OverallVerdict;
+  /** Id of the matched decision band (null when hard-rejected or unscored). */
+  bandId: string | null;
+  /** Rejected by a failed gate or a veto — bypasses the decision scale. */
+  hardRejected: boolean;
   gateResults: GateResult[];
   criterionScores: Record<string, number | null>;
   vetoedByCriterion?: string;
@@ -157,8 +184,8 @@ export interface OptionResult {
 
 export interface AggregationResult {
   optionResults: OptionResult[];
-  approvedThreshold: number;
-  conditionalThreshold: number;
+  /** Snapshot of the decision scale used to classify these results. */
+  decisionScale: DecisionBand[];
   computedAt: string;
 }
 
@@ -190,12 +217,18 @@ export interface ConsistencyReport {
   inconsistentPairs: InconsistentPair[];
 }
 
-// ─── Top-level model ───────────────────────────────────────────────────────
+// ─── Top-level entities ──────────────────────────────────────────────────────
 
-export const MODEL_VERSION = '1.0.0';
+export const MODEL_VERSION = '2.0.0';
 export const DEFAULT_ASSESSOR_ID = 'assessor-default';
 
-export interface MacbethModel {
+/**
+ * The reusable evaluation MODEL (template): criteria, value scales, weights and
+ * the decision scale — everything that does NOT depend on specific proposals.
+ * Built in the "criação do modelo" flow; can be applied to many evaluations.
+ */
+export interface EvaluationModel {
+  kind: 'model';
   id: string;
   modelVersion: string;
   label: string;
@@ -203,12 +236,29 @@ export interface MacbethModel {
   createdAt: string;
   updatedAt: string;
   valueTree: ValueTree;
-  options: Option[];
-  performances: Performance[];
   judgmentMatrices: JudgmentMatrix[];
   derivedScales: DerivedScale[];
   weights?: Weights;
-  aggregationResult?: AggregationResult;
-  approvedThreshold: number;
-  conditionalThreshold: number;
+  decisionScale: DecisionBand[];
 }
+
+/**
+ * An APPLICATION of a model to a concrete set of proposals. Embeds a snapshot of
+ * the model so it is self-contained and portable ("análise em curso").
+ */
+export interface Evaluation {
+  kind: 'evaluation';
+  id: string;
+  modelVersion: string;
+  label: string;
+  description?: string;
+  createdAt: string;
+  updatedAt: string;
+  model: EvaluationModel;
+  options: Option[];
+  performances: Performance[];
+  aggregationResult?: AggregationResult;
+}
+
+/** Either persisted document kind, as written to / read from storage & JSON. */
+export type ChoicesDocument = EvaluationModel | Evaluation;

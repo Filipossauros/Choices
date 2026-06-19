@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { useApp } from '../store';
 import type { MacbethJudgment, JudgmentMatrix, DerivedScale, QualificationCriterion } from '../../domain/types';
 import { DEFAULT_ASSESSOR_ID } from '../../domain/types';
-import { deriveScale } from '../../engine/scaling';
+import { deriveScale, scalePoints } from '../../engine/scaling';
+import { sampleCurve } from '../../engine/interpolation';
 import JudgmentMatrixEditor from '../components/JudgmentMatrixEditor';
 import ScreenNav from '../components/ScreenNav';
 import { v4 as uuidv4 } from 'uuid';
@@ -14,6 +15,7 @@ import {
   CartesianGrid,
   Tooltip,
   ReferenceLine,
+  ReferenceDot,
   ResponsiveContainer,
 } from 'recharts';
 
@@ -134,53 +136,49 @@ function ScaleFormula({
   const levels = criterion.descriptor.levels;
   const levelMap = new Map(levels.map((l) => [l.id, l]));
 
-  // Sort ascending by value (worst → best)
-  const sorted = [...scale.values].sort((a, b) => a.value - b.value);
-  const n = sorted.length;
+  // Nodes on the normalized position axis (0 = least attractive, 1 = most),
+  // then a smooth monotone-cubic curve sampled densely through them.
+  const nodes = scalePoints(criterion.descriptor, scale); // [{x: pos, y: value}] ascending
+  const labelByPos = new Map(
+    levels.map((l) => {
+      const pos = nodes.find((p) =>
+        scale.values.some((v) => v.levelId === l.id && Math.abs(v.value - p.y) < 1e-9),
+      )?.x;
+      return [l.id, pos] as const;
+    }),
+  );
+  const curve = sampleCurve(nodes, 60).map((p) => ({ pos: p.x, value: p.y }));
 
-  // Build chart data using integer index as x (monotone interpolation stays uniform)
-  const chartData: { pos: number; value: number; name: string }[] = [];
-  for (let i = 0; i < n; i++) {
-    const sv = sorted[i];
-    const level = levelMap.get(sv.levelId);
-    chartData.push({
-      pos: i,
-      value: sv.value,
-      name: level?.label ?? sv.levelId,
-    });
-  }
+  // Map a position back to the nearest level label for axis ticks / tooltip
+  const nearestLabel = (pos: number): string => {
+    let best = levels[0]?.label ?? '';
+    let bestD = Infinity;
+    for (const l of levels) {
+      const lp = labelByPos.get(l.id);
+      if (lp == null) continue;
+      const d = Math.abs(lp - pos);
+      if (d < bestD) { bestD = d; best = l.label; }
+    }
+    return best;
+  };
 
-  // Build piecewise linear formula segments
-  const segments: { from: string; to: string; slope: number; intercept: number; x0: number; x1: number }[] = [];
-  for (let i = 0; i < n - 1; i++) {
-    const a = sorted[i];
-    const b = sorted[i + 1];
-    const x0 = i / (n - 1);
-    const x1 = (i + 1) / (n - 1);
-    const slope = (b.value - a.value) / (x1 - x0);
-    const intercept = a.value - slope * x0;
-    segments.push({
-      from: levelMap.get(a.levelId)?.label ?? a.levelId,
-      to: levelMap.get(b.levelId)?.label ?? b.levelId,
-      slope,
-      intercept,
-      x0,
-      x1,
-    });
-  }
+  const tickPositions = levels
+    .map((l) => labelByPos.get(l.id))
+    .filter((x): x is number => x != null)
+    .sort((a, b) => a - b);
 
   const CustomTooltip = ({
     active,
     payload,
   }: {
     active?: boolean;
-    payload?: { payload: { name: string; value: number } }[];
+    payload?: { payload: { pos: number; value: number } }[];
   }) => {
     if (!active || !payload?.length) return null;
     const d = payload[0].payload;
     return (
       <div className="bg-white border border-gray-200 rounded px-2 py-1 text-xs shadow">
-        <p className="font-medium text-gray-700">{d.name}</p>
+        <p className="font-medium text-gray-700">{nearestLabel(d.pos)}</p>
         <p className="text-blue-600">v = {d.value.toFixed(2)}</p>
       </div>
     );
@@ -191,17 +189,17 @@ function ScaleFormula({
       {/* Chart */}
       <div>
         <p className="text-xs text-gray-500 mb-1">
-          Escala cardinal — do nível menos atrativo (esquerda) para o mais atrativo (direita)
+          Escala cardinal — curva suave (interpolação monótona) do nível menos atrativo (esquerda) ao mais atrativo (direita)
         </p>
         <ResponsiveContainer width="100%" height={200}>
-          <LineChart data={chartData} margin={{ top: 8, right: 16, left: 0, bottom: 32 }}>
+          <LineChart data={curve} margin={{ top: 8, right: 16, left: 0, bottom: 32 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
             <XAxis
               dataKey="pos"
               type="number"
-              domain={[0, n - 1]}
-              ticks={chartData.map((d) => d.pos)}
-              tickFormatter={(v) => chartData[v]?.name ?? String(v)}
+              domain={[0, 1]}
+              ticks={tickPositions}
+              tickFormatter={(v) => nearestLabel(Number(v))}
               tick={{ fontSize: 9, angle: -25, textAnchor: 'end' } as object}
               interval={0}
             />
@@ -209,40 +207,31 @@ function ScaleFormula({
             <Tooltip content={<CustomTooltip />} />
             <ReferenceLine y={0} stroke="#94a3b8" strokeDasharray="4 2" label={{ value: 'Neutro', fontSize: 10, fill: '#94a3b8' }} />
             <ReferenceLine y={100} stroke="#16a34a" strokeDasharray="4 2" label={{ value: 'Bom', fontSize: 10, fill: '#16a34a' }} />
-            <Line
-              type="monotone"
-              dataKey="value"
-              stroke="#3b82f6"
-              strokeWidth={2}
-              dot={{ r: 4, fill: '#3b82f6' }}
-              activeDot={{ r: 6 }}
-            />
+            <Line type="linear" dataKey="value" stroke="#3b82f6" strokeWidth={2} dot={false} activeDot={{ r: 5 }} isAnimationActive={false} />
+            {/* Mark the exact derived nodes the curve passes through */}
+            {nodes.map((nd, i) => (
+              <ReferenceDot key={i} x={nd.x} y={nd.y} r={3.5} fill="#1d4ed8" stroke="#fff" strokeWidth={1} />
+            ))}
           </LineChart>
         </ResponsiveContainer>
       </div>
 
-      {/* Piecewise formula */}
+      {/* Node values */}
       <div>
-        <p className="text-xs font-semibold text-gray-600 mb-1">Expressão matemática (linear por troços):</p>
-        <div className="bg-gray-50 border border-gray-100 rounded-lg p-3 font-mono text-xs text-gray-700 space-y-1">
-          <div className="text-gray-500">v(x) =</div>
-          {segments.map((seg, i) => {
-            return (
-              <div key={i} className="flex gap-2 pl-4">
-                <span className="text-blue-600 shrink-0">{seg.slope.toFixed(2)}·x {seg.intercept >= 0 ? '+' : ''}{seg.intercept.toFixed(2)}</span>
-                <span className="text-gray-400 shrink-0">
-                  , x ∈ [{seg.x0.toFixed(2)}, {seg.x1.toFixed(2)}]
-                </span>
-                <span className="text-gray-400 truncate hidden sm:block">
-                  [{seg.from} → {seg.to}]
-                </span>
-              </div>
-            );
-          })}
+        <p className="text-xs font-semibold text-gray-600 mb-1">Valores cardinais derivados (a curva passa exatamente por estes pontos):</p>
+        <div className="bg-gray-50 border border-gray-100 rounded-lg p-3 text-xs text-gray-700 grid grid-cols-2 sm:grid-cols-3 gap-1">
+          {[...scale.values]
+            .sort((a, b) => b.value - a.value)
+            .map((sv) => (
+              <span key={sv.levelId}>
+                <strong>{levelMap.get(sv.levelId)?.label}</strong>: {sv.value.toFixed(1)}
+              </span>
+            ))}
         </div>
         <p className="text-[10px] text-gray-400 mt-1">
-          x = posição normalizada do nível no descritor (0 = menos atrativo, 1 = mais atrativo).
-          A função é contínua e linear em cada troço; Neutro = 0, Bom = 100.
+          A escala de valor é a interpolação monótona-cúbica (PCHIP) que passa por todos os pontos
+          derivados — suave (sem pontos de corte) e sem oscilações. Âncoras: Neutro = 0, Bom = 100.
+          Desempenhos contínuos são lidos diretamente desta curva.
         </p>
       </div>
     </div>

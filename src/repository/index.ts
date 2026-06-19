@@ -1,2 +1,2 @@
 export { IndexedDBRepository, repository } from './indexeddb';
-export type { ModelRepository } from './types';
+export type { DocsRepository, DocMeta } from './types';
