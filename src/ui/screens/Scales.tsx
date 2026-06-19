@@ -4,6 +4,7 @@ import type { MacbethJudgment, JudgmentMatrix, DerivedScale, QualificationCriter
 import { DEFAULT_ASSESSOR_ID } from '../../domain/types';
 import { deriveScale } from '../../engine/scaling';
 import JudgmentMatrixEditor from '../components/JudgmentMatrixEditor';
+import ScreenNav from '../components/ScreenNav';
 import { v4 as uuidv4 } from 'uuid';
 import {
   LineChart,
@@ -416,6 +417,17 @@ export default function Scales() {
           })()}
         </div>
       )}
+
+      <ScreenNav
+        next="weighting"
+        nextLabel="Ponderação"
+        hint="Derive as escalas de todos os critérios antes de avançar."
+        blockedBy={
+          qualCriteria.some((c) => !model.derivedScales.find((s) => s.criterionId === c.id && s.consistencyMargin > 0))
+            ? 'Derive e valide a escala de todos os critérios antes de avançar.'
+            : undefined
+        }
+      />
     </div>
   );
 }

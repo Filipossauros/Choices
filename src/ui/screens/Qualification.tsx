@@ -1,4 +1,5 @@
 import { useApp } from '../store';
+import ScreenNav from '../components/ScreenNav';
 
 export default function Qualification() {
   const { state } = useApp();
@@ -96,6 +97,12 @@ export default function Qualification() {
           </tbody>
         </table>
       </div>
+
+      <ScreenNav
+        next="scales"
+        nextLabel="Escalas"
+        hint="Portas verificadas — avance para derivar as escalas de valor."
+      />
     </div>
   );
 }

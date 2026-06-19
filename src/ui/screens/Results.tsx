@@ -1,5 +1,6 @@
 import { useApp } from '../store';
 import { aggregate } from '../../engine/aggregation';
+import ScreenNav from '../components/ScreenNav';
 import {
   BarChart,
   Bar,
@@ -230,6 +231,13 @@ export default function Results() {
           </div>
         </div>
       )}
+
+      <ScreenNav
+        next="sensitivity"
+        nextLabel="Sensibilidade"
+        hint="Analise a robustez dos resultados à variação dos pesos."
+        blockedBy={!result ? 'Calcule os resultados antes de avançar.' : undefined}
+      />
     </div>
   );
 }

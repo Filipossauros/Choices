@@ -3,6 +3,7 @@ import { useApp } from '../store';
 import { repository } from '../../repository';
 import type { Criterion, QualificationCriterion, GateCriterion, PerformanceLevel } from '../../domain/types';
 import { v4 as uuidv4 } from 'uuid';
+import ScreenNav from '../components/ScreenNav';
 
 const DEFAULT_LEVELS = ['Excelente', 'Bom', 'Suficiente', 'Neutro', 'Insuficiente'];
 
@@ -425,6 +426,13 @@ export default function Structuring() {
           </button>
         )}
       </div>
+
+      <ScreenNav
+        next="proposals"
+        nextLabel="Propostas"
+        hint="Defina os critérios antes de avançar."
+        blockedBy={leafIds.length === 0 ? 'Adicione pelo menos um critério para continuar.' : undefined}
+      />
     </div>
   );
 }

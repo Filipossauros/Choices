@@ -4,6 +4,7 @@ import type { MacbethJudgment, JudgmentMatrix } from '../../domain/types';
 import { DEFAULT_ASSESSOR_ID } from '../../domain/types';
 import { deriveWeights, ALL_NEUTRAL } from '../../engine/weighting';
 import JudgmentMatrixEditor from '../components/JudgmentMatrixEditor';
+import ScreenNav from '../components/ScreenNav';
 import { v4 as uuidv4 } from 'uuid';
 
 export default function Weighting() {
@@ -134,6 +135,17 @@ export default function Weighting() {
           </div>
         </div>
       )}
+
+      <ScreenNav
+        next="results"
+        nextLabel="Resultados"
+        hint="Calcule os pesos antes de agregar."
+        blockedBy={
+          !model.weights || model.weights.consistencyMargin <= 0
+            ? 'Calcule pesos consistentes antes de avançar.'
+            : undefined
+        }
+      />
     </div>
   );
 }

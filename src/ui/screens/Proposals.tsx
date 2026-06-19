@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useApp } from '../store';
 import type { Option, Performance } from '../../domain/types';
 import { v4 as uuidv4 } from 'uuid';
+import ScreenNav from '../components/ScreenNav';
 
 export default function Proposals() {
   const { state, dispatch } = useApp();
@@ -214,6 +215,13 @@ export default function Proposals() {
           </table>
         </div>
       )}
+
+      <ScreenNav
+        next={gateCriteria.length > 0 ? 'qualification' : 'scales'}
+        nextLabel={gateCriteria.length > 0 ? 'Habilitação' : 'Escalas'}
+        hint="Registe pelo menos uma proposta antes de avançar."
+        blockedBy={model.options.length === 0 ? 'Adicione pelo menos uma proposta para continuar.' : undefined}
+      />
     </div>
   );
 }
