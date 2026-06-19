@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
-  base: '/macbeth/',
+  base: '/Macbeth/',
   plugins: [
     react(),
     VitePWA({
@@ -15,10 +15,10 @@ export default defineConfig({
         theme_color: '#1d4ed8',
         background_color: '#ffffff',
         display: 'standalone',
-        start_url: '/macbeth/',
+        start_url: '/Macbeth/',
         icons: [
           {
-            src: '/macbeth/icon.svg',
+            src: '/Macbeth/icon.svg',
             sizes: 'any',
             type: 'image/svg+xml',
             purpose: 'any maskable',
