@@ -9,9 +9,9 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       manifest: {
-        name: 'MACBETH — Avaliação Multicritério',
-        short_name: 'MACBETH',
-        description: 'Avaliação Multicritério de Arquitectura de Solução (Bana e Costa & Vansnick)',
+        name: 'Escolhas — Avaliação Multicritério',
+        short_name: 'Escolhas',
+        description: 'Avaliação Multicritério de Alternativas (método MACBETH — Bana e Costa & Vansnick)',
         theme_color: '#1d4ed8',
         background_color: '#ffffff',
         display: 'standalone',

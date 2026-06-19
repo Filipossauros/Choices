@@ -86,7 +86,7 @@ export default function ModelHeader() {
           onClick={() => dispatch({ type: 'SET_SCREEN', screen: 'home' })}
           className="text-blue-700 font-bold text-lg tracking-tight shrink-0"
         >
-          MACBETH
+          Escolhas
         </button>
         {model && (
           <span className="text-sm text-gray-500 truncate max-w-xs">{model.label}</span>

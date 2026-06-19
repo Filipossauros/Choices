@@ -3,9 +3,9 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 const VERDICT_LABELS: Record<string, string> = {
-  approved: 'Aprovado',
-  conditional: 'Aprovado com condições',
-  rejected: 'Reprovado',
+  approved: 'Recomendado',
+  conditional: 'Recomendado com reservas',
+  rejected: 'Não recomendado',
 };
 
 export default function Report() {
@@ -25,7 +25,7 @@ export default function Report() {
     // Title
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(16);
-    doc.text('Relatório de Decisão MACBETH', pageW / 2, y, { align: 'center' });
+    doc.text('Relatório de Decisão', pageW / 2, y, { align: 'center' });
     y += 7;
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(10);
@@ -70,7 +70,7 @@ export default function Report() {
     if (qualCrit.length > 0) {
       autoTable(doc, {
         startY: y,
-        head: [['Critério MACBETH', 'Níveis (melhor → pior)', 'Neutro', 'Bom', 'Peso']],
+        head: [['Critério', 'Níveis (melhor → pior)', 'Neutro', 'Bom', 'Peso']],
         body: qualCrit.map((c) => {
           if (c.type !== 'qualification') return [];
           const w = model.weights?.weights.find((w) => w.criterionId === c.id);
@@ -102,7 +102,7 @@ export default function Report() {
 
       autoTable(doc, {
         startY: y,
-        head: [['#', 'Proposta', 'V(p)', 'Decisão', 'Observações']],
+        head: [['#', 'Proposta', 'V(p)', 'Recomendação', 'Observações']],
         body: sorted.map((r, i) => {
           const opt = model.options.find((o) => o.id === r.optionId);
           const obs = r.rejectedByGate
@@ -164,7 +164,7 @@ export default function Report() {
       doc.setFontSize(7);
       doc.setTextColor(150);
       doc.text(
-        `MACBETH — Relatório de Decisão · ${model.label} · Página ${i}/${pageCount}`,
+        `Escolhas — Relatório de Decisão · ${model.label} · Página ${i}/${pageCount}`,
         pageW / 2,
         doc.internal.pageSize.getHeight() - 8,
         { align: 'center' },
@@ -172,7 +172,7 @@ export default function Report() {
       doc.setTextColor(0);
     }
 
-    doc.save(`macbeth-relatorio-${model.id.slice(0, 8)}.pdf`);
+    doc.save(`escolhas-relatorio-${model.id.slice(0, 8)}.pdf`);
   }
 
   return (
@@ -189,7 +189,7 @@ export default function Report() {
 
       {/* Methodology */}
       <section className="border border-gray-200 rounded-xl p-5 bg-white space-y-2">
-        <h3 className="font-semibold text-gray-800">Metodologia MACBETH</h3>
+        <h3 className="font-semibold text-gray-800">Metodologia</h3>
         <p className="text-sm text-gray-600 leading-relaxed">
           MACBETH (Measuring Attractiveness by a Categorical Based Evaluation Technique) é um método de apoio à decisão multicritério que utiliza juízos qualitativos de diferença de atratividade (categorias C0–C6) entre alternativas para construir escalas cardinais de valor por programação linear.
         </p>
@@ -274,7 +274,7 @@ export default function Report() {
         <section className="border border-gray-200 rounded-xl p-5 bg-white space-y-3">
           <h3 className="font-semibold text-gray-800">Recomendação</h3>
           <p className="text-xs text-gray-500">
-            Limiar de aprovação ≥ {result.approvedThreshold} · Limiar condicional ≥ {result.conditionalThreshold}
+            Limiar recomendado ≥ {result.approvedThreshold} · Limiar com reservas ≥ {result.conditionalThreshold}
           </p>
           {[...result.optionResults]
             .sort((a, b) => (b.globalValue ?? -Infinity) - (a.globalValue ?? -Infinity))

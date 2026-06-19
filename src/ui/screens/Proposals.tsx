@@ -121,7 +121,7 @@ export default function Proposals() {
                   <th
                     key={c.id}
                     className="px-3 py-2 text-center font-medium text-gray-600 border border-gray-200"
-                    title="Critério MACBETH"
+                    title="Critério de qualificação"
                   >
                     📊 {c.label}
                   </th>

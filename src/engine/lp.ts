@@ -89,7 +89,10 @@ export async function solveLP(model: LPModel): Promise<LPResult> {
   };
 
   try {
-    const res = glpk.solve(glpkModel, glpk.GLP_MSG_OFF);
+    // glpk.js resolves to a Promise in the browser/WASM build but returns the
+    // result synchronously in the Node build. `await` handles both: awaiting a
+    // plain value is a no-op, so the same code works in tests and in the app.
+    const res = await glpk.solve(glpkModel, glpk.GLP_MSG_OFF);
     const statusMap: Record<number, LPResult['status']> = {
       [glpk.GLP_OPT]: 'optimal',
       [glpk.GLP_INFEAS]: 'infeasible',

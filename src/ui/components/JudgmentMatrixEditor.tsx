@@ -45,11 +45,16 @@ export default function JudgmentMatrixEditor({ items, judgments, onChange, readO
 
   useEffect(() => {
     if (Object.keys(judgments).length === 0) { setReport(null); return; }
+    // Guard against a slow earlier check resolving after a newer one and
+    // overwriting it with a stale verdict (consistency solves run async and
+    // out of order). Only the latest effect run is allowed to update state.
+    let cancelled = false;
     setChecking(true);
     const ids = items.map((i) => i.id);
     checkConsistency(ids, buildEntries())
-      .then(setReport)
-      .finally(() => setChecking(false));
+      .then((r) => { if (!cancelled) setReport(r); })
+      .finally(() => { if (!cancelled) setChecking(false); });
+    return () => { cancelled = true; };
   }, [judgments, items, buildEntries]);
 
   function getJudgment(idA: string, idB: string): MacbethJudgment | undefined {
@@ -96,6 +101,10 @@ export default function JudgmentMatrixEditor({ items, judgments, onChange, readO
     return <p className="text-sm text-gray-400 italic">São necessários pelo menos 2 elementos.</p>;
   }
 
+  // Stable 1-based number for each element, so the matrix headers can stay compact
+  // (numbers) while the full descriptions are read from the legend below.
+  const numberOf = new Map(items.map((it, i) => [it.id, i + 1] as const));
+
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
@@ -106,17 +115,28 @@ export default function JudgmentMatrixEditor({ items, judgments, onChange, readO
         <ConsistencyBadge report={report} loading={checking} />
       </div>
 
+      {/* Numbered key — the matrix uses these numbers so long descriptions stay readable */}
+      <ol className="text-xs text-gray-600 bg-gray-50 border border-gray-100 rounded-lg p-3 space-y-0.5">
+        {items.map((it, i) => (
+          <li key={it.id} className="flex gap-2">
+            <span className="font-semibold text-gray-700 shrink-0 w-5 text-right">{i + 1}.</span>
+            <span className="break-words">{it.label}</span>
+          </li>
+        ))}
+      </ol>
+
       <div className="overflow-x-auto">
         <table className="text-sm border-collapse">
           <thead>
             <tr>
-              <th className="w-28" />
+              <th className="w-56" />
               {items.slice(1).map((item) => (
                 <th
                   key={item.id}
-                  className="px-2 py-1 text-center text-gray-600 font-medium border border-gray-200 bg-gray-50 max-w-24"
+                  className="px-2 py-1 text-center text-gray-600 font-medium border border-gray-200 bg-gray-50"
+                  title={item.label}
                 >
-                  <span className="block truncate" title={item.label}>{item.label}</span>
+                  <span className="block font-semibold text-gray-700">{numberOf.get(item.id)}</span>
                 </th>
               ))}
             </tr>
@@ -124,8 +144,11 @@ export default function JudgmentMatrixEditor({ items, judgments, onChange, readO
           <tbody>
             {items.slice(0, -1).map((rowItem, ri) => (
               <tr key={rowItem.id}>
-                <td className="px-2 py-1 font-medium text-gray-700 border border-gray-200 bg-gray-50 max-w-28">
-                  <span className="block truncate" title={rowItem.label}>{rowItem.label}</span>
+                <td className="px-2 py-1 font-medium text-gray-700 border border-gray-200 bg-gray-50 w-56 align-top">
+                  <div className="flex gap-1.5">
+                    <span className="font-semibold text-gray-700 shrink-0">{numberOf.get(rowItem.id)}.</span>
+                    <span className="break-words leading-snug" title={rowItem.label}>{rowItem.label}</span>
+                  </div>
                 </td>
                 {items.slice(ri + 1).map((colItem) => {
                   const j = getJudgment(rowItem.id, colItem.id);
@@ -138,10 +161,27 @@ export default function JudgmentMatrixEditor({ items, judgments, onChange, readO
                   return (
                     <td
                       key={colItem.id}
-                      className={`border border-gray-200 p-0 ${isConflict ? 'bg-red-50' : ''}`}
+                      className={`border p-0 relative ${
+                        isConflict
+                          ? 'bg-red-100 border-red-400 ring-2 ring-inset ring-red-400'
+                          : 'border-gray-200'
+                      }`}
+                      title={
+                        isConflict
+                          ? `Diferença inconsistente: ${labelOf(rowItem.id)} vs ${labelOf(colItem.id)}`
+                          : undefined
+                      }
                     >
+                      {isConflict && (
+                        <span
+                          className="absolute -top-1.5 -right-1.5 text-[10px] leading-none bg-red-600 text-white rounded-full w-4 h-4 flex items-center justify-center shadow"
+                          aria-hidden="true"
+                        >
+                          !
+                        </span>
+                      )}
                       {readOnly ? (
-                        <span className="flex items-center justify-center h-8 text-gray-600 font-medium text-xs">
+                        <span className={`flex items-center justify-center h-8 font-medium text-xs ${isConflict ? 'text-red-700' : 'text-gray-600'}`}>
                           {j ? displayJudgment(j) : '—'}
                         </span>
                       ) : (
@@ -208,34 +248,47 @@ export default function JudgmentMatrixEditor({ items, judgments, onChange, readO
         <span className="text-gray-400">· O segundo campo define o limite superior de um juízo intervalar (ex.: C3–C5).</span>
       </div>
 
-      {/* Inconsistency corrections */}
-      {report && !report.isConsistent && report.inconsistentPairs.length > 0 && (
-        <div className="border border-red-200 bg-red-50 rounded p-3 space-y-2">
-          <p className="text-sm font-medium text-red-700">
-            Correções sugeridas para restaurar a consistência:
-          </p>
-          {report.inconsistentPairs.map((pair, i) => {
-            const suggested =
-              pair.suggestedJudgment.kind === 'exact'
-                ? CATEGORIES[pair.suggestedJudgment.category]?.label
-                : `C${pair.suggestedJudgment.lo}–C${pair.suggestedJudgment.hi}`;
-            return (
-              <div key={i} className="flex items-center gap-3 text-sm">
-                <span className="text-gray-700">
-                  <strong>{labelOf(pair.idA)}</strong> vs <strong>{labelOf(pair.idB)}</strong>:{' '}
-                  alterar para <em>{suggested}</em>
-                </span>
-                {!readOnly && (
-                  <button
-                    onClick={() => applyCorrection(pair)}
-                    className="px-2 py-0.5 text-xs bg-red-600 text-white rounded hover:bg-red-700"
-                  >
-                    Aplicar
-                  </button>
-                )}
-              </div>
-            );
-          })}
+      {/* Inconsistency explanation & corrections */}
+      {report && !report.isConsistent && (
+        <div className="border border-red-200 bg-red-50 rounded-lg p-3 space-y-2">
+          {report.inconsistentPairs.length > 0 ? (
+            <>
+              <p className="text-sm font-medium text-red-700">
+                Diferenças de atratividade inconsistentes (realçadas a vermelho na matriz):
+              </p>
+              {report.inconsistentPairs.map((pair, i) => {
+                const current = displayJudgment(pair.currentJudgment);
+                const suggested =
+                  pair.suggestedJudgment.kind === 'exact'
+                    ? CATEGORIES[pair.suggestedJudgment.category]?.short
+                    : `C${pair.suggestedJudgment.lo}–C${pair.suggestedJudgment.hi}`;
+                return (
+                  <div key={i} className="flex items-center gap-3 text-sm flex-wrap">
+                    <span className="text-gray-700">
+                      <strong>{numberOf.get(pair.idA)}. {labelOf(pair.idA)}</strong> vs{' '}
+                      <strong>{numberOf.get(pair.idB)}. {labelOf(pair.idB)}</strong>:{' '}
+                      atual <em className="text-red-700 not-italic font-semibold">{current}</em>{' '}
+                      → sugerido <em className="text-green-700 not-italic font-semibold">{suggested}</em>
+                    </span>
+                    {!readOnly && (
+                      <button
+                        onClick={() => applyCorrection(pair)}
+                        className="px-2 py-0.5 text-xs bg-red-600 text-white rounded hover:bg-red-700"
+                      >
+                        Aplicar
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </>
+          ) : (
+            <p className="text-sm text-red-700">
+              A matriz é inconsistente, mas o conflito resulta da combinação de vários juízos
+              (um ciclo) e não de um único par isolável. Reveja as diferenças de atratividade —
+              sobretudo as que envolvem categorias muito próximas entre si ou muito afastadas.
+            </p>
+          )}
         </div>
       )}
     </div>

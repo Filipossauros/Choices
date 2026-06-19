@@ -155,7 +155,7 @@ function CriterionForm({
             value={label}
             onChange={(e) => setLabel(e.target.value)}
             className="w-full border border-gray-200 rounded px-3 py-2 text-sm"
-            placeholder="Ex.: Disponibilidade, Segurança, Conformidade legal…"
+            placeholder="Ex.: Disponibilidade, Segurança, Custo, Usabilidade…"
           />
         </div>
         <div className="col-span-2">
@@ -183,7 +183,7 @@ function CriterionForm({
                 checked={type === 'qualification'}
                 onChange={() => setType('qualification')}
               />
-              <span className="text-sm">📊 Qualificação (MACBETH — escala graduada)</span>
+              <span className="text-sm">📊 Qualificação (escala graduada)</span>
             </label>
           </div>
         </div>
@@ -326,7 +326,7 @@ export default function Structuring() {
             Critérios ({leafIds.length})
           </h2>
           <div className="flex gap-2">
-            <label className="text-sm text-gray-500">Aprovação ≥</label>
+            <label className="text-sm text-gray-500">Recomendado ≥</label>
             <input
               type="number"
               min={0}
@@ -340,7 +340,7 @@ export default function Structuring() {
               }
               className="w-16 border border-gray-200 rounded px-2 py-0.5 text-sm text-center"
             />
-            <label className="text-sm text-gray-500">Condicional ≥</label>
+            <label className="text-sm text-gray-500">Com reservas ≥</label>
             <input
               type="number"
               min={0}

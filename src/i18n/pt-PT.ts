@@ -1,8 +1,8 @@
 export const ptPT = {
   translation: {
     app: {
-      title: 'MACBETH',
-      subtitle: 'Avaliação de Arquitetura de Solução',
+      title: 'Escolhas',
+      subtitle: 'Avaliação Multicritério de Alternativas',
       tagline: 'Motor de Decisão Multicritério',
     },
     nav: {
@@ -53,7 +53,7 @@ export const ptPT = {
       add: 'Adicionar Critério',
       type: 'Tipo',
       gate: 'Porta (habilitação binária)',
-      qualification: 'Qualificação (MACBETH)',
+      qualification: 'Qualificação (escala graduada)',
       levels: 'Níveis de Desempenho',
       addLevel: 'Adicionar Nível',
       neutral: 'Neutro (âncora = 0)',
@@ -115,15 +115,15 @@ export const ptPT = {
     results: {
       title: 'Resultados da Avaliação',
       globalValue: 'Valor Global V(p)',
-      verdict: 'Decisão',
-      approved: 'Aprovado',
-      conditional: 'Aprovado com condições',
-      rejected: 'Reprovado',
+      verdict: 'Recomendação',
+      approved: 'Recomendado',
+      conditional: 'Recomendado com reservas',
+      rejected: 'Não recomendado',
       vetoedBy: 'Vetado por',
       rejectedByGate: 'Reprovado na porta',
       thresholds: 'Limiares de classificação',
-      approvedThreshold: 'Limiar de aprovação (≥)',
-      conditionalThreshold: 'Limiar condicional (≥)',
+      approvedThreshold: 'Limiar recomendado (≥)',
+      conditionalThreshold: 'Limiar com reservas (≥)',
       noResults: 'Ainda não há resultados. Complete a ponderação e execute a agregação.',
       aggregate: 'Calcular Resultados',
       rank: 'Classificação',
@@ -141,7 +141,7 @@ export const ptPT = {
     report: {
       title: 'Relatório de Decisão',
       exportPdf: 'Exportar PDF',
-      methodology: 'Metodologia MACBETH',
+      methodology: 'Metodologia',
       description: 'MACBETH (Measuring Attractiveness by a Categorical Based Evaluation Technique) é um método de apoio à decisão multicritério que utiliza juízos qualitativos de diferença de atratividade para construir escalas cardinais de valor.',
       judgments: 'Matrizes de Juízos',
       derivedScales: 'Escalas Derivadas',

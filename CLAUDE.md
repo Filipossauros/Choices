@@ -1,6 +1,6 @@
-# MACBETH — Avaliação Multicritério de Arquitetura de Solução
+# Escolhas — Avaliação Multicritério de Alternativas
 
-Local-first web app for evaluating solution architecture proposals using the MACBETH method (Bana e Costa & Vansnick 1994).
+Local-first web app ("Escolhas") for evaluating and ranking alternatives using the MACBETH method (Bana e Costa & Vansnick 1994). The UI is domain-agnostic — it does not assume any particular context (e.g. architecture or conformity).
 
 ## Quick start
 

@@ -19,9 +19,9 @@ const VERDICT_COLORS: Record<string, string> = {
 };
 
 const VERDICT_LABELS: Record<string, string> = {
-  approved: 'Aprovado',
-  conditional: 'Aprovado com condições',
-  rejected: 'Reprovado',
+  approved: 'Recomendado',
+  conditional: 'Recomendado com reservas',
+  rejected: 'Não recomendado',
 };
 
 function VerdictBadge({ verdict }: { verdict: string }) {
@@ -112,8 +112,8 @@ export default function Results() {
             <XAxis dataKey="name" tick={{ fontSize: 12 }} />
             <YAxis domain={[-20, 100]} tick={{ fontSize: 11 }} />
             <Tooltip formatter={(v) => [`${v}`, 'V(p)']} />
-            <ReferenceLine y={result.approvedThreshold} stroke="#16a34a" strokeDasharray="4 4" label={{ value: 'Aprovação', fontSize: 10 }} />
-            <ReferenceLine y={result.conditionalThreshold} stroke="#d97706" strokeDasharray="4 4" label={{ value: 'Condicional', fontSize: 10 }} />
+            <ReferenceLine y={result.approvedThreshold} stroke="#16a34a" strokeDasharray="4 4" label={{ value: 'Recomendado', fontSize: 10 }} />
+            <ReferenceLine y={result.conditionalThreshold} stroke="#d97706" strokeDasharray="4 4" label={{ value: 'Com reservas', fontSize: 10 }} />
             <Bar dataKey="value" radius={[4, 4, 0, 0]}>
               {chartData.map((entry, i) => (
                 <Cell key={i} fill={VERDICT_COLORS[entry.verdict] ?? '#6b7280'} />
@@ -131,7 +131,7 @@ export default function Results() {
               <th className="px-4 py-2 text-left text-gray-600 font-medium">#</th>
               <th className="px-4 py-2 text-left text-gray-600 font-medium">Proposta</th>
               <th className="px-4 py-2 text-right text-gray-600 font-medium">V(p)</th>
-              <th className="px-4 py-2 text-center text-gray-600 font-medium">Decisão</th>
+              <th className="px-4 py-2 text-center text-gray-600 font-medium">Recomendação</th>
               <th className="px-4 py-2 text-left text-gray-600 font-medium">Observações</th>
             </tr>
           </thead>

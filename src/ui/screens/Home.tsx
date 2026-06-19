@@ -49,8 +49,8 @@ export default function Home() {
   return (
     <div className="max-w-2xl mx-auto py-12 px-4 space-y-8">
       <div className="text-center space-y-2">
-        <h1 className="text-3xl font-bold text-blue-800">MACBETH</h1>
-        <p className="text-gray-500">Avaliação Multicritério de Arquitetura de Solução</p>
+        <h1 className="text-3xl font-bold text-blue-800">Escolhas</h1>
+        <p className="text-gray-500">Avaliação Multicritério de Alternativas</p>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
@@ -101,7 +101,7 @@ export default function Home() {
 
       <div className="text-xs text-gray-400 text-center space-y-1">
         <p>Local-first — os dados ficam no seu dispositivo (IndexedDB).</p>
-        <p>Método MACBETH © Bana e Costa & Vansnick</p>
+        <p>Baseado no método MACBETH © Bana e Costa & Vansnick</p>
       </div>
     </div>
   );
