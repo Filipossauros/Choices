@@ -1,3 +1,4 @@
+import { useMemo, useEffect } from 'react';
 import { useApp } from '../store';
 import { aggregate } from '../../engine/aggregation';
 import { sortBands } from '../../domain/decision';
@@ -17,16 +18,39 @@ import {
 
 const REJECT_COLOR = '#9ca3af';
 
+function exportEvaluation(evaluation: ReturnType<typeof useApp>['state']['evaluation']) {
+  if (!evaluation) return;
+  const blob = new Blob([JSON.stringify(evaluation, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `choices-avaliacao-${evaluation.id.slice(0, 8)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export default function Results() {
   const { state, dispatch } = useApp();
   const evaluation = state.evaluation!;
   const model = evaluation.model;
 
-  function handleAggregate() {
-    dispatch({ type: 'UPDATE_EVALUATION', patch: { aggregationResult: aggregate(evaluation) } });
-  }
+  // Compute aggregate result fresh whenever options/performances change
+  const freshResult = useMemo(() => {
+    if (!model.weights || evaluation.options.length === 0) return null;
+    return aggregate(evaluation);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [evaluation.options, evaluation.performances, model]);
 
-  const result = evaluation.aggregationResult;
+  // Persist fresh result to state so Sensitivity screen can use it
+  useEffect(() => {
+    if (freshResult) {
+      dispatch({ type: 'UPDATE_EVALUATION', patch: { aggregationResult: freshResult } });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [freshResult]);
+
+  const result = freshResult ?? evaluation.aggregationResult ?? null;
+
   const isStale =
     result != null &&
     (evaluation.options.length !== result.optionResults.length ||
@@ -34,13 +58,35 @@ export default function Results() {
 
   const qualCriteria = Object.values(model.valueTree.criteria).filter((c) => c.type === 'qualification');
 
+  const optionNotes = evaluation.optionNotes ?? {};
+
+  function setNote(optionId: string, note: string) {
+    dispatch({
+      type: 'UPDATE_EVALUATION',
+      patch: { optionNotes: { ...optionNotes, [optionId]: note } },
+    });
+  }
+
+  if (!model.weights) {
+    return (
+      <div className="max-w-2xl mx-auto py-16 px-4 text-center space-y-3">
+        <p className="text-gray-500">Complete a ponderação no modelo para calcular resultados.</p>
+      </div>
+    );
+  }
+
+  if (evaluation.options.length === 0) {
+    return (
+      <div className="max-w-2xl mx-auto py-16 px-4 text-center space-y-3">
+        <p className="text-gray-500">Adicione propostas no separador «Análise e avaliação».</p>
+      </div>
+    );
+  }
+
   if (!result) {
     return (
-      <div className="max-w-2xl mx-auto py-16 px-4 text-center space-y-4">
-        <p className="text-gray-500">Registe as propostas e clique em «Calcular Resultados».</p>
-        <button onClick={handleAggregate} className="px-6 py-3 bg-blue-700 text-white rounded-xl text-lg font-medium hover:bg-blue-800">
-          Calcular Resultados
-        </button>
+      <div className="max-w-2xl mx-auto py-16 px-4 text-center">
+        <p className="text-gray-400 text-sm">A calcular resultados…</p>
       </div>
     );
   }
@@ -64,14 +110,26 @@ export default function Results() {
 
   return (
     <div className="max-w-5xl mx-auto py-6 px-4 space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-3">
           <h2 className="text-xl font-semibold text-gray-800">Resultados da Avaliação</h2>
-          {isStale && <span className="text-xs text-amber-600 font-medium">⚠ Propostas alteradas — recalcule</span>}
+          {isStale && <span className="text-xs text-amber-600 font-medium">⚠ Propostas alteradas — a recalcular…</span>}
         </div>
-        <button onClick={handleAggregate} className="px-4 py-1.5 text-sm bg-blue-700 text-white rounded hover:bg-blue-800">
-          Recalcular
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => dispatch({ type: 'UPDATE_EVALUATION', patch: { aggregationResult: aggregate(evaluation) } })}
+            className="px-3 py-1.5 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+          >
+            Recalcular
+          </button>
+          <button
+            onClick={() => exportEvaluation(evaluation)}
+            className="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
+            title="Exportar avaliação completa como JSON (pode ser reimportada)"
+          >
+            ↓ Exportar JSON
+          </button>
+        </div>
       </div>
 
       {/* Ranking chart */}
@@ -119,14 +177,19 @@ export default function Results() {
               const band = bandOf(r.bandId);
               return (
                 <tr key={r.optionId} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 text-gray-400 font-mono">{i + 1}</td>
-                  <td className="px-4 py-3 font-medium text-gray-800">{option?.label ?? r.optionId}</td>
-                  <td className="px-4 py-3 text-right font-mono font-bold text-gray-800">
+                  <td className="px-4 py-3 text-gray-400 font-mono align-top">{i + 1}</td>
+                  <td className="px-4 py-3 font-medium text-gray-800 align-top">{option?.label ?? r.optionId}</td>
+                  <td className="px-4 py-3 text-right font-mono font-bold text-gray-800 align-top">
                     {r.globalValue !== null ? r.globalValue.toFixed(1) : '—'}
                   </td>
-                  <td className="px-4 py-3 text-center">
+                  <td className="px-4 py-3 text-center align-top">
                     {r.hardRejected ? (
-                      <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700">Reprovado</span>
+                      <div>
+                        <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700">Reprovado</span>
+                        {r.rejectedByGate && (
+                          <p className="text-xs text-gray-400 mt-0.5">Porta: {model.valueTree.criteria[r.rejectedByGate]?.label}</p>
+                        )}
+                      </div>
                     ) : band ? (
                       <span className="px-2 py-0.5 rounded-full text-xs font-semibold text-white" style={{ backgroundColor: band.color }}>
                         {band.label}
@@ -135,9 +198,15 @@ export default function Results() {
                       <span className="text-gray-400">—</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-xs text-gray-500">
-                    {r.rejectedByGate && <span>Porta: {model.valueTree.criteria[r.rejectedByGate]?.label}</span>}
-                    {r.vetoedByCriterion && <span>Veto: {model.valueTree.criteria[r.vetoedByCriterion]?.label}</span>}
+                  <td className="px-4 py-2 align-top">
+                    <textarea
+                      value={optionNotes[r.optionId] ?? ''}
+                      onChange={(e) => setNote(r.optionId, e.target.value)}
+                      placeholder="Observações…"
+                      rows={2}
+                      className="w-full text-xs text-gray-700 border border-gray-200 rounded px-2 py-1 resize-none focus:outline-none focus:border-blue-300 bg-transparent"
+                      style={{ minWidth: 160 }}
+                    />
                   </td>
                 </tr>
               );

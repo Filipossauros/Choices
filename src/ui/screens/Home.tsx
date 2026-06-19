@@ -3,77 +3,91 @@ import { useApp } from '../store';
 import { repository } from '../../repository';
 import type { DocMeta } from '../../repository';
 
-function PixelMascot() {
+function TealRobotMascot() {
   return (
     <>
       <style>{`
-        @keyframes choices-bob {
+        @keyframes robot-float {
           0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-4px); }
+          50% { transform: translateY(-6px); }
         }
-        @keyframes choices-scan {
-          0%, 100% { opacity: 1; }
-          48% { opacity: 1; }
-          50% { opacity: 0.25; }
-          52% { opacity: 1; }
+        @keyframes robot-blink {
+          0%, 90%, 100% { transform: scaleY(1); }
+          95% { transform: scaleY(0.1); }
         }
-        .choices-mascot {
-          animation: choices-bob 2.6s steps(2, end) infinite;
-          display: inline-block;
-        }
-        .choices-mascot-eyes {
-          animation: choices-scan 3.4s ease-in-out infinite;
-        }
+        .robot-float { animation: robot-float 3s ease-in-out infinite; display: inline-block; }
+        .robot-eyes { animation: robot-blink 4s ease-in-out infinite; transform-origin: center; }
       `}</style>
       <svg
-        className="choices-mascot"
-        width="60"
-        height="72"
-        viewBox="0 0 16 18"
+        className="robot-float"
+        width="110"
+        height="130"
+        viewBox="0 0 110 130"
         xmlns="http://www.w3.org/2000/svg"
-        shapeRendering="crispEdges"
-        style={{ imageRendering: 'pixelated' }}
       >
-        {/* Antenna */}
-        <rect x="7" y="0" width="2" height="2" fill="#f59e0b" />
-        <rect x="7" y="2" width="2" height="1" fill="#64748b" />
-        {/* Head shell */}
-        <rect x="3" y="3" width="10" height="6" fill="#cbd5e1" />
-        <rect x="3" y="3" width="10" height="1" fill="#e2e8f0" />
-        <rect x="3" y="8" width="10" height="1" fill="#94a3b8" />
-        <rect x="3" y="3" width="1" height="6" fill="#94a3b8" />
-        <rect x="12" y="3" width="1" height="6" fill="#94a3b8" />
-        {/* Side bolts */}
-        <rect x="2" y="5" width="1" height="2" fill="#64748b" />
-        <rect x="13" y="5" width="1" height="2" fill="#64748b" />
-        {/* Visor */}
-        <rect x="4" y="4" width="8" height="3" fill="#0f172a" />
-        {/* Eyes (scanning lights) */}
-        <g className="choices-mascot-eyes">
-          <rect x="5" y="5" width="2" height="1" fill="#38bdf8" />
-          <rect x="9" y="5" width="2" height="1" fill="#38bdf8" />
+        {/* ── Antennae ── */}
+        <line x1="38" y1="20" x2="34" y2="6" stroke="#5eead4" strokeWidth="2.5" strokeLinecap="round" />
+        <line x1="72" y1="20" x2="76" y2="6" stroke="#5eead4" strokeWidth="2.5" strokeLinecap="round" />
+        <circle cx="33" cy="5" r="4" fill="#f59e0b" />
+        <circle cx="77" cy="5" r="4" fill="#f59e0b" />
+
+        {/* ── Head ── */}
+        <rect x="22" y="16" width="66" height="52" rx="20" fill="#14b8a6" />
+        {/* Head highlight */}
+        <rect x="28" y="19" width="54" height="12" rx="10" fill="#2dd4bf" opacity="0.5" />
+
+        {/* ── Headphone ears ── */}
+        {/* Left */}
+        <circle cx="22" cy="42" r="13" fill="#0d9488" />
+        <circle cx="22" cy="42" r="7" fill="#14b8a6" />
+        <circle cx="22" cy="42" r="3.5" fill="#0d9488" />
+        {/* Right */}
+        <circle cx="88" cy="42" r="13" fill="#0d9488" />
+        <circle cx="88" cy="42" r="7" fill="#14b8a6" />
+        <circle cx="88" cy="42" r="3.5" fill="#0d9488" />
+
+        {/* ── Eyes ── */}
+        <g className="robot-eyes">
+          <ellipse cx="41" cy="38" rx="10" ry="11" fill="white" />
+          <ellipse cx="69" cy="38" rx="10" ry="11" fill="white" />
+          <circle cx="42" cy="39" r="6" fill="#0f172a" />
+          <circle cx="70" cy="39" r="6" fill="#0f172a" />
+          {/* Iris highlight */}
+          <circle cx="44" cy="37" r="2.5" fill="white" />
+          <circle cx="72" cy="37" r="2.5" fill="white" />
+          {/* Pupil dot */}
+          <circle cx="42" cy="39" r="2" fill="#1e3a8a" />
+          <circle cx="70" cy="39" r="2" fill="#1e3a8a" />
         </g>
-        {/* Neck */}
-        <rect x="6" y="9" width="4" height="1" fill="#64748b" />
-        {/* Body */}
-        <rect x="4" y="10" width="8" height="5" fill="#2563eb" />
-        <rect x="4" y="10" width="8" height="1" fill="#3b82f6" />
-        <rect x="4" y="14" width="8" height="1" fill="#1d4ed8" />
-        {/* Chest panel + button */}
-        <rect x="6" y="11" width="4" height="3" fill="#1e3a8a" />
-        <rect x="7" y="12" width="2" height="1" fill="#38bdf8" />
-        {/* Arms */}
-        <rect x="2" y="10" width="2" height="4" fill="#94a3b8" />
-        <rect x="12" y="10" width="2" height="4" fill="#94a3b8" />
-        {/* Claws */}
-        <rect x="2" y="14" width="2" height="1" fill="#f59e0b" />
-        <rect x="12" y="14" width="2" height="1" fill="#f59e0b" />
-        {/* Legs */}
-        <rect x="5" y="15" width="2" height="2" fill="#64748b" />
-        <rect x="9" y="15" width="2" height="2" fill="#64748b" />
-        {/* Feet */}
-        <rect x="4" y="17" width="3" height="1" fill="#0f172a" />
-        <rect x="9" y="17" width="3" height="1" fill="#0f172a" />
+
+        {/* ── Smile ── */}
+        <path d="M39 56 Q55 68 71 56" stroke="#0f172a" strokeWidth="3" fill="none" strokeLinecap="round" />
+        {/* Rosy cheeks */}
+        <circle cx="30" cy="55" r="6" fill="#f472b6" opacity="0.3" />
+        <circle cx="80" cy="55" r="6" fill="#f472b6" opacity="0.3" />
+
+        {/* ── Neck ── */}
+        <rect x="46" y="68" width="18" height="9" rx="4" fill="#0d9488" />
+
+        {/* ── Body ── */}
+        <rect x="18" y="76" width="74" height="48" rx="22" fill="#14b8a6" />
+        {/* Body highlight */}
+        <rect x="24" y="79" width="62" height="14" rx="10" fill="#2dd4bf" opacity="0.4" />
+
+        {/* ── Laptop ── */}
+        {/* Screen */}
+        <rect x="24" y="100" width="62" height="30" rx="6" fill="#1e293b" />
+        <rect x="27" y="103" width="56" height="24" rx="4" fill="#1e3a8a" />
+        {/* Screen content (code lines) */}
+        <rect x="31" y="107" width="30" height="2.5" rx="1" fill="#38bdf8" opacity="0.7" />
+        <rect x="31" y="112" width="42" height="2.5" rx="1" fill="#34d399" opacity="0.6" />
+        <rect x="31" y="117" width="22" height="2.5" rx="1" fill="#f59e0b" opacity="0.6" />
+        {/* Keyboard base */}
+        <rect x="20" y="128" width="70" height="7" rx="4" fill="#0f172a" opacity="0.6" />
+
+        {/* ── Crossed legs suggestion (feet peeking below laptop) ── */}
+        <ellipse cx="33" cy="126" rx="12" ry="6" fill="#0d9488" />
+        <ellipse cx="77" cy="126" rx="12" ry="6" fill="#0d9488" />
       </svg>
     </>
   );
@@ -196,7 +210,7 @@ export default function Home() {
     <div className="max-w-2xl mx-auto py-12 px-4 space-y-8">
       <div className="text-center space-y-2">
         <div className="flex justify-center mb-3">
-          <PixelMascot />
+          <TealRobotMascot />
         </div>
         <h1 className="text-3xl font-bold text-blue-800">Choices</h1>
         <p className="text-gray-500">Avaliação Multicritério de Alternativas</p>

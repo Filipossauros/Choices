@@ -258,6 +258,8 @@ export interface Evaluation {
   options: Option[];
   performances: Performance[];
   aggregationResult?: AggregationResult;
+  /** Free-text observations per option, keyed by option id. */
+  optionNotes?: Record<string, string>;
 }
 
 /** Either persisted document kind, as written to / read from storage & JSON. */

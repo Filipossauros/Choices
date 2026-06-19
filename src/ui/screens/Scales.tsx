@@ -19,7 +19,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 
-// ── Scale ruler (thermometer) ─────────────────────────────────────────────────
+// ── Scale ruler ───────────────────────────────────────────────────────────────
 
 function ScaleRuler({
   scale,
@@ -33,94 +33,117 @@ function ScaleRuler({
   const neutralId = levels[criterion.descriptor.neutralIndex]?.id;
   const goodId = levels[criterion.descriptor.goodIndex]?.id;
 
-  // Sort descending: highest value at top of ruler
   const sorted = [...scale.values].sort((a, b) => b.value - a.value);
   const maxVal = sorted[0]?.value ?? 100;
   const minVal = sorted[sorted.length - 1]?.value ?? 0;
   const range = maxVal - minVal || 1;
 
-  const RULER_H = 320;
-  const TOP_PAD = 16;
-  const AXIS_X = 72; // px from left edge to axis line
+  const H = 260;
+  const PAD = 20;
+  const TOTAL_H = H + PAD * 2;
+  const AX = 12; // x position of axis line
+  const VIEW_W = 380;
+
+  const yOf = (v: number) => PAD + ((maxVal - v) / range) * H;
 
   return (
-    <div className="relative select-none" style={{ height: RULER_H + TOP_PAD + 24 }}>
-      {/* Filled axis bar */}
-      <div
-        className="absolute bg-gradient-to-b from-blue-500 to-blue-200 rounded-full"
-        style={{ left: AXIS_X - 1, top: TOP_PAD, width: 4, height: RULER_H }}
-      />
+    <svg
+      width="100%"
+      viewBox={`0 0 ${VIEW_W} ${TOTAL_H}`}
+      xmlns="http://www.w3.org/2000/svg"
+      style={{ overflow: 'visible' }}
+    >
+      {/* Axis */}
+      <line x1={AX} y1={PAD} x2={AX} y2={PAD + H} stroke="#cbd5e1" strokeWidth={1.5} />
 
       {sorted.map((sv, i) => {
+        const iy = yOf(sv.value);
         const level = levelMap.get(sv.levelId);
         const isNeutral = sv.levelId === neutralId;
         const isGood = sv.levelId === goodId;
-        const topPx = TOP_PAD + ((maxVal - sv.value) / range) * RULER_H;
+        const tickLen = isNeutral || isGood ? 14 : 8;
+        const tickStroke = isGood ? '#16a34a' : isNeutral ? '#2563eb' : '#94a3b8';
+        const labelFill = isGood ? '#15803d' : isNeutral ? '#1d4ed8' : '#374151';
 
-        // Gap annotation between this tick and the one below
         const next = sorted[i + 1];
-        const gapDiff = next ? sv.value - next.value : null;
-        const nextTopPx = next
-          ? TOP_PAD + ((maxVal - next.value) / range) * RULER_H
-          : null;
-        const gapMidPx = nextTopPx !== null ? (topPx + nextTopPx) / 2 : null;
-
-        const tickColor = isNeutral ? '#2563eb' : isGood ? '#16a34a' : '#94a3b8';
-        const labelColor = isNeutral
-          ? 'text-blue-700 font-semibold'
-          : isGood
-          ? 'text-green-700 font-semibold'
-          : 'text-gray-700';
+        const gapVal = next ? sv.value - next.value : null;
+        const nextY = next ? yOf(next.value) : null;
+        const gapMidY = nextY != null ? (iy + nextY) / 2 : null;
 
         return (
-          <div key={sv.levelId}>
-            {/* Tick row */}
-            <div
-              className="absolute flex items-center"
-              style={{ top: topPx - 9, left: 0, right: 0 }}
-            >
-              {/* Value */}
-              <span
-                className="font-mono text-xs text-gray-500 text-right shrink-0"
-                style={{ width: AXIS_X - 10 }}
-              >
-                {sv.value.toFixed(1)}
-              </span>
-              {/* Tick mark */}
-              <div
-                style={{
-                  width: isNeutral || isGood ? 14 : 8,
-                  height: 2,
-                  backgroundColor: tickColor,
-                  marginLeft: 6,
-                  flexShrink: 0,
-                }}
-              />
-              {/* Level name */}
-              <span className={`ml-2 text-sm ${labelColor}`} title={level?.label}>
-                {level?.label}
-                {isNeutral && <span className="ml-1 text-xs text-blue-400 font-normal">(Neutro)</span>}
-                {isGood && <span className="ml-1 text-xs text-green-400 font-normal">(Bom)</span>}
-              </span>
-              {/* Admissible range */}
-              <span className="ml-auto mr-2 text-xs text-gray-400 whitespace-nowrap">
-                [{sv.admissibleRange[0].toFixed(1)}, {sv.admissibleRange[1].toFixed(1)}]
-              </span>
-            </div>
+          <g key={sv.levelId}>
+            {/* Tick */}
+            <line
+              x1={AX} y1={iy} x2={AX + tickLen} y2={iy}
+              stroke={tickStroke}
+              strokeWidth={isNeutral || isGood ? 2.5 : 1.5}
+            />
 
-            {/* Gap annotation */}
-            {gapDiff !== null && gapMidPx !== null && gapDiff > 0.01 && (
-              <div
-                className="absolute flex items-center gap-1"
-                style={{ top: gapMidPx - 7, left: AXIS_X + 18 }}
-              >
-                <span className="text-[10px] text-gray-400 italic">+{gapDiff.toFixed(1)}</span>
-              </div>
+            {/* Level label */}
+            <text
+              x={AX + tickLen + 6} y={iy + 4}
+              fontSize="11" fill={labelFill}
+              fontWeight={isNeutral || isGood ? '600' : '400'}
+            >
+              {level?.label}
+            </text>
+
+            {/* Value (monospace, right-aligned at x=230) */}
+            <text
+              x={235} y={iy + 4}
+              fontSize="10" fill="#6b7280"
+              textAnchor="end"
+              fontFamily="monospace"
+            >
+              {sv.value.toFixed(1)}
+            </text>
+
+            {/* Admissible range */}
+            <text
+              x={240} y={iy + 4}
+              fontSize="9" fill="#d1d5db"
+            >
+              [{sv.admissibleRange[0].toFixed(0)},{sv.admissibleRange[1].toFixed(0)}]
+            </text>
+
+            {/* Bom / Neutro pill */}
+            {isGood && (
+              <g>
+                <rect x={333} y={iy - 8} width={38} height={14} rx={4} fill="#dcfce7" />
+                <text x={352} y={iy + 3} fontSize="9" fill="#16a34a" fontWeight="bold" textAnchor="middle">
+                  Bom
+                </text>
+              </g>
             )}
-          </div>
+            {isNeutral && (
+              <g>
+                <rect x={321} y={iy - 8} width={52} height={14} rx={4} fill="#dbeafe" />
+                <text x={347} y={iy + 3} fontSize="9" fill="#2563eb" fontWeight="bold" textAnchor="middle">
+                  Neutro
+                </text>
+              </g>
+            )}
+
+            {/* Gap bracket between this level and the next */}
+            {gapVal !== null && gapMidY !== null && nextY !== null && gapVal > 0.5 && (
+              <g>
+                {/* Bracket: left vertical + two horizontals ([ shape on left of axis) */}
+                <line x1={AX - 8} y1={iy + 2} x2={AX - 8} y2={nextY - 2} stroke="#e2e8f0" strokeWidth={1} />
+                <line x1={AX - 11} y1={iy + 2} x2={AX - 8} y2={iy + 2} stroke="#e2e8f0" strokeWidth={1} />
+                <line x1={AX - 11} y1={nextY - 2} x2={AX - 8} y2={nextY - 2} stroke="#e2e8f0" strokeWidth={1} />
+                <text
+                  x={AX - 13} y={gapMidY + 4}
+                  fontSize="9" fill="#9ca3af"
+                  textAnchor="end" fontStyle="italic"
+                >
+                  +{gapVal.toFixed(1)}
+                </text>
+              </g>
+            )}
+          </g>
         );
       })}
-    </div>
+    </svg>
   );
 }
 
