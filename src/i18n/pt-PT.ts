@@ -142,7 +142,7 @@ export const ptPT = {
       title: 'Relatório de Decisão',
       exportPdf: 'Exportar PDF',
       methodology: 'Metodologia',
-      description: 'MACBETH (Measuring Attractiveness by a Categorical Based Evaluation Technique) é um método de apoio à decisão multicritério que utiliza juízos qualitativos de diferença de atratividade para construir escalas cardinais de valor.',
+      description: 'Método de apoio à decisão multicritério que utiliza juízos qualitativos de diferença de atratividade (de Nula a Extrema) para construir escalas cardinais de valor por programação linear.',
       judgments: 'Matrizes de Juízos',
       derivedScales: 'Escalas Derivadas',
       weights: 'Pesos dos Critérios',

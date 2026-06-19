@@ -30,8 +30,17 @@ function completionStatus(model: MacbethModel, screen: Screen): CompletionStatus
       return model.performances.length >= expected ? 'done' : 'partial';
     }
 
-    case 'qualification':
-      return model.options.length > 0 ? 'done' : 'none';
+    case 'qualification': {
+      const gates = Object.values(model.valueTree.criteria).filter((c) => c.type === 'gate');
+      if (gates.length === 0) return 'done';
+      if (model.options.length === 0) return 'none';
+      const total = gates.length * model.options.length;
+      const decided = model.performances.filter(
+        (p) => gates.some((g) => g.id === p.criterionId) && (p.value === 'pass' || p.value === 'fail'),
+      ).length;
+      if (decided === 0) return 'none';
+      return decided >= total ? 'done' : 'partial';
+    }
 
     case 'scales': {
       if (qualCriteria.length === 0) return 'done';
@@ -49,10 +58,12 @@ function completionStatus(model: MacbethModel, screen: Screen): CompletionStatus
 
     case 'results': {
       if (!model.aggregationResult) return 'none';
+      const r = model.aggregationResult;
       const stale =
-        (model.weights?.derivedAt != null &&
-          model.weights.derivedAt > model.aggregationResult.computedAt) ||
-        model.derivedScales.some((s) => s.derivedAt > model.aggregationResult!.computedAt);
+        (model.weights?.derivedAt != null && model.weights.derivedAt > r.computedAt) ||
+        model.derivedScales.some((s) => s.derivedAt > r.computedAt) ||
+        model.options.length !== r.optionResults.length ||
+        model.options.some((o) => o.createdAt > r.computedAt);
       return stale ? 'partial' : 'done';
     }
 

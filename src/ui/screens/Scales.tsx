@@ -138,13 +138,13 @@ function ScaleFormula({
   const sorted = [...scale.values].sort((a, b) => a.value - b.value);
   const n = sorted.length;
 
-  // Build chart data with normalized position 0..1 and smooth interpolation
+  // Build chart data using integer index as x (monotone interpolation stays uniform)
   const chartData: { pos: number; value: number; name: string }[] = [];
   for (let i = 0; i < n; i++) {
     const sv = sorted[i];
     const level = levelMap.get(sv.levelId);
     chartData.push({
-      pos: i / (n - 1),
+      pos: i,
       value: sv.value,
       name: level?.label ?? sv.levelId,
     });
@@ -191,16 +191,19 @@ function ScaleFormula({
       {/* Chart */}
       <div>
         <p className="text-xs text-gray-500 mb-1">
-          Escala cardinal (interpolação linear por troços) — posição normalizada [0 = pior, 1 = melhor]
+          Escala cardinal — do nível menos atrativo (esquerda) para o mais atrativo (direita)
         </p>
         <ResponsiveContainer width="100%" height={200}>
-          <LineChart data={chartData} margin={{ top: 8, right: 16, left: 0, bottom: 8 }}>
+          <LineChart data={chartData} margin={{ top: 8, right: 16, left: 0, bottom: 32 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
             <XAxis
               dataKey="pos"
-              tickFormatter={(v) => v.toFixed(2)}
-              tick={{ fontSize: 10 }}
-              label={{ value: 'posição', position: 'insideBottomRight', offset: -4, fontSize: 10 }}
+              type="number"
+              domain={[0, n - 1]}
+              ticks={chartData.map((d) => d.pos)}
+              tickFormatter={(v) => chartData[v]?.name ?? String(v)}
+              tick={{ fontSize: 9, angle: -25, textAnchor: 'end' } as object}
+              interval={0}
             />
             <YAxis tick={{ fontSize: 10 }} width={36} />
             <Tooltip content={<CustomTooltip />} />
@@ -399,6 +402,15 @@ export default function Scales() {
                     margem: {scale.consistencyMargin.toFixed(3)}
                   </span>
                 </div>
+
+                {scale.consistencyMargin <= 0 && (
+                  <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-xs text-red-700">
+                    <span className="mt-0.5 shrink-0">⚠</span>
+                    <span>
+                      Escala inconsistente — os juízos contêm contradições cardinais. Revise a matriz acima: corrija pares de diferença de atratividade que violem a ordenação cardinal (p.ex. uma diferença «Forte» numa distância menor do que uma «Fraca»).
+                    </span>
+                  </div>
+                )}
 
                 {/* Ruler / Thermometer */}
                 <div>

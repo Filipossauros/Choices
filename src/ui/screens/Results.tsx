@@ -50,7 +50,9 @@ export default function Results() {
   const result = model.aggregationResult;
   const isStale = result != null && (
     (model.weights?.derivedAt != null && model.weights.derivedAt > result.computedAt) ||
-    model.derivedScales.some((s) => s.derivedAt > result.computedAt)
+    model.derivedScales.some((s) => s.derivedAt > result.computedAt) ||
+    model.options.length !== result.optionResults.length ||
+    model.options.some((o) => o.createdAt > result.computedAt)
   );
   const qualCriteria = Object.values(model.valueTree.criteria).filter(
     (c) => c.type === 'qualification',

@@ -142,7 +142,7 @@ export default function Home() {
           + Novo Modelo de Avaliação
         </button>
 
-        <label className={`py-3 text-center border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors ${importing ? 'opacity-50 pointer-events-none' : ''}`}>
+        <label className={`col-span-2 py-3 text-center border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors ${importing ? 'opacity-50 pointer-events-none' : ''}`}>
           <span className="text-sm font-medium text-gray-600">
             {importing ? 'A importar…' : '↑ Importar JSON'}
           </span>

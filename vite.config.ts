@@ -11,7 +11,7 @@ export default defineConfig({
       manifest: {
         name: 'Escolhas — Avaliação Multicritério',
         short_name: 'Escolhas',
-        description: 'Avaliação Multicritério de Alternativas (método MACBETH — Bana e Costa & Vansnick)',
+        description: 'Avaliação Multicritério de Alternativas',
         theme_color: '#1d4ed8',
         background_color: '#ffffff',
         display: 'standalone',
