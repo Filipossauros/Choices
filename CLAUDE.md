@@ -19,7 +19,8 @@ to concrete proposals. The entry page (Home) offers both paths.
 
 - **`EvaluationModel`** (template): valueTree (criteria + descriptors),
   judgmentMatrices, derivedScales, weights, **decisionScale**. Built in the
-  *criação* flow: **Critérios → Escala de decisão → Escalas → Ponderação**.
+  *criação* flow: **Critérios → Escalas → Ponderação → Perfis de decisão**
+  (perfis last, since deriving its cut-offs needs scales + weights).
 - **`Evaluation`** (application): embeds a snapshot of an `EvaluationModel` plus
   `options`, `performances`, `aggregationResult`. Built in the *aplicação* flow:
   **Análise e avaliação → Resultados → Sensibilidade → Relatório**.
@@ -57,9 +58,15 @@ src/
 - **Tier 1 — Gate (habilitação):** binary pass/fail eliminatory checks; any fail = hard-rejected before aggregation.
 - **Tier 2 — Qualification (qualificação):** MACBETH scoring with additive model V(p) = Σᵢ kᵢ·vᵢ(p), anchored Neutral=0 / Good=100.
 
-**Decision scale:** `DecisionBand[]` — N named bands over V(p); each result gets
-the highest band whose `minScore` it reaches (`domain/decision.ts:classify`).
-Replaces the old fixed approved/conditional thresholds.
+**Decision scale (Perfis de decisão):** `DecisionBand[]` — N named bands over
+V(p); each result gets the highest band whose `minScore` it reaches
+(`domain/decision.ts:classify`). A band's cut-off is normally *derived by MACBETH*
+rather than typed: a `DecisionBand.referenceProfile` (`criterionId -> levelId`)
+describes a reference alternative, and `engine/aggregation.ts:scoreProfile`
+computes its global V(p) under the model's scales + weights — that score becomes
+the band's `minScore` (global impact, not per-criterion comparison). The Perfis
+screen keeps `minScore` in sync with the profile; manual numeric entry remains a
+fallback. Replaces the old fixed approved/conditional thresholds.
 
 **Value curves:** the derived cardinal values at discrete levels are connected by
 a monotone-cubic (PCHIP) interpolant (`engine/interpolation.ts`) — smooth, passes

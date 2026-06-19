@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { aggregate } from '../aggregation';
+import { aggregate, scoreProfile } from '../aggregation';
 import type { Evaluation, EvaluationModel, ValueTree, DecisionBand } from '../../domain/types';
 import { MODEL_VERSION } from '../../domain/types';
 
@@ -262,5 +262,64 @@ describe('Two-tier aggregation', () => {
     const r = result.optionResults[0];
     expect(r.globalValue).toBeCloseTo(68, 1);
     expect(r.bandId).toBe('conditional'); // 68 < 70
+  });
+});
+
+describe('scoreProfile — MACBETH decision cut-offs from reference profiles', () => {
+  const valueTree: ValueTree = {
+    root: {
+      criterionId: 'root',
+      children: [
+        { criterionId: 'q1', children: [] },
+        { criterionId: 'q2', children: [] },
+      ],
+    },
+    criteria: {
+      q1: {
+        id: 'q1', label: 'Latência', type: 'qualification',
+        descriptor: { levels: [{ id: 'fast', label: '0 ms' }, { id: 'mid', label: '100 ms' }, { id: 'slow', label: '500 ms' }], neutralIndex: 2, goodIndex: 0 },
+      },
+      q2: {
+        id: 'q2', label: 'Saturação', type: 'qualification',
+        descriptor: { levels: [{ id: 'low', label: '10%' }, { id: 'high', label: '90%' }], neutralIndex: 1, goodIndex: 0 },
+      },
+    },
+  };
+  const m = model({
+    valueTree,
+    derivedScales: [
+      { criterionId: 'q1', values: [
+        { levelId: 'fast', value: 100, admissibleRange: [100, 100] },
+        { levelId: 'mid', value: 60, admissibleRange: [60, 60] },
+        { levelId: 'slow', value: 0, admissibleRange: [0, 0] },
+      ], consistencyMargin: 1, derivedAt: '' },
+      { criterionId: 'q2', values: [
+        { levelId: 'low', value: 100, admissibleRange: [100, 100] },
+        { levelId: 'high', value: 0, admissibleRange: [0, 0] },
+      ], consistencyMargin: 1, derivedAt: '' },
+    ],
+    weights: {
+      weights: [
+        { criterionId: 'q1', weight: 0.7, admissibleRange: [0.7, 0.7] },
+        { criterionId: 'q2', weight: 0.3, admissibleRange: [0.3, 0.3] },
+      ],
+      consistencyMargin: 1, derivedAt: '',
+    },
+  });
+
+  it('computes the global V(p) of a reference profile (weighted additive)', () => {
+    // q1=mid(60)*0.7 + q2=low(100)*0.3 = 42 + 30 = 72
+    expect(scoreProfile(m, { q1: 'mid', q2: 'low' })).toBeCloseTo(72, 5);
+  });
+
+  it('reflects global impact across all criteria, not partial comparisons', () => {
+    // worst profile: q1=slow(0), q2=high(0) → 0 ; best: fast(100), low(100) → 100
+    expect(scoreProfile(m, { q1: 'slow', q2: 'high' })).toBeCloseTo(0, 5);
+    expect(scoreProfile(m, { q1: 'fast', q2: 'low' })).toBeCloseTo(100, 5);
+  });
+
+  it('returns null when the model has no weights yet (cut-off underivable)', () => {
+    const noWeights = model({ valueTree, derivedScales: m.derivedScales });
+    expect(scoreProfile(noWeights, { q1: 'mid', q2: 'low' })).toBeNull();
   });
 });

@@ -301,8 +301,8 @@ export default function Criteria() {
       </div>
 
       <ScreenNav
-        next="decision"
-        nextLabel="Escala de decisão"
+        next="scales"
+        nextLabel="Escalas"
         hint="Defina os critérios antes de avançar."
         blockedBy={leafIds.length === 0 ? 'Adicione pelo menos um critério para continuar.' : undefined}
       />

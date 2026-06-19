@@ -157,6 +157,14 @@ export interface DecisionBand {
   minScore: number;
   /** Hex colour for charts and badges. */
   color: string;
+  /**
+   * Optional MACBETH reference profile that *defines* this band's lower cut-off:
+   * a reference alternative described by a performance level per qualification
+   * criterion (`criterionId -> levelId`). When set, `minScore` is the global
+   * value V(p) of this reference alternative under the model's scales + weights —
+   * i.e. the cut-off is derived from MACBETH (global impact) rather than typed.
+   */
+  referenceProfile?: Record<string, string>;
 }
 
 // ─── Gate results ──────────────────────────────────────────────────────────

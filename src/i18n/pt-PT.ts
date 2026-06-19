@@ -8,7 +8,7 @@ export const ptPT = {
     nav: {
       home: 'Início',
       criteria: 'Critérios',
-      decision: 'Escala de decisão',
+      decision: 'Perfis de decisão',
       scales: 'Escalas',
       weighting: 'Ponderação',
       analysis: 'Análise e avaliação',

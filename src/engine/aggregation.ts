@@ -11,6 +11,7 @@
 
 import type {
   Evaluation,
+  EvaluationModel,
   OptionResult,
   AggregationResult,
   GateResult,
@@ -18,6 +19,38 @@ import type {
 } from '../domain/types';
 import { classify } from '../domain/decision';
 import { scoreAtPosition } from './scaling';
+
+/**
+ * Global value V(p) of a *reference alternative* described by one performance
+ * level per qualification criterion (`criterionId -> levelId`). Uses the model's
+ * derived scales and weights — the same additive model as `aggregate` — so the
+ * result is the MACBETH global impact of that profile. Used to turn a decision
+ * reference profile into a band cut-off on the [0,100] axis.
+ *
+ * Returns null when the model has no weights yet (cut-off cannot be derived).
+ */
+export function scoreProfile(
+  model: EvaluationModel,
+  performances: Record<string, string>,
+): number | null {
+  const scaleMap = new Map(model.derivedScales.map((s) => [s.criterionId, s]));
+  const weightMap = new Map((model.weights?.weights ?? []).map((w) => [w.criterionId, w.weight]));
+
+  let weightedSum = 0;
+  let totalWeight = 0;
+  for (const [critId, crit] of Object.entries(model.valueTree.criteria)) {
+    if (crit.type !== 'qualification') continue;
+    const scale = scaleMap.get(critId);
+    const levelId = performances[critId];
+    if (!scale || !levelId) continue;
+    const sv = scale.values.find((v) => v.levelId === levelId);
+    if (!sv) continue;
+    const w = weightMap.get(critId) ?? 0;
+    weightedSum += w * sv.value;
+    totalWeight += w;
+  }
+  return totalWeight > 0 ? Math.round((weightedSum / totalWeight) * 100) / 100 : null;
+}
 
 export function aggregate(evaluation: Evaluation): AggregationResult {
   const { model, options, performances } = evaluation;

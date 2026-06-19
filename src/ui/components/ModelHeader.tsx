@@ -5,7 +5,7 @@ import type { EvaluationModel, Evaluation } from '../../domain/types';
 const LABELS: Record<Screen, string> = {
   home: 'Início',
   criteria: 'Critérios',
-  decision: 'Escala de decisão',
+  decision: 'Perfis de decisão',
   scales: 'Escalas',
   weighting: 'Ponderação',
   analysis: 'Análise e avaliação',

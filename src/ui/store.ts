@@ -26,7 +26,7 @@ export type Screen =
   | 'sensitivity'
   | 'report';
 
-export const CREATE_SCREENS: Screen[] = ['criteria', 'decision', 'scales', 'weighting'];
+export const CREATE_SCREENS: Screen[] = ['criteria', 'scales', 'weighting', 'decision'];
 export const APPLY_SCREENS: Screen[] = ['analysis', 'results', 'sensitivity', 'report'];
 
 export type Mode = 'create' | 'apply';
