@@ -110,7 +110,13 @@ export default function Results() {
           <BarChart data={chartData} margin={{ top: 4, right: 16, left: 0, bottom: 4 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
             <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-            <YAxis domain={[-20, 100]} tick={{ fontSize: 11 }} />
+            <YAxis
+              domain={[
+                (dataMin: number) => Math.floor(Math.min(dataMin, result.conditionalThreshold) - 10),
+                (dataMax: number) => Math.ceil(Math.max(dataMax, 100) + 5),
+              ]}
+              tick={{ fontSize: 11 }}
+            />
             <Tooltip formatter={(v) => [`${v}`, 'V(p)']} />
             <ReferenceLine y={result.approvedThreshold} stroke="#16a34a" strokeDasharray="4 4" label={{ value: 'Recomendado', fontSize: 10 }} />
             <ReferenceLine y={result.conditionalThreshold} stroke="#d97706" strokeDasharray="4 4" label={{ value: 'Com reservas', fontSize: 10 }} />
@@ -171,36 +177,54 @@ export default function Results() {
             <table className="min-w-full text-sm">
               <thead>
                 <tr className="bg-gray-50">
-                  <th className="px-3 py-1.5 text-left text-gray-600 font-medium border border-gray-200">Critério</th>
-                  {sorted.map((r) => (
+                  <th className="px-3 py-1.5 text-left text-gray-600 font-medium border border-gray-200">
+                    Critério <span className="text-gray-400 font-normal">(peso)</span>
+                  </th>
+                  {sorted.map((r, rank) => (
                     <th key={r.optionId} className="px-3 py-1.5 text-center text-gray-600 font-medium border border-gray-200">
+                      <span className="text-gray-400 text-xs mr-1">#{rank + 1}</span>
                       {model.options.find((o) => o.id === r.optionId)?.label ?? r.optionId}
                     </th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {qualCriteria.map((c) => (
-                  <tr key={c.id} className="hover:bg-gray-50">
-                    <td className="px-3 py-1.5 border border-gray-200 text-gray-700">{c.label}</td>
-                    {sorted.map((r) => {
-                      const score = r.criterionScores[c.id];
-                      return (
-                        <td key={r.optionId} className="px-3 py-1.5 border border-gray-200 text-center font-mono text-sm">
-                          {score !== null && score !== undefined ? score.toFixed(1) : '—'}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))}
-                {model.weights && (
-                  <tr className="bg-gray-50">
-                    <td className="px-3 py-1.5 border border-gray-200 text-gray-500 italic text-xs">Peso</td>
-                    {sorted.map((r) => (
-                      <td key={r.optionId} className="px-3 py-1.5 border border-gray-200" />
-                    ))}
-                  </tr>
-                )}
+                {qualCriteria.map((c) => {
+                  const weight = model.weights?.weights.find((w) => w.criterionId === c.id);
+                  return (
+                    <tr key={c.id} className="hover:bg-gray-50">
+                      <td className="px-3 py-1.5 border border-gray-200 text-gray-700">
+                        {c.label}
+                        {weight && (
+                          <span className="ml-1.5 text-xs text-gray-400 font-normal">
+                            {(weight.weight * 100).toFixed(1)}%
+                          </span>
+                        )}
+                      </td>
+                      {sorted.map((r) => {
+                        const score = r.criterionScores[c.id];
+                        const contrib = weight && score != null ? weight.weight * score : null;
+                        return (
+                          <td
+                            key={r.optionId}
+                            className="px-3 py-1.5 border border-gray-200 text-center font-mono text-sm"
+                            title={contrib != null ? `Contribuição: ${contrib.toFixed(2)}` : undefined}
+                          >
+                            {score !== null && score !== undefined ? score.toFixed(1) : '—'}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  );
+                })}
+                <tr className="bg-gray-50 font-semibold">
+                  <td className="px-3 py-1.5 border border-gray-200 text-gray-600 text-xs">V(p) global</td>
+                  {sorted.map((r) => (
+                    <td key={r.optionId} className="px-3 py-1.5 border border-gray-200 text-center font-mono text-sm text-gray-800">
+                      {r.globalValue !== null && r.globalValue !== undefined ? r.globalValue.toFixed(1) : '—'}
+                    </td>
+                  ))}
+                </tr>
               </tbody>
             </table>
           </div>

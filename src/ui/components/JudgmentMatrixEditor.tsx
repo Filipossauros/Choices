@@ -186,7 +186,7 @@ export default function JudgmentMatrixEditor({ items, judgments, onChange, readO
                           {j ? displayJudgment(j) : '—'}
                         </span>
                       ) : (
-                        <div className="flex items-center justify-center h-8 px-0.5 gap-0.5">
+                        <div className="flex items-center justify-center min-h-8 px-0.5 gap-0.5 py-0.5">
                           {/* Lo / exact select */}
                           <select
                             value={lo ?? ''}

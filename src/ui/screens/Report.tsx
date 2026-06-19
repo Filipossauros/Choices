@@ -1,12 +1,19 @@
 import { useApp } from '../store';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import type { MacbethJudgment } from '../../domain/types';
 
 const VERDICT_LABELS: Record<string, string> = {
   approved: 'Recomendado',
   conditional: 'Recomendado com reservas',
   rejected: 'Não recomendado',
 };
+
+const JUDGMENT_WORDS = ['Nula', 'Muito fraca', 'Fraca', 'Moderada', 'Forte', 'Muito forte', 'Extrema'];
+function judgmentLabel(j: MacbethJudgment): string {
+  if (j.kind === 'exact') return JUDGMENT_WORDS[j.category] ?? `C${j.category}`;
+  return `${JUDGMENT_WORDS[j.lo] ?? `C${j.lo}`}–${JUDGMENT_WORDS[j.hi] ?? `C${j.hi}`}`;
+}
 
 export default function Report() {
   const { state } = useApp();
@@ -41,7 +48,7 @@ export default function Report() {
     y += 6;
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
-    const methodText = `MACBETH (Measuring Attractiveness by a Categorical Based Evaluation Technique) é um método de apoio à decisão multicritério baseado em juízos qualitativos de diferença de atratividade (categorias C0–C6). O método deriva escalas cardinais de valor por programação linear e agrega-as num modelo aditivo V(p) = Σᵢ kᵢ · vᵢ(p) ancorado em Neutro = 0 e Bom = 100.`;
+    const methodText = `Método de apoio à decisão multicritério que utiliza juízos qualitativos de diferença de atratividade (Nula a Extrema) entre pares de alternativas para construir escalas cardinais de valor por programação linear. O modelo de agregação é aditivo: V(p) = Σᵢ kᵢ · vᵢ(p), ancorado em Neutro = 0 e Bom = 100. A habilitação (Andar 1) corre a montante — qualquer porta falhada reprova antes da agregação multicritério.`;
     const lines = doc.splitTextToSize(methodText, pageW - 28);
     doc.text(lines, 14, y);
     y += lines.length * 4.5 + 6;
@@ -191,10 +198,10 @@ export default function Report() {
       <section className="border border-gray-200 rounded-xl p-5 bg-white space-y-2">
         <h3 className="font-semibold text-gray-800">Metodologia</h3>
         <p className="text-sm text-gray-600 leading-relaxed">
-          MACBETH (Measuring Attractiveness by a Categorical Based Evaluation Technique) é um método de apoio à decisão multicritério que utiliza juízos qualitativos de diferença de atratividade (categorias C0–C6) entre alternativas para construir escalas cardinais de valor por programação linear.
+          Método de apoio à decisão multicritério que utiliza juízos qualitativos de diferença de atratividade — de <em>Nula</em> a <em>Extrema</em> — entre pares de alternativas para construir escalas cardinais de valor por programação linear.
         </p>
         <p className="text-sm text-gray-600 leading-relaxed">
-          O modelo de agregação é aditivo: <strong>V(p) = Σᵢ kᵢ · vᵢ(p)</strong>, numa escala ancorada em Neutro = 0 e Bom = 100. A habilitação (Andar 1) corre a montante — qualquer porta falhada reprova antes da agregação.
+          O modelo de agregação é aditivo: <strong>V(p) = Σᵢ kᵢ · vᵢ(p)</strong>, numa escala ancorada em Neutro = 0 e Bom = 100. A habilitação (Andar 1) corre a montante — qualquer porta falhada reprova a proposta antes da agregação multicritério.
         </p>
       </section>
 
@@ -254,7 +261,7 @@ export default function Report() {
                       const [idA, idB] = key.split('__');
                       const lA = c.descriptor.levels.find((l) => l.id === idA)?.label ?? idA;
                       const lB = c.descriptor.levels.find((l) => l.id === idB)?.label ?? idB;
-                      const cat = j.kind === 'exact' ? `C${j.category}` : `C${j.lo}–C${j.hi}`;
+                      const cat = judgmentLabel(j);
                       return (
                         <span key={key}>
                           {lA} vs {lB}: <strong>{cat}</strong>

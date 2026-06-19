@@ -288,7 +288,7 @@ export default function Structuring() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `macbeth-${model.id.slice(0, 8)}.json`;
+    a.download = `escolhas-${model.id.slice(0, 8)}.json`;
     a.click();
     URL.revokeObjectURL(url);
   }
