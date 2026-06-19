@@ -10,6 +10,8 @@ function judgmentLabel(j: MacbethJudgment): string {
   return `${JUDGMENT_WORDS[j.lo] ?? `C${j.lo}`}–${JUDGMENT_WORDS[j.hi] ?? `C${j.hi}`}`;
 }
 
+type Doc = jsPDF & { lastAutoTable?: { finalY: number } };
+
 export default function Report() {
   const { state } = useApp();
   const evaluation = state.evaluation!;
@@ -27,10 +29,27 @@ export default function Report() {
   }
 
   async function exportPDF() {
-    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' }) as Doc;
     const pageW = doc.internal.pageSize.getWidth();
+    const pageH = doc.internal.pageSize.getHeight();
     let y = 16;
 
+    function checkPage(needed = 25) {
+      if (y + needed > pageH - 16) {
+        doc.addPage();
+        y = 16;
+      }
+    }
+
+    function sectionTitle(n: number, title: string) {
+      checkPage(14);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(12);
+      doc.text(`${n}. ${title}`, 14, y);
+      y += 6;
+    }
+
+    // ── Header ──────────────────────────────────────────────────────────────
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(16);
     doc.text('Relatório de Decisão', pageW / 2, y, { align: 'center' });
@@ -42,39 +61,100 @@ export default function Report() {
     doc.text(`Gerado em: ${new Date().toLocaleString('pt-PT')}`, pageW / 2, y, { align: 'center' });
     y += 10;
 
-    // Methodology
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(12);
-    doc.text('1. Metodologia', 14, y);
-    y += 6;
+    // ── 1. Decisão ──────────────────────────────────────────────────────────
+    sectionTitle(1, 'Decisão');
+    if (result) {
+      const scaleBands = sortBands(result.decisionScale);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.text('Escala de decisão aplicada:', 14, y);
+      y += 4;
+      doc.setFont('helvetica', 'bold');
+      scaleBands.forEach((b) => {
+        doc.text(`• ${b.label}: ${bandRangeLabel(b, result.decisionScale)}`, 18, y);
+        y += 4;
+      });
+      y += 2;
+
+      const sorted = [...result.optionResults].sort((a, b) => (b.globalValue ?? -Infinity) - (a.globalValue ?? -Infinity));
+      const optionNotes = evaluation.optionNotes ?? {};
+      autoTable(doc, {
+        startY: y,
+        head: [['#', 'Proposta', 'V(p)', 'Decisão', 'Observações']],
+        body: sorted.map((r, i) => {
+          const opt = evaluation.options.find((o) => o.id === r.optionId);
+          const gateNote = r.rejectedByGate ? `Porta: ${model.valueTree.criteria[r.rejectedByGate]?.label}` : '';
+          const vetoNote = r.vetoedByCriterion ? `Veto: ${model.valueTree.criteria[r.vetoedByCriterion]?.label}` : '';
+          const userNote = optionNotes[r.optionId] ?? '';
+          const obs = [gateNote, vetoNote, userNote].filter(Boolean).join(' | ');
+          return [String(i + 1), opt?.label ?? r.optionId, r.globalValue !== null ? r.globalValue.toFixed(1) : '—', decisionLabel(r), obs];
+        }),
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [71, 85, 105] },
+        margin: { left: 14, right: 14 },
+        bodyStyles: { textColor: [30, 30, 30] },
+        columnStyles: { 2: { halign: 'right' }, 3: { fontStyle: 'bold' } },
+      });
+      y = doc.lastAutoTable?.finalY ?? y;
+      y += 6;
+
+      if (qualCriteria.length > 0) {
+        checkPage(30);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10);
+        doc.text('Perfil por Critério', 14, y);
+        y += 4;
+        const optLabels = sorted.map((r) => evaluation.options.find((o) => o.id === r.optionId)?.label ?? r.optionId);
+        autoTable(doc, {
+          startY: y,
+          head: [['Critério', ...optLabels]],
+          body: qualCriteria.map((c) => {
+            if (c.type !== 'qualification') return [];
+            return [c.label, ...sorted.map((r) => {
+              const s = r.criterionScores[c.id];
+              return s !== null && s !== undefined ? s.toFixed(1) : '—';
+            })];
+          }),
+          styles: { fontSize: 7 },
+          headStyles: { fillColor: [71, 85, 105] },
+          margin: { left: 14, right: 14 },
+        });
+        y = doc.lastAutoTable?.finalY ?? y;
+        y += 6;
+      }
+    } else {
+      doc.setFont('helvetica', 'italic');
+      doc.setFontSize(9);
+      doc.text('(Nenhum resultado calculado)', 14, y);
+      y += 8;
+    }
+
+    // ── 2. Metodologia ─────────────────────────────────────────────────────
+    sectionTitle(2, 'Metodologia');
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
-    const methodText = `Método de apoio à decisão multicritério que utiliza juízos qualitativos de diferença de atratividade (Nula a Extrema) entre pares de alternativas para construir escalas cardinais de valor (curvas suaves, monótonas). O modelo de agregação é aditivo: V(p) = Σᵢ kᵢ · vᵢ(p), ancorado em Neutro = 0 e Bom = 100. A habilitação corre a montante — qualquer porta falhada reprova antes da agregação. O valor global é classificado por uma escala de decisão de bandas nomeadas.`;
-    const lines = doc.splitTextToSize(methodText, pageW - 28);
-    doc.text(lines, 14, y);
-    y += lines.length * 4.5 + 6;
+    const methodText = `Este relatório utiliza o Método MACBETH (Measuring Attractiveness by a Categorical Based Evaluation Technique, Bana e Costa & Vansnick, 1994). O método utiliza juízos qualitativos de diferença de atratividade — de Nula a Extrema — entre pares de alternativas para construir escalas cardinais de valor por programação linear. O modelo de agregação é aditivo: V(p) = Σᵢ kᵢ · vᵢ(p), ancorado em Neutro = 0 e Bom = 100. A habilitação corre a montante — qualquer porta falhada reprova a proposta antes da agregação multicritério.`;
+    const mLines = doc.splitTextToSize(methodText, pageW - 28);
+    checkPage(mLines.length * 4.5 + 8);
+    doc.text(mLines, 14, y);
+    y += mLines.length * 4.5 + 6;
 
-    // Decision scale
+    // ── 3. Escala de Decisão ───────────────────────────────────────────────
+    sectionTitle(3, 'Escala de Decisão');
     const scaleBands = sortBands(result?.decisionScale ?? model.decisionScale);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(12);
-    doc.text('2. Escala de decisão', 14, y);
-    y += 5;
     autoTable(doc, {
       startY: y,
       head: [['Ponto de decisão', 'Intervalo de V(p)']],
-      body: scaleBands.map((b) => [b.label, bandRangeLabel(b, scaleBands)]),
+      body: scaleBands.map((b) => [b.label, bandRangeLabel(b, result?.decisionScale ?? model.decisionScale)]),
       styles: { fontSize: 8 },
       headStyles: { fillColor: [99, 102, 241] },
       margin: { left: 14, right: 14 },
     });
-    y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 6;
+    y = doc.lastAutoTable?.finalY ?? y;
+    y += 6;
 
-    // Criteria
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(12);
-    doc.text('3. Critérios', 14, y);
-    y += 5;
+    // ── 4. Critérios ───────────────────────────────────────────────────────
+    sectionTitle(4, 'Critérios');
     const gateCrit = Object.values(model.valueTree.criteria).filter((c) => c.type === 'gate');
     const qualCrit = Object.values(model.valueTree.criteria).filter((c) => c.type === 'qualification');
 
@@ -87,7 +167,8 @@ export default function Report() {
         headStyles: { fillColor: [249, 115, 22] },
         margin: { left: 14, right: 14 },
       });
-      y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 4;
+      y = doc.lastAutoTable?.finalY ?? y;
+      y += 4;
     }
     if (qualCrit.length > 0) {
       autoTable(doc, {
@@ -108,71 +189,75 @@ export default function Report() {
         headStyles: { fillColor: [37, 99, 235] },
         margin: { left: 14, right: 14 },
       });
-      y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 4;
+      y = doc.lastAutoTable?.finalY ?? y;
+      y += 6;
     }
 
-    // Results
-    if (result) {
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(12);
-      doc.text('4. Resultados', 14, y);
-      y += 5;
-      const sorted = [...result.optionResults].sort((a, b) => (b.globalValue ?? -Infinity) - (a.globalValue ?? -Infinity));
-      autoTable(doc, {
-        startY: y,
-        head: [['#', 'Proposta', 'V(p)', 'Decisão', 'Observações']],
-        body: sorted.map((r, i) => {
-          const opt = evaluation.options.find((o) => o.id === r.optionId);
-          const obs = r.rejectedByGate
-            ? `Porta: ${model.valueTree.criteria[r.rejectedByGate]?.label}`
-            : r.vetoedByCriterion
-            ? `Veto: ${model.valueTree.criteria[r.vetoedByCriterion]?.label}`
-            : '';
-          return [String(i + 1), opt?.label ?? r.optionId, r.globalValue !== null ? r.globalValue.toFixed(1) : '—', decisionLabel(r), obs];
-        }),
-        styles: { fontSize: 8 },
-        headStyles: { fillColor: [71, 85, 105] },
-        margin: { left: 14, right: 14 },
-        bodyStyles: { textColor: [30, 30, 30] },
-        columnStyles: { 2: { halign: 'right' }, 3: { fontStyle: 'bold' } },
-      });
-      y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 6;
+    // ── 5. Trilho de Auditoria ─────────────────────────────────────────────
+    sectionTitle(5, 'Trilho de Auditoria');
+    for (const c of qualCrit) {
+      if (c.type !== 'qualification') continue;
+      const scale = model.derivedScales.find((s) => s.criterionId === c.id);
+      const matrix = model.judgmentMatrices.find((m) => m.kind === 'scale' && m.criterionId === c.id);
+      const w = model.weights?.weights.find((w) => w.criterionId === c.id);
 
-      if (qualCrit.length > 0) {
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(11);
-        doc.text('Perfil por Critério', 14, y);
-        y += 4;
-        const optionLabels = sorted.map((r) => evaluation.options.find((o) => o.id === r.optionId)?.label ?? r.optionId);
+      checkPage(16);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.text(`${c.label}${w ? ` — ${(w.weight * 100).toFixed(1)}%` : ''}${scale ? ` — z = ${scale.consistencyMargin.toFixed(4)}` : ''}`, 14, y);
+      y += 4;
+
+      if (scale) {
         autoTable(doc, {
           startY: y,
-          head: [['Critério', ...optionLabels]],
-          body: qualCrit.map((c) => [
-            c.label,
-            ...sorted.map((r) => {
-              const s = r.criterionScores[c.id];
-              return s !== null && s !== undefined ? s.toFixed(1) : '—';
+          head: [['Nível', 'Valor', 'Intervalo admissível']],
+          body: [...scale.values]
+            .sort((a, b) => b.value - a.value)
+            .map((sv) => {
+              const lv = c.descriptor.levels.find((l) => l.id === sv.levelId);
+              return [lv?.label ?? sv.levelId, sv.value.toFixed(1), `[${sv.admissibleRange[0].toFixed(1)}, ${sv.admissibleRange[1].toFixed(1)}]`];
             }),
-          ]),
-          styles: { fontSize: 7 },
-          headStyles: { fillColor: [71, 85, 105] },
+          styles: { fontSize: 7.5 },
+          headStyles: { fillColor: [100, 116, 139] },
           margin: { left: 14, right: 14 },
         });
+        y = doc.lastAutoTable?.finalY ?? y;
+        y += 3;
+      }
+
+      if (matrix && Object.keys(matrix.judgments).length > 0) {
+        autoTable(doc, {
+          startY: y,
+          head: [['Par', 'Juízo']],
+          body: Object.entries(matrix.judgments).map(([key, j]) => {
+            const [idA, idB] = key.split('__');
+            const lA = c.descriptor.levels.find((l) => l.id === idA)?.label ?? idA;
+            const lB = c.descriptor.levels.find((l) => l.id === idB)?.label ?? idB;
+            return [`${lA} vs ${lB}`, judgmentLabel(j)];
+          }),
+          styles: { fontSize: 7 },
+          headStyles: { fillColor: [148, 163, 184] },
+          margin: { left: 14, right: 14 },
+        });
+        y = doc.lastAutoTable?.finalY ?? y;
+        y += 4;
       }
     }
 
+    // ── Page footer ─────────────────────────────────────────────────────────
     const pageCount = doc.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
       doc.setPage(i);
       doc.setFont('helvetica', 'italic');
       doc.setFontSize(7);
       doc.setTextColor(150);
-      doc.text(`Choices — Relatório de Decisão · ${evaluation.label} · Página ${i}/${pageCount}`, pageW / 2, doc.internal.pageSize.getHeight() - 8, { align: 'center' });
+      doc.text(`Choices · MACBETH · ${evaluation.label} · Página ${i}/${pageCount}`, pageW / 2, pageH - 8, { align: 'center' });
       doc.setTextColor(0);
     }
     doc.save(`choices-relatorio-${evaluation.id.slice(0, 8)}.pdf`);
   }
 
+  // ── HTML render ────────────────────────────────────────────────────────────
   return (
     <div className="max-w-4xl mx-auto py-6 px-4 space-y-6">
       <div className="flex items-center justify-between">
@@ -182,18 +267,51 @@ export default function Report() {
         </button>
       </div>
 
-      {/* Methodology */}
+      {/* 1. Decisão */}
+      {result && (
+        <section className="border border-gray-200 rounded-xl p-5 bg-white space-y-3">
+          <h3 className="font-semibold text-gray-800">Decisão</h3>
+          <div className="flex flex-wrap gap-2 text-xs mb-1">
+            {sortBands(result.decisionScale).map((b) => (
+              <span key={b.id} className="px-2 py-0.5 rounded-full text-white font-medium" style={{ backgroundColor: b.color }}>
+                {b.label}: {bandRangeLabel(b, result.decisionScale)}
+              </span>
+            ))}
+          </div>
+          {[...result.optionResults]
+            .sort((a, b) => (b.globalValue ?? -Infinity) - (a.globalValue ?? -Infinity))
+            .map((r) => {
+              const opt = evaluation.options.find((o) => o.id === r.optionId);
+              const band = decisionBand(r);
+              const bg = r.hardRejected ? '#fee2e2' : band ? band.color + '22' : '#f3f4f6';
+              const fg = r.hardRejected ? '#b91c1c' : band?.color ?? '#6b7280';
+              const note = evaluation.optionNotes?.[r.optionId];
+              return (
+                <div key={r.optionId} className="flex items-start gap-3 p-3 rounded-lg border" style={{ backgroundColor: bg, borderColor: fg + '55' }}>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-gray-800">{opt?.label}</p>
+                    {note && <p className="text-xs text-gray-500 mt-0.5 italic">{note}</p>}
+                  </div>
+                  <span className="font-mono font-bold text-gray-700 shrink-0">{r.globalValue !== null ? r.globalValue.toFixed(1) : '—'}</span>
+                  <span className="text-sm font-semibold shrink-0" style={{ color: fg }}>{decisionLabel(r)}</span>
+                </div>
+              );
+            })}
+        </section>
+      )}
+
+      {/* 2. Metodologia */}
       <section className="border border-gray-200 rounded-xl p-5 bg-white space-y-2">
-        <h3 className="font-semibold text-gray-800">Metodologia</h3>
+        <h3 className="font-semibold text-gray-800">Metodologia — Método MACBETH</h3>
         <p className="text-sm text-gray-600 leading-relaxed">
-          Método de apoio à decisão multicritério que utiliza juízos qualitativos de diferença de atratividade — de <em>Nula</em> a <em>Extrema</em> — entre pares de alternativas para construir escalas cardinais de valor (curvas suaves, monótonas).
+          <em>Measuring Attractiveness by a Categorical Based Evaluation Technique</em> (Bana e Costa &amp; Vansnick, 1994). Utiliza juízos qualitativos de diferença de atratividade — de <em>Nula</em> a <em>Extrema</em> — entre pares de alternativas para construir escalas cardinais de valor por programação linear.
         </p>
         <p className="text-sm text-gray-600 leading-relaxed">
-          O modelo de agregação é aditivo: <strong>V(p) = Σᵢ kᵢ · vᵢ(p)</strong>, ancorado em Neutro = 0 e Bom = 100. A habilitação corre a montante — qualquer porta falhada reprova a proposta antes da agregação. O valor global é classificado pela escala de decisão.
+          O modelo de agregação é aditivo: <strong>V(p) = Σᵢ kᵢ · vᵢ(p)</strong>, ancorado em Neutro = 0 e Bom = 100. A habilitação corre a montante — qualquer porta falhada reprova a proposta antes da agregação. O valor global é classificado pela escala de decisão configurada.
         </p>
       </section>
 
-      {/* Audit trail */}
+      {/* 3. Trilho de Auditoria */}
       <section className="border border-gray-200 rounded-xl p-5 bg-white space-y-4">
         <h3 className="font-semibold text-gray-800">Trilho de Auditoria</h3>
         {qualCriteria.map((c) => {
@@ -212,7 +330,7 @@ export default function Report() {
               </div>
               {scale && (
                 <div className="text-xs text-gray-600 grid grid-cols-2 gap-1 sm:grid-cols-3">
-                  {scale.values.map((sv) => {
+                  {[...scale.values].sort((a, b) => b.value - a.value).map((sv) => {
                     const level = c.descriptor.levels.find((l) => l.id === sv.levelId);
                     return (
                       <span key={sv.levelId}>
@@ -231,9 +349,7 @@ export default function Report() {
                       const [idA, idB] = key.split('__');
                       const lA = c.descriptor.levels.find((l) => l.id === idA)?.label ?? idA;
                       const lB = c.descriptor.levels.find((l) => l.id === idB)?.label ?? idB;
-                      return (
-                        <span key={key}>{lA} vs {lB}: <strong>{judgmentLabel(j)}</strong></span>
-                      );
+                      return <span key={key}>{lA} vs {lB}: <strong>{judgmentLabel(j)}</strong></span>;
                     })}
                   </div>
                 </details>
@@ -242,35 +358,6 @@ export default function Report() {
           );
         })}
       </section>
-
-      {/* Results summary */}
-      {result && (
-        <section className="border border-gray-200 rounded-xl p-5 bg-white space-y-3">
-          <h3 className="font-semibold text-gray-800">Recomendação</h3>
-          <div className="flex flex-wrap gap-2 text-xs">
-            {sortBands(result.decisionScale).map((b) => (
-              <span key={b.id} className="px-2 py-0.5 rounded-full text-white" style={{ backgroundColor: b.color }}>
-                {b.label}: {bandRangeLabel(b, result.decisionScale)}
-              </span>
-            ))}
-          </div>
-          {[...result.optionResults]
-            .sort((a, b) => (b.globalValue ?? -Infinity) - (a.globalValue ?? -Infinity))
-            .map((r) => {
-              const opt = evaluation.options.find((o) => o.id === r.optionId);
-              const band = decisionBand(r);
-              const bg = r.hardRejected ? '#fee2e2' : band ? band.color + '22' : '#f3f4f6';
-              const fg = r.hardRejected ? '#b91c1c' : band?.color ?? '#6b7280';
-              return (
-                <div key={r.optionId} className="flex items-center gap-3 p-3 rounded-lg border" style={{ backgroundColor: bg, borderColor: fg + '55' }}>
-                  <span className="font-medium text-gray-800 flex-1">{opt?.label}</span>
-                  <span className="font-mono font-bold text-gray-700">{r.globalValue !== null ? r.globalValue.toFixed(1) : '—'}</span>
-                  <span className="text-sm font-semibold" style={{ color: fg }}>{decisionLabel(r)}</span>
-                </div>
-              );
-            })}
-        </section>
-      )}
     </div>
   );
 }

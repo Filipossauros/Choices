@@ -38,23 +38,49 @@ function ScaleRuler({
   const minVal = sorted[sorted.length - 1]?.value ?? 0;
   const range = maxVal - minVal || 1;
 
+  // Layout constants — all coordinates within [0, VIEW_W]
+  const VIEW_W = 440;
+  const PAD_TOP = 44; // space for column headers + separator
   const H = 260;
-  const PAD = 20;
-  const TOTAL_H = H + PAD * 2;
-  const AX = 12; // x position of axis line
-  const VIEW_W = 380;
+  const PAD_BOT = 20;
+  const TOTAL_H = PAD_TOP + H + PAD_BOT;
+  const AX = 72; // axis x (leaves 72px on the left for gap annotations)
 
-  const yOf = (v: number) => PAD + ((maxVal - v) / range) * H;
+  const yOf = (v: number) => PAD_TOP + ((maxVal - v) / range) * H;
+
+  // Column x positions
+  const LABEL_X = AX + 18;   // level name ("Performance" column)
+  const VAL_X = 270;          // score value ("Pontos" column, right-aligned)
+  const RANGE_X = 276;        // admissible range start
+  const PILL_X = 368;         // Bom/Neutro pill left edge
+  const PILL_W = 52;
+  const PILL_MID = PILL_X + PILL_W / 2;
+
+  // Header y
+  const HDR_Y = 22;
+  const SEP_Y = PAD_TOP - 6;
 
   return (
     <svg
       width="100%"
       viewBox={`0 0 ${VIEW_W} ${TOTAL_H}`}
       xmlns="http://www.w3.org/2000/svg"
-      style={{ overflow: 'visible' }}
     >
-      {/* Axis */}
-      <line x1={AX} y1={PAD} x2={AX} y2={PAD + H} stroke="#cbd5e1" strokeWidth={1.5} />
+      {/* ── Column headers ── */}
+      <text x={LABEL_X} y={HDR_Y} fontSize="9" fill="#9ca3af" fontWeight="600" letterSpacing="0.8">
+        PERFORMANCE
+      </text>
+      <text x={VAL_X} y={HDR_Y} fontSize="9" fill="#9ca3af" fontWeight="600" textAnchor="end" letterSpacing="0.8">
+        PONTOS
+      </text>
+      <text x={RANGE_X} y={HDR_Y} fontSize="9" fill="#e5e7eb" letterSpacing="0">
+        intervalo
+      </text>
+      {/* Header separator */}
+      <line x1={AX} y1={SEP_Y} x2={VIEW_W - 4} y2={SEP_Y} stroke="#f3f4f6" strokeWidth={1} />
+
+      {/* ── Axis ── */}
+      <line x1={AX} y1={PAD_TOP} x2={AX} y2={PAD_TOP + H} stroke="#d1d5db" strokeWidth={1.5} />
 
       {sorted.map((sv, i) => {
         const iy = yOf(sv.value);
@@ -72,67 +98,72 @@ function ScaleRuler({
 
         return (
           <g key={sv.levelId}>
-            {/* Tick */}
+            {/* ── Tick ── */}
             <line
-              x1={AX} y1={iy} x2={AX + tickLen} y2={iy}
+              x1={AX} y1={iy}
+              x2={AX + tickLen} y2={iy}
               stroke={tickStroke}
               strokeWidth={isNeutral || isGood ? 2.5 : 1.5}
             />
 
-            {/* Level label */}
+            {/* ── Level label (Performance column) ── */}
             <text
-              x={AX + tickLen + 6} y={iy + 4}
+              x={LABEL_X} y={iy + 4}
               fontSize="11" fill={labelFill}
               fontWeight={isNeutral || isGood ? '600' : '400'}
             >
               {level?.label}
             </text>
 
-            {/* Value (monospace, right-aligned at x=230) */}
+            {/* ── Score value (Pontos column) ── */}
             <text
-              x={235} y={iy + 4}
-              fontSize="10" fill="#6b7280"
+              x={VAL_X} y={iy + 4}
+              fontSize="10.5" fill="#374151"
               textAnchor="end"
               fontFamily="monospace"
+              fontWeight={isNeutral || isGood ? '700' : '400'}
             >
               {sv.value.toFixed(1)}
             </text>
 
-            {/* Admissible range */}
+            {/* ── Admissible range ── */}
             <text
-              x={240} y={iy + 4}
-              fontSize="9" fill="#d1d5db"
+              x={RANGE_X} y={iy + 4}
+              fontSize="8.5" fill="#d1d5db"
             >
-              [{sv.admissibleRange[0].toFixed(0)},{sv.admissibleRange[1].toFixed(0)}]
+              [{sv.admissibleRange[0].toFixed(0)}, {sv.admissibleRange[1].toFixed(0)}]
             </text>
 
-            {/* Bom / Neutro pill */}
+            {/* ── Bom / Neutro pill ── */}
             {isGood && (
               <g>
-                <rect x={333} y={iy - 8} width={38} height={14} rx={4} fill="#dcfce7" />
-                <text x={352} y={iy + 3} fontSize="9" fill="#16a34a" fontWeight="bold" textAnchor="middle">
+                <rect x={PILL_X} y={iy - 8} width={PILL_W} height={14} rx={4} fill="#dcfce7" />
+                <text x={PILL_MID} y={iy + 3} fontSize="9" fill="#16a34a" fontWeight="bold" textAnchor="middle">
                   Bom
                 </text>
               </g>
             )}
             {isNeutral && (
               <g>
-                <rect x={321} y={iy - 8} width={52} height={14} rx={4} fill="#dbeafe" />
-                <text x={347} y={iy + 3} fontSize="9" fill="#2563eb" fontWeight="bold" textAnchor="middle">
+                <rect x={PILL_X} y={iy - 8} width={PILL_W} height={14} rx={4} fill="#dbeafe" />
+                <text x={PILL_MID} y={iy + 3} fontSize="9" fill="#2563eb" fontWeight="bold" textAnchor="middle">
                   Neutro
                 </text>
               </g>
             )}
 
-            {/* Gap bracket between this level and the next */}
+            {/* ── Gap bracket (left of axis, fully inside viewBox) ── */}
             {gapVal !== null && gapMidY !== null && nextY !== null && gapVal > 0.5 && (
               <g>
-                {/* Bracket: left vertical + two horizontals ([ shape on left of axis) */}
-                <line x1={AX - 8} y1={iy + 2} x2={AX - 8} y2={nextY - 2} stroke="#e2e8f0" strokeWidth={1} />
-                <line x1={AX - 11} y1={iy + 2} x2={AX - 8} y2={iy + 2} stroke="#e2e8f0" strokeWidth={1} />
-                <line x1={AX - 11} y1={nextY - 2} x2={AX - 8} y2={nextY - 2} stroke="#e2e8f0" strokeWidth={1} />
+                {/* Bracket vertical line */}
+                <line x1={AX - 10} y1={iy + 3} x2={AX - 10} y2={nextY - 3} stroke="#e5e7eb" strokeWidth={1} />
+                {/* Bracket top cap */}
+                <line x1={AX - 13} y1={iy + 3} x2={AX - 10} y2={iy + 3} stroke="#e5e7eb" strokeWidth={1} />
+                {/* Bracket bottom cap */}
+                <line x1={AX - 13} y1={nextY - 3} x2={AX - 10} y2={nextY - 3} stroke="#e5e7eb" strokeWidth={1} />
+                {/* Gap value label, right-aligned so it never overflows left edge */}
                 <text
-                  x={AX - 13} y={gapMidY + 4}
+                  x={AX - 16} y={gapMidY + 4}
                   fontSize="9" fill="#9ca3af"
                   textAnchor="end" fontStyle="italic"
                 >

@@ -7,87 +7,94 @@ function TealRobotMascot() {
   return (
     <>
       <style>{`
-        @keyframes robot-float {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-6px); }
+        @keyframes rm-float {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-5px); }
         }
-        @keyframes robot-blink {
-          0%, 90%, 100% { transform: scaleY(1); }
-          95% { transform: scaleY(0.1); }
+        @keyframes rm-blink {
+          0%, 88%, 100% { transform: scaleY(1); }
+          93% { transform: scaleY(0.08); }
         }
-        .robot-float { animation: robot-float 3s ease-in-out infinite; display: inline-block; }
-        .robot-eyes { animation: robot-blink 4s ease-in-out infinite; transform-origin: center; }
+        .rm-body { animation: rm-float 3.2s ease-in-out infinite; display: inline-block; }
+        .rm-eyes { animation: rm-blink 5s ease-in-out infinite; transform-origin: 50% 50%; }
       `}</style>
       <svg
-        className="robot-float"
-        width="110"
-        height="130"
-        viewBox="0 0 110 130"
+        className="rm-body"
+        width="120"
+        height="140"
+        viewBox="0 0 120 140"
         xmlns="http://www.w3.org/2000/svg"
       >
         {/* ── Antennae ── */}
-        <line x1="38" y1="20" x2="34" y2="6" stroke="#5eead4" strokeWidth="2.5" strokeLinecap="round" />
-        <line x1="72" y1="20" x2="76" y2="6" stroke="#5eead4" strokeWidth="2.5" strokeLinecap="round" />
-        <circle cx="33" cy="5" r="4" fill="#f59e0b" />
-        <circle cx="77" cy="5" r="4" fill="#f59e0b" />
+        <line x1="43" y1="18" x2="38" y2="5" stroke="#0d9488" strokeWidth="2.5" strokeLinecap="round" />
+        <line x1="77" y1="18" x2="82" y2="5" stroke="#0d9488" strokeWidth="2.5" strokeLinecap="round" />
+        <circle cx="38" cy="4" r="4.5" fill="#f59e0b" />
+        <circle cx="82" cy="4" r="4.5" fill="#f59e0b" />
 
         {/* ── Head ── */}
-        <rect x="22" y="16" width="66" height="52" rx="20" fill="#14b8a6" />
-        {/* Head highlight */}
-        <rect x="28" y="19" width="54" height="12" rx="10" fill="#2dd4bf" opacity="0.5" />
+        <rect x="20" y="14" width="80" height="58" rx="26" fill="#14b8a6" />
+        {/* head top sheen */}
+        <ellipse cx="60" cy="22" rx="28" ry="8" fill="#2dd4bf" opacity="0.45" />
 
-        {/* ── Headphone ears ── */}
-        {/* Left */}
-        <circle cx="22" cy="42" r="13" fill="#0d9488" />
-        <circle cx="22" cy="42" r="7" fill="#14b8a6" />
-        <circle cx="22" cy="42" r="3.5" fill="#0d9488" />
-        {/* Right */}
-        <circle cx="88" cy="42" r="13" fill="#0d9488" />
-        <circle cx="88" cy="42" r="7" fill="#14b8a6" />
-        <circle cx="88" cy="42" r="3.5" fill="#0d9488" />
+        {/* ── Headphone ears (large circles flush against head sides) ── */}
+        {/* Left outer ring */}
+        <circle cx="20" cy="44" r="16" fill="#0d9488" />
+        {/* Left inner ring */}
+        <circle cx="20" cy="44" r="9" fill="#14b8a6" />
+        {/* Left speaker dot */}
+        <circle cx="20" cy="44" r="4" fill="#0f766e" />
+        {/* Right outer ring */}
+        <circle cx="100" cy="44" r="16" fill="#0d9488" />
+        {/* Right inner ring */}
+        <circle cx="100" cy="44" r="9" fill="#14b8a6" />
+        {/* Right speaker dot */}
+        <circle cx="100" cy="44" r="4" fill="#0f766e" />
 
         {/* ── Eyes ── */}
-        <g className="robot-eyes">
-          <ellipse cx="41" cy="38" rx="10" ry="11" fill="white" />
-          <ellipse cx="69" cy="38" rx="10" ry="11" fill="white" />
-          <circle cx="42" cy="39" r="6" fill="#0f172a" />
-          <circle cx="70" cy="39" r="6" fill="#0f172a" />
-          {/* Iris highlight */}
-          <circle cx="44" cy="37" r="2.5" fill="white" />
-          <circle cx="72" cy="37" r="2.5" fill="white" />
-          {/* Pupil dot */}
-          <circle cx="42" cy="39" r="2" fill="#1e3a8a" />
-          <circle cx="70" cy="39" r="2" fill="#1e3a8a" />
+        <g className="rm-eyes">
+          {/* Left eye white */}
+          <ellipse cx="43" cy="41" rx="11" ry="12" fill="white" />
+          {/* Right eye white */}
+          <ellipse cx="77" cy="41" rx="11" ry="12" fill="white" />
+          {/* Left iris */}
+          <circle cx="44" cy="42" r="7" fill="#0f172a" />
+          {/* Right iris */}
+          <circle cx="78" cy="42" r="7" fill="#0f172a" />
+          {/* Left highlight */}
+          <circle cx="47" cy="39" r="3" fill="white" />
+          {/* Right highlight */}
+          <circle cx="81" cy="39" r="3" fill="white" />
         </g>
 
         {/* ── Smile ── */}
-        <path d="M39 56 Q55 68 71 56" stroke="#0f172a" strokeWidth="3" fill="none" strokeLinecap="round" />
-        {/* Rosy cheeks */}
-        <circle cx="30" cy="55" r="6" fill="#f472b6" opacity="0.3" />
-        <circle cx="80" cy="55" r="6" fill="#f472b6" opacity="0.3" />
+        <path d="M42 62 Q60 74 78 62" stroke="#0f172a" strokeWidth="3" fill="none" strokeLinecap="round" />
+        {/* Cheeks */}
+        <ellipse cx="32" cy="60" rx="8" ry="5" fill="#f9a8d4" opacity="0.35" />
+        <ellipse cx="88" cy="60" rx="8" ry="5" fill="#f9a8d4" opacity="0.35" />
 
         {/* ── Neck ── */}
-        <rect x="46" y="68" width="18" height="9" rx="4" fill="#0d9488" />
+        <rect x="48" y="72" width="24" height="10" rx="5" fill="#0d9488" />
 
-        {/* ── Body ── */}
-        <rect x="18" y="76" width="74" height="48" rx="22" fill="#14b8a6" />
-        {/* Body highlight */}
-        <rect x="24" y="79" width="62" height="14" rx="10" fill="#2dd4bf" opacity="0.4" />
+        {/* ── Body (compact, sitting) ── */}
+        <rect x="22" y="81" width="76" height="44" rx="24" fill="#14b8a6" />
+        <ellipse cx="60" cy="88" rx="28" ry="9" fill="#2dd4bf" opacity="0.35" />
 
         {/* ── Laptop ── */}
-        {/* Screen */}
-        <rect x="24" y="100" width="62" height="30" rx="6" fill="#1e293b" />
-        <rect x="27" y="103" width="56" height="24" rx="4" fill="#1e3a8a" />
-        {/* Screen content (code lines) */}
-        <rect x="31" y="107" width="30" height="2.5" rx="1" fill="#38bdf8" opacity="0.7" />
-        <rect x="31" y="112" width="42" height="2.5" rx="1" fill="#34d399" opacity="0.6" />
-        <rect x="31" y="117" width="22" height="2.5" rx="1" fill="#f59e0b" opacity="0.6" />
-        {/* Keyboard base */}
-        <rect x="20" y="128" width="70" height="7" rx="4" fill="#0f172a" opacity="0.6" />
-
-        {/* ── Crossed legs suggestion (feet peeking below laptop) ── */}
-        <ellipse cx="33" cy="126" rx="12" ry="6" fill="#0d9488" />
-        <ellipse cx="77" cy="126" rx="12" ry="6" fill="#0d9488" />
+        {/* Screen lid */}
+        <rect x="20" y="100" width="80" height="46" rx="7" fill="#1e293b" />
+        <rect x="23" y="103" width="74" height="38" rx="5" fill="#1e3a8a" />
+        {/* Screen glow lines */}
+        <rect x="29" y="108" width="36" height="3" rx="1.5" fill="#38bdf8" opacity="0.75" />
+        <rect x="29" y="114" width="52" height="3" rx="1.5" fill="#34d399" opacity="0.6" />
+        <rect x="29" y="120" width="28" height="3" rx="1.5" fill="#f59e0b" opacity="0.6" />
+        <rect x="29" y="126" width="44" height="3" rx="1.5" fill="#38bdf8" opacity="0.45" />
+        {/* Keyboard base / hinge */}
+        <rect x="18" y="145" width="84" height="8" rx="4" fill="#0f766e" />
+        {/* Keyboard keys hint */}
+        <rect x="26" y="147" width="68" height="4" rx="2" fill="#0d9488" />
+        {/* Legs/feet peeking at corners */}
+        <ellipse cx="32" cy="143" rx="13" ry="7" fill="#0d9488" />
+        <ellipse cx="88" cy="143" rx="13" ry="7" fill="#0d9488" />
       </svg>
     </>
   );
