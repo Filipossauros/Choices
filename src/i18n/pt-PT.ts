@@ -1,7 +1,7 @@
 export const ptPT = {
   translation: {
     app: {
-      title: 'Escolhas',
+      title: 'Choices',
       subtitle: 'Avaliação Multicritério de Alternativas',
       tagline: 'Motor de Decisão Multicritério',
     },

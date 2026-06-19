@@ -171,7 +171,7 @@ export default function Report() {
       doc.setFontSize(7);
       doc.setTextColor(150);
       doc.text(
-        `Escolhas — Relatório de Decisão · ${model.label} · Página ${i}/${pageCount}`,
+        `Choices — Relatório de Decisão · ${model.label} · Página ${i}/${pageCount}`,
         pageW / 2,
         doc.internal.pageSize.getHeight() - 8,
         { align: 'center' },
@@ -179,7 +179,7 @@ export default function Report() {
       doc.setTextColor(0);
     }
 
-    doc.save(`escolhas-relatorio-${model.id.slice(0, 8)}.pdf`);
+    doc.save(`choices-relatorio-${model.id.slice(0, 8)}.pdf`);
   }
 
   return (

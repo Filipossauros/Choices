@@ -6,74 +6,73 @@ function PixelMascot() {
   return (
     <>
       <style>{`
-        @keyframes escolhas-bob {
+        @keyframes choices-bob {
           0%, 100% { transform: translateY(0px); }
-          40% { transform: translateY(-6px); }
-          60% { transform: translateY(-4px); }
+          50% { transform: translateY(-4px); }
         }
-        @keyframes escolhas-blink {
-          0%, 90%, 100% { transform: scaleY(1); }
-          95% { transform: scaleY(0.1); }
+        @keyframes choices-scan {
+          0%, 100% { opacity: 1; }
+          48% { opacity: 1; }
+          50% { opacity: 0.25; }
+          52% { opacity: 1; }
         }
-        .escolhas-mascot {
-          animation: escolhas-bob 3s ease-in-out infinite;
+        .choices-mascot {
+          animation: choices-bob 2.6s steps(2, end) infinite;
           display: inline-block;
         }
-        .escolhas-mascot-eye {
-          animation: escolhas-blink 4s ease-in-out infinite;
-          transform-origin: center;
+        .choices-mascot-eyes {
+          animation: choices-scan 3.4s ease-in-out infinite;
         }
       `}</style>
       <svg
-        className="escolhas-mascot"
-        width="56"
+        className="choices-mascot"
+        width="60"
         height="72"
-        viewBox="0 0 14 18"
+        viewBox="0 0 16 18"
         xmlns="http://www.w3.org/2000/svg"
         shapeRendering="crispEdges"
         style={{ imageRendering: 'pixelated' }}
       >
         {/* Antenna */}
-        <rect x="6" y="0" width="2" height="1" fill="#94a3b8" />
-        <rect x="5" y="1" width="4" height="1" fill="#f59e0b" />
-        {/* Head */}
-        <rect x="2" y="2" width="10" height="7" fill="#fcd34d" />
-        {/* Head shading sides */}
-        <rect x="2" y="2" width="1" height="7" fill="#f59e0b" />
-        <rect x="11" y="2" width="1" height="7" fill="#f59e0b" />
-        {/* Eyes */}
-        <g className="escolhas-mascot-eye">
-          <rect x="4" y="4" width="2" height="2" fill="#1e293b" />
-          <rect x="8" y="4" width="2" height="2" fill="#1e293b" />
-          {/* Eye shine */}
-          <rect x="4" y="4" width="1" height="1" fill="#bfdbfe" />
-          <rect x="8" y="4" width="1" height="1" fill="#bfdbfe" />
+        <rect x="7" y="0" width="2" height="2" fill="#f59e0b" />
+        <rect x="7" y="2" width="2" height="1" fill="#64748b" />
+        {/* Head shell */}
+        <rect x="3" y="3" width="10" height="6" fill="#cbd5e1" />
+        <rect x="3" y="3" width="10" height="1" fill="#e2e8f0" />
+        <rect x="3" y="8" width="10" height="1" fill="#94a3b8" />
+        <rect x="3" y="3" width="1" height="6" fill="#94a3b8" />
+        <rect x="12" y="3" width="1" height="6" fill="#94a3b8" />
+        {/* Side ears/bolts */}
+        <rect x="2" y="5" width="1" height="2" fill="#64748b" />
+        <rect x="13" y="5" width="1" height="2" fill="#64748b" />
+        {/* Visor */}
+        <rect x="4" y="4" width="8" height="3" fill="#0f172a" />
+        {/* Eyes (scanning lights) */}
+        <g className="choices-mascot-eyes">
+          <rect x="5" y="5" width="2" height="1" fill="#38bdf8" />
+          <rect x="9" y="5" width="2" height="1" fill="#38bdf8" />
         </g>
-        {/* Smile */}
-        <rect x="5" y="7" width="4" height="1" fill="#92400e" />
-        <rect x="4" y="6" width="1" height="1" fill="#92400e" />
-        <rect x="9" y="6" width="1" height="1" fill="#92400e" />
         {/* Neck */}
-        <rect x="6" y="9" width="2" height="1" fill="#d97706" />
+        <rect x="6" y="9" width="4" height="1" fill="#64748b" />
         {/* Body */}
-        <rect x="3" y="10" width="8" height="5" fill="#3b82f6" />
-        <rect x="3" y="10" width="1" height="5" fill="#2563eb" />
-        <rect x="10" y="10" width="1" height="5" fill="#2563eb" />
-        {/* Chest panel */}
-        <rect x="5" y="11" width="4" height="3" fill="#bfdbfe" />
-        <rect x="6" y="12" width="2" height="1" fill="#3b82f6" />
+        <rect x="4" y="10" width="8" height="5" fill="#2563eb" />
+        <rect x="4" y="10" width="8" height="1" fill="#3b82f6" />
+        <rect x="4" y="14" width="8" height="1" fill="#1d4ed8" />
+        {/* Chest panel + button */}
+        <rect x="6" y="11" width="4" height="3" fill="#1e3a8a" />
+        <rect x="7" y="12" width="2" height="1" fill="#38bdf8" />
         {/* Arms */}
-        <rect x="1" y="10" width="2" height="4" fill="#3b82f6" />
-        <rect x="11" y="10" width="2" height="4" fill="#3b82f6" />
-        {/* Hands */}
-        <rect x="1" y="14" width="2" height="2" fill="#fcd34d" />
-        <rect x="11" y="14" width="2" height="2" fill="#fcd34d" />
+        <rect x="2" y="10" width="2" height="4" fill="#94a3b8" />
+        <rect x="12" y="10" width="2" height="4" fill="#94a3b8" />
+        {/* Claws */}
+        <rect x="2" y="14" width="2" height="1" fill="#f59e0b" />
+        <rect x="12" y="14" width="2" height="1" fill="#f59e0b" />
         {/* Legs */}
-        <rect x="4" y="15" width="2" height="3" fill="#1d4ed8" />
-        <rect x="8" y="15" width="2" height="3" fill="#1d4ed8" />
+        <rect x="5" y="15" width="2" height="2" fill="#64748b" />
+        <rect x="9" y="15" width="2" height="2" fill="#64748b" />
         {/* Feet */}
-        <rect x="3" y="17" width="3" height="1" fill="#1e293b" />
-        <rect x="8" y="17" width="3" height="1" fill="#1e293b" />
+        <rect x="4" y="17" width="3" height="1" fill="#0f172a" />
+        <rect x="9" y="17" width="3" height="1" fill="#0f172a" />
       </svg>
     </>
   );
@@ -129,7 +128,7 @@ export default function Home() {
         <div className="flex justify-center mb-3">
           <PixelMascot />
         </div>
-        <h1 className="text-3xl font-bold text-blue-800">Escolhas</h1>
+        <h1 className="text-3xl font-bold text-blue-800">Choices</h1>
         <p className="text-gray-500">Avaliação Multicritério de Alternativas</p>
         <p className="text-gray-400 italic text-sm">o que vais decidir hoje?</p>
       </div>

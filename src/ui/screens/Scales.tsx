@@ -341,7 +341,8 @@ export default function Scales() {
     : qualCriteria[0];
 
   return (
-    <div className="max-w-5xl mx-auto py-6 px-4 flex gap-6">
+    <div className="max-w-5xl mx-auto py-6 px-4">
+      <div className="flex gap-6">
       {/* Sidebar */}
       <div className="w-48 shrink-0 space-y-1">
         {qualCriteria.map((c) => {
@@ -429,6 +430,7 @@ export default function Scales() {
           })()}
         </div>
       )}
+      </div>
 
       <ScreenNav
         next="weighting"

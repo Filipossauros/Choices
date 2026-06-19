@@ -9,8 +9,8 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       manifest: {
-        name: 'Escolhas — Avaliação Multicritério',
-        short_name: 'Escolhas',
+        name: 'Choices — Avaliação Multicritério',
+        short_name: 'Choices',
         description: 'Avaliação Multicritério de Alternativas',
         theme_color: '#1d4ed8',
         background_color: '#ffffff',
