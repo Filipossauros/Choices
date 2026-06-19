@@ -2,6 +2,83 @@ import { useState, useEffect } from 'react';
 import { useApp } from '../store';
 import { repository } from '../../repository';
 
+function PixelMascot() {
+  return (
+    <>
+      <style>{`
+        @keyframes escolhas-bob {
+          0%, 100% { transform: translateY(0px); }
+          40% { transform: translateY(-6px); }
+          60% { transform: translateY(-4px); }
+        }
+        @keyframes escolhas-blink {
+          0%, 90%, 100% { transform: scaleY(1); }
+          95% { transform: scaleY(0.1); }
+        }
+        .escolhas-mascot {
+          animation: escolhas-bob 3s ease-in-out infinite;
+          display: inline-block;
+        }
+        .escolhas-mascot-eye {
+          animation: escolhas-blink 4s ease-in-out infinite;
+          transform-origin: center;
+        }
+      `}</style>
+      <svg
+        className="escolhas-mascot"
+        width="56"
+        height="72"
+        viewBox="0 0 14 18"
+        xmlns="http://www.w3.org/2000/svg"
+        shapeRendering="crispEdges"
+        style={{ imageRendering: 'pixelated' }}
+      >
+        {/* Antenna */}
+        <rect x="6" y="0" width="2" height="1" fill="#94a3b8" />
+        <rect x="5" y="1" width="4" height="1" fill="#f59e0b" />
+        {/* Head */}
+        <rect x="2" y="2" width="10" height="7" fill="#fcd34d" />
+        {/* Head shading sides */}
+        <rect x="2" y="2" width="1" height="7" fill="#f59e0b" />
+        <rect x="11" y="2" width="1" height="7" fill="#f59e0b" />
+        {/* Eyes */}
+        <g className="escolhas-mascot-eye">
+          <rect x="4" y="4" width="2" height="2" fill="#1e293b" />
+          <rect x="8" y="4" width="2" height="2" fill="#1e293b" />
+          {/* Eye shine */}
+          <rect x="4" y="4" width="1" height="1" fill="#bfdbfe" />
+          <rect x="8" y="4" width="1" height="1" fill="#bfdbfe" />
+        </g>
+        {/* Smile */}
+        <rect x="5" y="7" width="4" height="1" fill="#92400e" />
+        <rect x="4" y="6" width="1" height="1" fill="#92400e" />
+        <rect x="9" y="6" width="1" height="1" fill="#92400e" />
+        {/* Neck */}
+        <rect x="6" y="9" width="2" height="1" fill="#d97706" />
+        {/* Body */}
+        <rect x="3" y="10" width="8" height="5" fill="#3b82f6" />
+        <rect x="3" y="10" width="1" height="5" fill="#2563eb" />
+        <rect x="10" y="10" width="1" height="5" fill="#2563eb" />
+        {/* Chest panel */}
+        <rect x="5" y="11" width="4" height="3" fill="#bfdbfe" />
+        <rect x="6" y="12" width="2" height="1" fill="#3b82f6" />
+        {/* Arms */}
+        <rect x="1" y="10" width="2" height="4" fill="#3b82f6" />
+        <rect x="11" y="10" width="2" height="4" fill="#3b82f6" />
+        {/* Hands */}
+        <rect x="1" y="14" width="2" height="2" fill="#fcd34d" />
+        <rect x="11" y="14" width="2" height="2" fill="#fcd34d" />
+        {/* Legs */}
+        <rect x="4" y="15" width="2" height="3" fill="#1d4ed8" />
+        <rect x="8" y="15" width="2" height="3" fill="#1d4ed8" />
+        {/* Feet */}
+        <rect x="3" y="17" width="3" height="1" fill="#1e293b" />
+        <rect x="8" y="17" width="3" height="1" fill="#1e293b" />
+      </svg>
+    </>
+  );
+}
+
 export default function Home() {
   const { dispatch } = useApp();
   const [saved, setSaved] = useState<{ id: string; label: string; updatedAt: string }[]>([]);
@@ -49,8 +126,12 @@ export default function Home() {
   return (
     <div className="max-w-2xl mx-auto py-12 px-4 space-y-8">
       <div className="text-center space-y-2">
+        <div className="flex justify-center mb-3">
+          <PixelMascot />
+        </div>
         <h1 className="text-3xl font-bold text-blue-800">Escolhas</h1>
         <p className="text-gray-500">Avaliação Multicritério de Alternativas</p>
+        <p className="text-gray-400 italic text-sm">o que vais decidir hoje?</p>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
@@ -99,10 +180,6 @@ export default function Home() {
         </div>
       )}
 
-      <div className="text-xs text-gray-400 text-center space-y-1">
-        <p>Local-first — os dados ficam no seu dispositivo (IndexedDB).</p>
-        <p>Baseado no método MACBETH © Bana e Costa & Vansnick</p>
-      </div>
     </div>
   );
 }

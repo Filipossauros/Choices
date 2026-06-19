@@ -1,10 +1,251 @@
 import { useState } from 'react';
 import { useApp } from '../store';
-import type { MacbethJudgment, JudgmentMatrix, DerivedScale } from '../../domain/types';
+import type { MacbethJudgment, JudgmentMatrix, DerivedScale, QualificationCriterion } from '../../domain/types';
 import { DEFAULT_ASSESSOR_ID } from '../../domain/types';
 import { deriveScale } from '../../engine/scaling';
 import JudgmentMatrixEditor from '../components/JudgmentMatrixEditor';
 import { v4 as uuidv4 } from 'uuid';
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ReferenceLine,
+  ResponsiveContainer,
+} from 'recharts';
+
+// ── Scale ruler (thermometer) ─────────────────────────────────────────────────
+
+function ScaleRuler({
+  scale,
+  criterion,
+}: {
+  scale: DerivedScale;
+  criterion: QualificationCriterion;
+}) {
+  const levels = criterion.descriptor.levels;
+  const levelMap = new Map(levels.map((l) => [l.id, l]));
+  const neutralId = levels[criterion.descriptor.neutralIndex]?.id;
+  const goodId = levels[criterion.descriptor.goodIndex]?.id;
+
+  // Sort descending: highest value at top of ruler
+  const sorted = [...scale.values].sort((a, b) => b.value - a.value);
+  const maxVal = sorted[0]?.value ?? 100;
+  const minVal = sorted[sorted.length - 1]?.value ?? 0;
+  const range = maxVal - minVal || 1;
+
+  const RULER_H = 320;
+  const TOP_PAD = 16;
+  const AXIS_X = 72; // px from left edge to axis line
+
+  return (
+    <div className="relative select-none" style={{ height: RULER_H + TOP_PAD + 24 }}>
+      {/* Filled axis bar */}
+      <div
+        className="absolute bg-gradient-to-b from-blue-500 to-blue-200 rounded-full"
+        style={{ left: AXIS_X - 1, top: TOP_PAD, width: 4, height: RULER_H }}
+      />
+
+      {sorted.map((sv, i) => {
+        const level = levelMap.get(sv.levelId);
+        const isNeutral = sv.levelId === neutralId;
+        const isGood = sv.levelId === goodId;
+        const topPx = TOP_PAD + ((maxVal - sv.value) / range) * RULER_H;
+
+        // Gap annotation between this tick and the one below
+        const next = sorted[i + 1];
+        const gapDiff = next ? sv.value - next.value : null;
+        const nextTopPx = next
+          ? TOP_PAD + ((maxVal - next.value) / range) * RULER_H
+          : null;
+        const gapMidPx = nextTopPx !== null ? (topPx + nextTopPx) / 2 : null;
+
+        const tickColor = isNeutral ? '#2563eb' : isGood ? '#16a34a' : '#94a3b8';
+        const labelColor = isNeutral
+          ? 'text-blue-700 font-semibold'
+          : isGood
+          ? 'text-green-700 font-semibold'
+          : 'text-gray-700';
+
+        return (
+          <div key={sv.levelId}>
+            {/* Tick row */}
+            <div
+              className="absolute flex items-center"
+              style={{ top: topPx - 9, left: 0, right: 0 }}
+            >
+              {/* Value */}
+              <span
+                className="font-mono text-xs text-gray-500 text-right shrink-0"
+                style={{ width: AXIS_X - 10 }}
+              >
+                {sv.value.toFixed(1)}
+              </span>
+              {/* Tick mark */}
+              <div
+                style={{
+                  width: isNeutral || isGood ? 14 : 8,
+                  height: 2,
+                  backgroundColor: tickColor,
+                  marginLeft: 6,
+                  flexShrink: 0,
+                }}
+              />
+              {/* Level name */}
+              <span className={`ml-2 text-sm ${labelColor}`} title={level?.label}>
+                {level?.label}
+                {isNeutral && <span className="ml-1 text-xs text-blue-400 font-normal">(Neutro)</span>}
+                {isGood && <span className="ml-1 text-xs text-green-400 font-normal">(Bom)</span>}
+              </span>
+              {/* Admissible range */}
+              <span className="ml-auto mr-2 text-xs text-gray-400 whitespace-nowrap">
+                [{sv.admissibleRange[0].toFixed(1)}, {sv.admissibleRange[1].toFixed(1)}]
+              </span>
+            </div>
+
+            {/* Gap annotation */}
+            {gapDiff !== null && gapMidPx !== null && gapDiff > 0.01 && (
+              <div
+                className="absolute flex items-center gap-1"
+                style={{ top: gapMidPx - 7, left: AXIS_X + 18 }}
+              >
+                <span className="text-[10px] text-gray-400 italic">+{gapDiff.toFixed(1)}</span>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Piecewise-linear formula display ─────────────────────────────────────────
+
+function ScaleFormula({
+  scale,
+  criterion,
+}: {
+  scale: DerivedScale;
+  criterion: QualificationCriterion;
+}) {
+  const levels = criterion.descriptor.levels;
+  const levelMap = new Map(levels.map((l) => [l.id, l]));
+
+  // Sort ascending by value (worst → best)
+  const sorted = [...scale.values].sort((a, b) => a.value - b.value);
+  const n = sorted.length;
+
+  // Build chart data with normalized position 0..1 and smooth interpolation
+  const chartData: { pos: number; value: number; name: string }[] = [];
+  for (let i = 0; i < n; i++) {
+    const sv = sorted[i];
+    const level = levelMap.get(sv.levelId);
+    chartData.push({
+      pos: i / (n - 1),
+      value: sv.value,
+      name: level?.label ?? sv.levelId,
+    });
+  }
+
+  // Build piecewise linear formula segments
+  const segments: { from: string; to: string; slope: number; intercept: number; x0: number; x1: number }[] = [];
+  for (let i = 0; i < n - 1; i++) {
+    const a = sorted[i];
+    const b = sorted[i + 1];
+    const x0 = i / (n - 1);
+    const x1 = (i + 1) / (n - 1);
+    const slope = (b.value - a.value) / (x1 - x0);
+    const intercept = a.value - slope * x0;
+    segments.push({
+      from: levelMap.get(a.levelId)?.label ?? a.levelId,
+      to: levelMap.get(b.levelId)?.label ?? b.levelId,
+      slope,
+      intercept,
+      x0,
+      x1,
+    });
+  }
+
+  const CustomTooltip = ({
+    active,
+    payload,
+  }: {
+    active?: boolean;
+    payload?: { payload: { name: string; value: number } }[];
+  }) => {
+    if (!active || !payload?.length) return null;
+    const d = payload[0].payload;
+    return (
+      <div className="bg-white border border-gray-200 rounded px-2 py-1 text-xs shadow">
+        <p className="font-medium text-gray-700">{d.name}</p>
+        <p className="text-blue-600">v = {d.value.toFixed(2)}</p>
+      </div>
+    );
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Chart */}
+      <div>
+        <p className="text-xs text-gray-500 mb-1">
+          Escala cardinal (interpolação linear por troços) — posição normalizada [0 = pior, 1 = melhor]
+        </p>
+        <ResponsiveContainer width="100%" height={200}>
+          <LineChart data={chartData} margin={{ top: 8, right: 16, left: 0, bottom: 8 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+            <XAxis
+              dataKey="pos"
+              tickFormatter={(v) => v.toFixed(2)}
+              tick={{ fontSize: 10 }}
+              label={{ value: 'posição', position: 'insideBottomRight', offset: -4, fontSize: 10 }}
+            />
+            <YAxis tick={{ fontSize: 10 }} width={36} />
+            <Tooltip content={<CustomTooltip />} />
+            <ReferenceLine y={0} stroke="#94a3b8" strokeDasharray="4 2" label={{ value: 'Neutro', fontSize: 10, fill: '#94a3b8' }} />
+            <ReferenceLine y={100} stroke="#16a34a" strokeDasharray="4 2" label={{ value: 'Bom', fontSize: 10, fill: '#16a34a' }} />
+            <Line
+              type="monotone"
+              dataKey="value"
+              stroke="#3b82f6"
+              strokeWidth={2}
+              dot={{ r: 4, fill: '#3b82f6' }}
+              activeDot={{ r: 6 }}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* Piecewise formula */}
+      <div>
+        <p className="text-xs font-semibold text-gray-600 mb-1">Expressão matemática (linear por troços):</p>
+        <div className="bg-gray-50 border border-gray-100 rounded-lg p-3 font-mono text-xs text-gray-700 space-y-1">
+          <div className="text-gray-500">v(x) =</div>
+          {segments.map((seg, i) => {
+            return (
+              <div key={i} className="flex gap-2 pl-4">
+                <span className="text-blue-600 shrink-0">{seg.slope.toFixed(2)}·x {seg.intercept >= 0 ? '+' : ''}{seg.intercept.toFixed(2)}</span>
+                <span className="text-gray-400 shrink-0">
+                  , x ∈ [{seg.x0.toFixed(2)}, {seg.x1.toFixed(2)}]
+                </span>
+                <span className="text-gray-400 truncate hidden sm:block">
+                  [{seg.from} → {seg.to}]
+                </span>
+              </div>
+            );
+          })}
+        </div>
+        <p className="text-[10px] text-gray-400 mt-1">
+          x = posição normalizada do nível no descritor (0 = menos atrativo, 1 = mais atrativo).
+          A função é contínua e linear em cada troço; Neutro = 0, Bom = 100.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ── Main screen ───────────────────────────────────────────────────────────────
 
 export default function Scales() {
   const { state, dispatch } = useApp();
@@ -14,7 +255,7 @@ export default function Scales() {
 
   const qualCriteria = Object.values(model.valueTree.criteria).filter(
     (c) => c.type === 'qualification',
-  );
+  ) as QualificationCriterion[];
 
   function getMatrix(criterionId: string): JudgmentMatrix {
     return (
@@ -126,8 +367,8 @@ export default function Scales() {
       </div>
 
       {/* Main area */}
-      {activeCrit && activeCrit.type === 'qualification' && (
-        <div className="flex-1 space-y-4 min-w-0">
+      {activeCrit && (
+        <div className="flex-1 space-y-6 min-w-0">
           <div className="flex items-center justify-between">
             <h2 className="font-semibold text-gray-800">{activeCrit.label}</h2>
             <button
@@ -146,59 +387,33 @@ export default function Scales() {
           />
 
           {/* Scale display */}
-          {getScale(activeCrit.id) && (
-            <div className="border border-gray-200 rounded-xl p-4 bg-white space-y-3">
-              <h3 className="text-sm font-semibold text-gray-700">Escala Derivada</h3>
-              <div className="space-y-2">
-                {getScale(activeCrit.id)!.values.map((sv) => {
-                  const level = activeCrit.descriptor.levels.find(
-                    (l) => l.id === sv.levelId,
-                  );
-                  const isNeutral =
-                    activeCrit.descriptor.levels[activeCrit.descriptor.neutralIndex]?.id === sv.levelId;
-                  const isGood =
-                    activeCrit.descriptor.levels[activeCrit.descriptor.goodIndex]?.id === sv.levelId;
-                  const barWidth = Math.max(0, Math.min(100, sv.value));
-                  return (
-                    <div key={sv.levelId} className="space-y-0.5">
-                      <div className="flex items-center gap-2">
-                        <span className="w-32 text-sm text-gray-700 truncate" title={level?.label}>
-                          {level?.label}
-                          {isNeutral && <span className="ml-1 text-xs text-gray-400">(N)</span>}
-                          {isGood && <span className="ml-1 text-xs text-gray-400">(B)</span>}
-                        </span>
-                        <div className="flex-1 bg-gray-100 rounded-full h-4 relative">
-                          <div
-                            className="h-4 rounded-full bg-blue-400"
-                            style={{ width: `${Math.max(0, barWidth)}%` }}
-                          />
-                          {sv.value < 0 && (
-                            <div
-                              className="h-4 absolute top-0 rounded-full bg-red-300"
-                              style={{
-                                right: '50%',
-                                width: `${Math.min(50, Math.abs(sv.value) / 2)}%`,
-                              }}
-                            />
-                          )}
-                        </div>
-                        <span className="w-16 text-right text-sm font-mono font-medium">
-                          {sv.value.toFixed(1)}
-                        </span>
-                        <span className="w-28 text-xs text-gray-400">
-                          [{sv.admissibleRange[0].toFixed(1)}, {sv.admissibleRange[1].toFixed(1)}]
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
+          {(() => {
+            const scale = getScale(activeCrit.id);
+            if (!scale) return null;
+            return (
+              <div className="border border-gray-200 rounded-xl p-5 bg-white space-y-6">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-gray-700">Escala Derivada</h3>
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${scale.consistencyMargin > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
+                    margem: {scale.consistencyMargin.toFixed(3)}
+                  </span>
+                </div>
+
+                {/* Ruler / Thermometer */}
+                <div>
+                  <p className="text-xs text-gray-500 mb-3">
+                    Régua de valor — níveis posicionados proporcionalmente ao seu valor cardinal
+                  </p>
+                  <ScaleRuler scale={scale} criterion={activeCrit} />
+                </div>
+
+                {/* Formula + Chart */}
+                <div className="border-t border-gray-100 pt-4">
+                  <ScaleFormula scale={scale} criterion={activeCrit} />
+                </div>
               </div>
-              <p className="text-xs text-gray-400">
-                Margem de consistência: {getScale(activeCrit.id)!.consistencyMargin.toFixed(4)} ·{' '}
-                Intervalo admissível preserva a consistência dos juízos.
-              </p>
-            </div>
-          )}
+            );
+          })()}
         </div>
       )}
     </div>

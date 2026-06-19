@@ -3,14 +3,14 @@ import type { MacbethJudgment, MacbethCategory, ConsistencyReport } from '../../
 import { checkConsistency, type JudgmentEntry } from '../../engine/consistency';
 import ConsistencyBadge from './ConsistencyBadge';
 
-const CATEGORIES: { value: MacbethCategory; label: string; short: string }[] = [
-  { value: 0, label: 'Nula (C0)', short: 'C0' },
-  { value: 1, label: 'Muito fraca (C1)', short: 'C1' },
-  { value: 2, label: 'Fraca (C2)', short: 'C2' },
-  { value: 3, label: 'Moderada (C3)', short: 'C3' },
-  { value: 4, label: 'Forte (C4)', short: 'C4' },
-  { value: 5, label: 'Muito forte (C5)', short: 'C5' },
-  { value: 6, label: 'Extrema (C6)', short: 'C6' },
+const CATEGORIES: { value: MacbethCategory; word: string; short: string }[] = [
+  { value: 0, word: 'Nula', short: 'C0' },
+  { value: 1, word: 'Muito fraca', short: 'C1' },
+  { value: 2, word: 'Fraca', short: 'C2' },
+  { value: 3, word: 'Moderada', short: 'C3' },
+  { value: 4, word: 'Forte', short: 'C4' },
+  { value: 5, word: 'Muito forte', short: 'C5' },
+  { value: 6, word: 'Extrema', short: 'C6' },
 ];
 
 function jLo(j: MacbethJudgment): MacbethCategory {
@@ -93,8 +93,8 @@ export default function JudgmentMatrixEditor({ items, judgments, onChange, readO
   }
 
   function displayJudgment(j: MacbethJudgment): string {
-    if (j.kind === 'exact') return CATEGORIES[j.category].short;
-    return `${CATEGORIES[j.lo].short}–${CATEGORIES[j.hi].short}`;
+    if (j.kind === 'exact') return CATEGORIES[j.category].word;
+    return `${CATEGORIES[j.lo].word}–${CATEGORIES[j.hi].word}`;
   }
 
   if (items.length < 2) {
@@ -133,10 +133,11 @@ export default function JudgmentMatrixEditor({ items, judgments, onChange, readO
               {items.slice(1).map((item) => (
                 <th
                   key={item.id}
-                  className="px-2 py-1 text-center text-gray-600 font-medium border border-gray-200 bg-gray-50"
+                  className="px-1 py-1 text-center text-gray-600 font-medium border border-gray-200 bg-gray-50 max-w-[88px]"
                   title={item.label}
                 >
-                  <span className="block font-semibold text-gray-700">{numberOf.get(item.id)}</span>
+                  <span className="block font-semibold text-gray-700 text-xs">{numberOf.get(item.id)}.</span>
+                  <span className="block text-[10px] text-gray-500 truncate max-w-[80px]">{item.label}</span>
                 </th>
               ))}
             </tr>
@@ -196,14 +197,14 @@ export default function JudgmentMatrixEditor({ items, judgments, onChange, readO
                                 setLo(rowItem.id, colItem.id, parseInt(e.target.value) as MacbethCategory);
                               }
                             }}
-                            className={`w-12 h-6 text-center text-xs border border-gray-200 rounded bg-white focus:ring-1 focus:ring-blue-400 cursor-pointer ${
+                            className={`h-6 text-xs border border-gray-200 rounded bg-white focus:ring-1 focus:ring-blue-400 cursor-pointer px-1 ${
                               isConflict ? 'text-red-700 font-semibold border-red-300' : ''
                             }`}
                             aria-label={`Juízo lo: ${rowItem.label} vs ${colItem.label}`}
                           >
                             <option value="">—</option>
                             {CATEGORIES.map((c) => (
-                              <option key={c.value} value={c.value}>{c.short}</option>
+                              <option key={c.value} value={c.value}>{c.word}</option>
                             ))}
                           </select>
 
@@ -214,7 +215,7 @@ export default function JudgmentMatrixEditor({ items, judgments, onChange, readO
                               onChange={(e) =>
                                 setHi(rowItem.id, colItem.id, parseInt(e.target.value) as MacbethCategory)
                               }
-                              className={`w-12 h-6 text-center text-xs rounded cursor-pointer focus:ring-1 focus:ring-blue-400 ${
+                              className={`h-6 text-xs rounded cursor-pointer focus:ring-1 focus:ring-blue-400 px-1 ${
                                 isInterval
                                   ? 'border border-blue-400 bg-blue-50 text-blue-700 font-medium'
                                   : 'border border-gray-100 bg-transparent text-gray-300'
@@ -223,7 +224,7 @@ export default function JudgmentMatrixEditor({ items, judgments, onChange, readO
                               aria-label={`Juízo hi: ${rowItem.label} vs ${colItem.label}`}
                             >
                               {CATEGORIES.filter((c) => c.value >= lo).map((c) => (
-                                <option key={c.value} value={c.value}>{c.short}</option>
+                                <option key={c.value} value={c.value}>{c.word}</option>
                               ))}
                             </select>
                           )}
@@ -242,10 +243,10 @@ export default function JudgmentMatrixEditor({ items, judgments, onChange, readO
       <div className="flex flex-wrap gap-2 text-xs text-gray-500">
         {CATEGORIES.map((c) => (
           <span key={c.value}>
-            <strong>{c.short}</strong> = {c.label}
+            <strong>{c.short}</strong> = {c.word}
           </span>
         ))}
-        <span className="text-gray-400">· O segundo campo define o limite superior de um juízo intervalar (ex.: C3–C5).</span>
+        <span className="text-gray-400">· O segundo campo define o limite superior de um juízo intervalar (ex.: Moderada–Forte).</span>
       </div>
 
       {/* Inconsistency explanation & corrections */}
@@ -260,8 +261,8 @@ export default function JudgmentMatrixEditor({ items, judgments, onChange, readO
                 const current = displayJudgment(pair.currentJudgment);
                 const suggested =
                   pair.suggestedJudgment.kind === 'exact'
-                    ? CATEGORIES[pair.suggestedJudgment.category]?.short
-                    : `C${pair.suggestedJudgment.lo}–C${pair.suggestedJudgment.hi}`;
+                    ? CATEGORIES[pair.suggestedJudgment.category]?.word
+                    : `${CATEGORIES[pair.suggestedJudgment.lo]?.word}–${CATEGORIES[pair.suggestedJudgment.hi]?.word}`;
                 return (
                   <div key={i} className="flex items-center gap-3 text-sm flex-wrap">
                     <span className="text-gray-700">
