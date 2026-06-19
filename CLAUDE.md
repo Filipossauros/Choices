@@ -1,43 +1,71 @@
-# Escolhas — Avaliação Multicritério de Alternativas
+# Choices — Avaliação Multicritério de Alternativas
 
-Local-first web app ("Escolhas") for evaluating and ranking alternatives using the MACBETH method (Bana e Costa & Vansnick 1994). The UI is domain-agnostic — it does not assume any particular context (e.g. architecture or conformity).
+Local-first web app ("Choices") for evaluating and ranking alternatives using the MACBETH method (Bana e Costa & Vansnick 1994). The UI is domain-agnostic — it does not assume any particular context (e.g. architecture or conformity).
 
 ## Quick start
 
 ```bash
 npm install
 npm run dev        # dev server at http://localhost:5173
-npx vitest run     # unit tests (20 tests)
+npx vitest run     # unit tests (38 tests)
 npx tsc --noEmit   # type-check
 npm run build      # production build
 ```
+
+## Two flows: create vs apply
+
+The app separates **building** a reusable evaluation model from **applying** it
+to concrete proposals. The entry page (Home) offers both paths.
+
+- **`EvaluationModel`** (template): valueTree (criteria + descriptors),
+  judgmentMatrices, derivedScales, weights, **decisionScale**. Built in the
+  *criação* flow: **Critérios → Escala de decisão → Escalas → Ponderação**.
+- **`Evaluation`** (application): embeds a snapshot of an `EvaluationModel` plus
+  `options`, `performances`, `aggregationResult`. Built in the *aplicação* flow:
+  **Análise e avaliação → Resultados → Sensibilidade → Relatório**.
+
+Both are persisted (two IndexedDB stores) and exported/imported as JSON,
+discriminated by a `kind: 'model' | 'evaluation'` field.
 
 ## Architecture
 
 ```
 src/
-  domain/types.ts          # Core domain model (MacbethModel, JudgmentMatrix, …)
+  domain/types.ts          # EvaluationModel, Evaluation, DecisionBand, JudgmentMatrix, …
+  domain/decision.ts       # Decision-scale helpers (classify, sortBands, defaults)
   engine/                  # Pure math — no React, no side effects
     lp.ts                  # glpk.js (WASM) wrapper
     consistency.ts         # LP consistency check + correction suggestions
-    scaling.ts             # Cardinal scale derivation (Neutral=0, Good=100)
+    scaling.ts             # Cardinal scale derivation + continuous scoreAtPosition
+    interpolation.ts       # Monotone-cubic (PCHIP) smooth value curve
     weighting.ts           # Swing weighting LP
-    aggregation.ts         # Two-tier gate/qualification aggregation
+    aggregation.ts         # Two-tier aggregation over an Evaluation
     sensitivity.ts         # Weight-sensitivity analysis
   repository/
-    indexeddb.ts           # idb-backed persistence (save/load/export/import)
+    indexeddb.ts           # idb persistence: models + evaluations stores
   ui/
-    store.ts               # React context + useReducer (AppState, Action)
-    components/            # Shared components (ModelHeader, JudgmentMatrixEditor, …)
-    screens/               # One file per screen (Home → … → Report)
-  i18n/pt-PT.ts            # All UI strings in Portuguese (PT-PT)
+    store.ts               # React context + useReducer; create/apply modes
+    components/            # ModelHeader (per-mode nav), JudgmentMatrixEditor, …
+    screens/               # Home, Criteria, DecisionScale, Scales, Weighting,
+                           #   Analysis, Results, Sensitivity, Report
+  i18n/pt-PT.ts            # UI strings in Portuguese (PT-PT) — not yet wired via t()
 ```
 
 ## MACBETH method
 
 **Two-tier decision flow:**
-- **Tier 1 — Gate (habilitação):** binary pass/fail eliminatory checks; any fail = rejected before aggregation.
+- **Tier 1 — Gate (habilitação):** binary pass/fail eliminatory checks; any fail = hard-rejected before aggregation.
 - **Tier 2 — Qualification (qualificação):** MACBETH scoring with additive model V(p) = Σᵢ kᵢ·vᵢ(p), anchored Neutral=0 / Good=100.
+
+**Decision scale:** `DecisionBand[]` — N named bands over V(p); each result gets
+the highest band whose `minScore` it reaches (`domain/decision.ts:classify`).
+Replaces the old fixed approved/conditional thresholds.
+
+**Value curves:** the derived cardinal values at discrete levels are connected by
+a monotone-cubic (PCHIP) interpolant (`engine/interpolation.ts`) — smooth, passes
+exactly through every node, no overshoot. Criteria flagged `continuous` let
+proposals score at any position along the descriptor, read from this curve
+(`scaling.ts:scoreAtPosition`).
 
 **Categories:** C0 (nula) → C6 (extrema). Judgments can be exact `{kind:'exact', category}` or interval `{kind:'interval', lo, hi}`.
 
@@ -55,7 +83,7 @@ z* > 0 ⟹ consistent. Cardinal constraints deduplicate variable coefficients wh
 ## Extension points
 
 - **Multi-assessor:** `JudgmentMatrix.assessorId` + `DEFAULT_ASSESSOR_ID` constant. Future: aggregate multiple assessors' matrices before deriving scales.
-- **Conformity module (Piso 3):** hook in `aggregation.ts` after verdict assignment.
+- **Conformity module:** hook in `aggregation.ts` after band classification.
 
 ## Key dependencies
 
