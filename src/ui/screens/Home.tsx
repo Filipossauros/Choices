@@ -12,35 +12,52 @@ import type { ComponentType, SVGProps } from 'react';
 
 // ── Mascot ────────────────────────────────────────────────────────────────────
 
-function TealRobotMascot() {
+function BalanceMascot() {
   return (
     <>
       <style>{`
-        @keyframes rm-float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
-        @keyframes rm-blink { 0%,88%,100%{transform:scaleY(1)} 93%{transform:scaleY(0.08)} }
-        .rm-body{animation:rm-float 3.2s ease-in-out infinite;display:inline-block}
-        .rm-eyes{animation:rm-blink 5s ease-in-out infinite;transform-origin:50% 50%}
+        @keyframes bm-float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
+        @keyframes bm-blink { 0%,90%,100%{transform:scaleY(1)} 95%{transform:scaleY(0.1)} }
+        @keyframes bm-tilt { 0%,100%{transform:rotate(-3.5deg)} 50%{transform:rotate(3.5deg)} }
+        .bm-body{animation:bm-float 3.6s ease-in-out infinite;display:inline-block}
+        .bm-beam{animation:bm-tilt 4s ease-in-out infinite;transform-origin:80px 50px}
+        .bm-eyes{animation:bm-blink 5s ease-in-out infinite;transform-origin:50% 50%}
       `}</style>
-      <svg className="rm-body" width="80" height="96" viewBox="0 0 120 140" xmlns="http://www.w3.org/2000/svg">
-        <line x1="43" y1="18" x2="38" y2="5" stroke="#0d9488" strokeWidth="2.5" strokeLinecap="round" />
-        <line x1="77" y1="18" x2="82" y2="5" stroke="#0d9488" strokeWidth="2.5" strokeLinecap="round" />
-        <circle cx="38" cy="4" r="4.5" fill="#f59e0b" />
-        <circle cx="82" cy="4" r="4.5" fill="#f59e0b" />
-        <rect x="20" y="14" width="80" height="58" rx="26" fill="#14b8a6" />
-        <ellipse cx="60" cy="22" rx="28" ry="8" fill="#2dd4bf" opacity="0.45" />
-        <circle cx="20" cy="44" r="16" fill="#0d9488" />
-        <circle cx="20" cy="44" r="9" fill="#14b8a6" />
-        <circle cx="100" cy="44" r="16" fill="#0d9488" />
-        <circle cx="100" cy="44" r="9" fill="#14b8a6" />
-        <g className="rm-eyes">
-          <ellipse cx="43" cy="41" rx="11" ry="12" fill="white" />
-          <ellipse cx="77" cy="41" rx="11" ry="12" fill="white" />
-          <circle cx="44" cy="42" r="7" fill="#0f172a" />
-          <circle cx="78" cy="42" r="7" fill="#0f172a" />
-          <circle cx="47" cy="39" r="3" fill="white" />
-          <circle cx="81" cy="39" r="3" fill="white" />
+      <svg className="bm-body" width="112" height="108" viewBox="0 0 160 150" xmlns="http://www.w3.org/2000/svg">
+        {/* base */}
+        <rect x="64" y="132" width="32" height="9" rx="4.5" fill="#6366f1" />
+        <rect x="74" y="78" width="12" height="56" rx="6" fill="#818cf8" />
+        {/* tilting beam + pans */}
+        <g className="bm-beam">
+          <rect x="34" y="46" width="92" height="7" rx="3.5" fill="#6366f1" />
+          {/* left chain + pan */}
+          <line x1="44" y1="52" x2="44" y2="68" stroke="#a5b4fc" strokeWidth="2.5" strokeLinecap="round" />
+          <path d="M30 68 Q44 80 58 68" fill="#c7d2fe" stroke="#818cf8" strokeWidth="2" />
+          <circle cx="44" cy="62" r="6" fill="#34d399" />
+          <path d="M41 62 l2 2.5 l4 -5" stroke="white" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+          {/* right chain + pan */}
+          <line x1="116" y1="52" x2="116" y2="68" stroke="#a5b4fc" strokeWidth="2.5" strokeLinecap="round" />
+          <path d="M102 68 Q116 80 130 68" fill="#c7d2fe" stroke="#818cf8" strokeWidth="2" />
+          <circle cx="116" cy="62" r="6" fill="#fbbf24" />
         </g>
-        <path d="M42 62 Q60 74 78 62" stroke="#0f172a" strokeWidth="3" fill="none" strokeLinecap="round" />
+        {/* cute head/pivot */}
+        <circle cx="80" cy="38" r="26" fill="#6366f1" />
+        <ellipse cx="80" cy="28" rx="18" ry="6" fill="#818cf8" opacity="0.55" />
+        <g className="bm-eyes">
+          <ellipse cx="71" cy="37" rx="6.5" ry="7.5" fill="white" />
+          <ellipse cx="89" cy="37" rx="6.5" ry="7.5" fill="white" />
+          <circle cx="72" cy="38" r="4" fill="#1e1b4b" />
+          <circle cx="90" cy="38" r="4" fill="#1e1b4b" />
+          <circle cx="74" cy="36" r="1.8" fill="white" />
+          <circle cx="92" cy="36" r="1.8" fill="white" />
+        </g>
+        <path d="M72 48 Q80 54 88 48" stroke="#1e1b4b" strokeWidth="2.4" fill="none" strokeLinecap="round" />
+        {/* rosy cheeks */}
+        <circle cx="63" cy="46" r="3.5" fill="#f9a8d4" opacity="0.6" />
+        <circle cx="97" cy="46" r="3.5" fill="#f9a8d4" opacity="0.6" />
+        {/* sparkles */}
+        <path d="M22 30 l1.5 4 l4 1.5 l-4 1.5 l-1.5 4 l-1.5 -4 l-4 -1.5 l4 -1.5 z" fill="#fbbf24" opacity="0.8" />
+        <path d="M138 40 l1 2.8 l2.8 1 l-2.8 1 l-1 2.8 l-1 -2.8 l-2.8 -1 l2.8 -1 z" fill="#a5b4fc" opacity="0.8" />
       </svg>
     </>
   );
@@ -303,12 +320,13 @@ export default function Home() {
     <div className="max-w-4xl mx-auto py-10 px-4">
 
       {/* ── Welcome ── */}
-      <div className="flex items-center gap-5 mb-10">
-        <TealRobotMascot />
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">O que vais decidir hoje?</h1>
-          <p className="text-gray-500 text-sm mt-1">
-            Avaliação multicritério de propostas ou posições
+      <div className="relative mb-10 rounded-3xl overflow-hidden bg-gradient-to-br from-indigo-50 via-white to-violet-50 border border-indigo-100/70">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(99,102,241,0.12),transparent_60%)]" />
+        <div className="relative flex flex-col items-center text-center px-6 py-10">
+          <BalanceMascot />
+          <h1 className="text-3xl font-extrabold tracking-tight text-gray-900 mt-3">O que vais decidir hoje?</h1>
+          <p className="text-gray-500 text-sm mt-2 max-w-md">
+            Avaliação multicritério, estruturada e defensável — para qualquer alternativa ou cenário.
           </p>
         </div>
       </div>
@@ -330,7 +348,7 @@ export default function Home() {
 
         <div className="rounded-2xl border-2 border-emerald-100 bg-gradient-to-b from-emerald-50 to-white p-5 flex flex-col">
           <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 grid place-items-center mb-2"><IconClipboard className="w-5 h-5" /></div>
-          <h2 className="font-bold text-emerald-900 text-base mb-1">Avaliar propostas ou posições</h2>
+          <h2 className="font-bold text-emerald-900 text-base mb-1">Avaliar alternativas</h2>
           <p className="text-sm text-emerald-700/70 mb-4 flex-1">
             Aplicar um modelo a um conjunto concreto de alternativas e obter resultados.
           </p>
