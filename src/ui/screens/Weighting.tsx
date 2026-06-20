@@ -3,7 +3,7 @@ import { useApp } from '../store';
 import type { MacbethJudgment, JudgmentMatrix } from '../../domain/types';
 import { DEFAULT_ASSESSOR_ID, ROOT_ID } from '../../domain/types';
 import { deriveWeights, ALL_NEUTRAL } from '../../engine/weighting';
-import { weightingGroups, weightsForGroup, setGroupWeights, groupConsistent, type Group } from '../../domain/tree';
+import { weightingGroups, weightsForGroup, setGroupWeights, groupConsistent, groupEffectiveWeight, type Group } from '../../domain/tree';
 import JudgmentMatrixEditor from '../components/JudgmentMatrixEditor';
 import GuidedJudgments from '../components/GuidedJudgments';
 import ScreenNav from '../components/ScreenNav';
@@ -216,33 +216,76 @@ function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; on
                 {deriving ? 'A calcular pesos…' : 'Calcular pesos deste grupo'}
               </button>
 
-              {weights && (
-                <div className="border border-gray-200 rounded-xl p-4 bg-white space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-semibold text-gray-800 text-sm">Pesos derivados (Σ = 1 no grupo)</h3>
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${weights.consistencyMargin > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                      z = {weights.consistencyMargin.toFixed(4)}
-                    </span>
-                  </div>
-                  <div className="space-y-2">
-                    {weights.weights.map((w) => {
-                      const crit = criteria[w.criterionId];
-                      return (
-                        <div key={w.criterionId} className="flex items-center gap-3">
-                          <span className="w-40 text-sm truncate text-gray-700" title={crit?.label}>{crit?.label ?? w.criterionId}</span>
-                          <div className="flex-1 bg-gray-100 rounded-full h-4">
-                            <div className="h-4 rounded-full bg-blue-500" style={{ width: `${(w.weight * 100).toFixed(1)}%` }} />
-                          </div>
-                          <span className="w-16 text-right text-sm font-mono font-medium">{(w.weight * 100).toFixed(1)}%</span>
-                          <span className="w-36 text-xs text-gray-400 font-mono">
-                            [{(w.admissibleRange[0] * 100).toFixed(1)}%, {(w.admissibleRange[1] * 100).toFixed(1)}%]
+              {weights && (() => {
+                const groupFactor = groupEffectiveWeight(model, group.parentId);
+                // Show the global column only for nested groups (where local ≠ global).
+                const showGlobal = groupFactor != null && groupFactor < 0.999;
+                return (
+                  <div className="border border-gray-200 rounded-xl p-4 bg-white space-y-3">
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <h3 className="font-semibold text-gray-800 text-sm">Pesos derivados (Σ = 1 no grupo)</h3>
+                      <div className="flex items-center gap-2">
+                        {showGlobal && (
+                          <span className="text-xs text-gray-400">
+                            grupo = <strong className="text-gray-500">{(groupFactor! * 100).toFixed(0)}%</strong> do modelo
                           </span>
-                        </div>
-                      );
-                    })}
+                        )}
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${weights.consistencyMargin > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                          z = {weights.consistencyMargin.toFixed(4)}
+                        </span>
+                      </div>
+                    </div>
+                    {showGlobal && (
+                      <div className="flex items-center gap-3 text-[10px] uppercase tracking-wide text-gray-400 font-semibold">
+                        <span className="w-40 shrink-0" />
+                        <span className="flex-1">Peso no grupo (local)</span>
+                        <span className="w-16 text-right" />
+                        <span className="w-[5.5rem] text-right">Global no modelo</span>
+                      </div>
+                    )}
+                    <div className="space-y-2">
+                      {weights.weights.map((w) => {
+                        const crit = criteria[w.criterionId];
+                        const global = groupFactor != null ? groupFactor * w.weight : null;
+                        return (
+                          <div key={w.criterionId} className="flex items-center gap-3">
+                            <span className="w-40 text-sm truncate text-gray-700" title={crit?.label}>{crit?.label ?? w.criterionId}</span>
+                            <div className="flex-1 bg-gray-100 rounded-full h-4">
+                              <div className="h-4 rounded-full bg-blue-500" style={{ width: `${(w.weight * 100).toFixed(1)}%` }} />
+                            </div>
+                            <span
+                              className="w-16 text-right text-sm font-mono font-medium"
+                              title={`Intervalo admissível: [${(w.admissibleRange[0] * 100).toFixed(1)}%, ${(w.admissibleRange[1] * 100).toFixed(1)}%]`}
+                            >
+                              {(w.weight * 100).toFixed(1)}%
+                            </span>
+                            {showGlobal ? (
+                              <span className="w-[5.5rem] flex items-center gap-1.5 justify-end">
+                                <span className="text-gray-300">→</span>
+                                <span className="w-12 bg-gray-100 rounded-full h-2.5 overflow-hidden">
+                                  <span className="block h-full rounded-full bg-indigo-300" style={{ width: `${global != null ? (global * 100).toFixed(1) : 0}%` }} />
+                                </span>
+                                <span className="w-10 text-right text-xs font-mono text-gray-500">
+                                  {global != null ? `${(global * 100).toFixed(1)}%` : '—'}
+                                </span>
+                              </span>
+                            ) : (
+                              <span className="w-36 text-xs text-gray-400 font-mono">
+                                [{(w.admissibleRange[0] * 100).toFixed(1)}%, {(w.admissibleRange[1] * 100).toFixed(1)}%]
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {showGlobal && (
+                      <p className="text-[11px] text-gray-400 leading-relaxed">
+                        ⚖️ Está a ponderar <strong>dentro de «{group.label}»</strong>. O peso global = {(groupFactor! * 100).toFixed(0)}% (do grupo) × peso local — é esse que pesa no resultado final.
+                      </p>
+                    )}
                   </div>
-                </div>
-              )}
+                );
+              })()}
             </>
           )}
         </div>

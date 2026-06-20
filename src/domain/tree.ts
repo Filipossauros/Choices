@@ -150,6 +150,35 @@ export function allGroupsConsistent(model: EvaluationModel): boolean {
 }
 
 /**
+ * Effective (global) weight of a group *node itself* — the product of group
+ * weights from the root down to `parentId`. ROOT_ID → 1. A single-child group
+ * on the path contributes a factor of 1. Returns null when an ancestor group on
+ * the path has no derived weights yet (the global weight is then undefined).
+ *
+ * Multiplying this by a child's local weight gives that child's global weight in
+ * the model — letting the weighting UI show "local vs. global" side by side.
+ */
+export function groupEffectiveWeight(model: EvaluationModel, parentId: string): number | null {
+  const { criteria } = model.valueTree;
+  let factor = 1;
+  let current = parentId;
+  while (current !== ROOT_ID) {
+    const parent = parentOf(model.valueTree, current);
+    if (parent == null) return null;
+    const siblings = (findNode(model.valueTree, parent)?.children ?? []).filter(
+      (c) => criteria[c.criterionId]?.type !== 'gate',
+    );
+    if (siblings.length > 1) {
+      const cw = weightsForGroup(model, parent)?.weights.find((x) => x.criterionId === current)?.weight;
+      if (cw == null) return null; // ancestor group not derived yet
+      factor *= cw;
+    }
+    current = parent;
+  }
+  return factor;
+}
+
+/**
  * Effective (global) weight of every qualification leaf: the product of group
  * weights along its path to the root. The returned map sums to ~1 over all
  * leaves. A group with a single child contributes a factor of 1.

@@ -120,6 +120,56 @@ export default function Results() {
   const whyResult = result.optionResults.find((r) => r.optionId === (whyOptionId ?? sorted[0]?.optionId));
   const activeWhyId = whyOptionId ?? sorted[0]?.optionId ?? null;
 
+  // ── Explainability: strengths, shortfalls, and the best lever to the next band ──
+  const scaleMap = new Map(model.derivedScales.map((s) => [s.criterionId, s] as const));
+  const explain = (() => {
+    if (!whyResult || whyResult.hardRejected || whyResult.globalValue == null) return null;
+    const global = whyResult.globalValue;
+
+    // Per-leaf decomposition. Anchored Neutral=0, so contrib = w·v sums to V(p);
+    // shortfall = w·(100−v) is the value still "on the table" toward Good.
+    const leaves = qualCriteria
+      .map((c) => {
+        const v = whyResult.criterionScores[c.id];
+        const w = effW.get(c.id);
+        if (v == null || w == null) return null;
+        return { id: c.id, label: c.label, contrib: w * v, shortfall: w * (100 - v) };
+      })
+      .filter((x): x is NonNullable<typeof x> => x !== null);
+
+    const strengths = [...leaves].sort((a, b) => b.contrib - a.contrib).filter((x) => x.contrib > 0.5).slice(0, 3);
+    const weaknesses = [...leaves].sort((a, b) => b.shortfall - a.shortfall).filter((x) => x.shortfall > 0.5).slice(0, 3);
+
+    // Next higher band (bandViews sorted desc by lower bound → index-1 is higher).
+    const curIdx = bandViews.findIndex((bv) => bv.band.id === whyResult.bandId);
+    const nextBand = curIdx > 0 ? bandViews[curIdx - 1] : null;
+
+    // Best single-level improvement (discrete leaves only).
+    const perf = new Map<string, string>();
+    evaluation.performances.filter((p) => p.optionId === activeWhyId).forEach((p) => perf.set(p.criterionId, p.value));
+    const levers = qualCriteria
+      .map((c) => {
+        if (c.type !== 'qualification' || c.continuous) return null;
+        const levelId = perf.get(c.id);
+        const scale = scaleMap.get(c.id);
+        if (!levelId || !scale) return null;
+        const levels = c.descriptor.levels;
+        const idx = levels.findIndex((l) => l.id === levelId);
+        if (idx <= 0) return null; // already at the best level (or not set)
+        const vCur = scale.values.find((s) => s.levelId === levelId)?.value;
+        const vNext = scale.values.find((s) => s.levelId === levels[idx - 1].id)?.value;
+        const w = effW.get(c.id);
+        if (vCur == null || vNext == null || w == null) return null;
+        const delta = w * (vNext - vCur);
+        if (delta <= 0.05) return null;
+        return { id: c.id, label: c.label, from: levels[idx].label, to: levels[idx - 1].label, delta };
+      })
+      .filter((x): x is NonNullable<typeof x> => x !== null)
+      .sort((a, b) => b.delta - a.delta);
+
+    return { strengths, weaknesses, nextBand, levers, global };
+  })();
+
   return (
     <div className="max-w-5xl mx-auto py-6 px-4 space-y-6">
 
@@ -242,6 +292,35 @@ export default function Results() {
               {evaluation.options.find((o) => o.id === activeWhyId)?.label}
             </span>
           </h3>
+
+          {/* Strengths / shortfalls pills */}
+          {explain && (explain.strengths.length > 0 || explain.weaknesses.length > 0) && (
+            <div className="space-y-1.5">
+              {explain.strengths.length > 0 && (
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs text-gray-500 shrink-0">Puxaram para cima:</span>
+                  {explain.strengths.map((s) => (
+                    <span key={s.id} className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700"
+                      title="Contribuição para V(p) = peso efetivo × valor (acima de Neutro)">
+                      ▲ {s.label} +{s.contrib.toFixed(0)}
+                    </span>
+                  ))}
+                </div>
+              )}
+              {explain.weaknesses.length > 0 && (
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs text-gray-500 shrink-0">Mais a ganhar:</span>
+                  {explain.weaknesses.map((s) => (
+                    <span key={s.id} className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700"
+                      title="Valor ainda por ganhar até «Bom» = peso efetivo × (100 − valor)">
+                      ▼ {s.label} −{s.shortfall.toFixed(0)}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="space-y-2">
             {topCritIds.map((critId) => {
               const crit = model.valueTree.criteria[critId];
@@ -308,6 +387,35 @@ export default function Results() {
             })}
           </div>
           <p className="text-xs text-gray-400">Barras proporcionais ao valor v(p) de cada critério (0–100). Peso ef. = peso efetivo (produto dos pesos no caminho até à raiz).</p>
+
+          {/* Lever — what to change to reach the next decision band */}
+          {explain && (
+            !explain.nextBand ? (
+              <div className="rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2.5 text-xs text-emerald-800">
+                🏆 Já está no perfil mais alto da escala de decisão.
+              </div>
+            ) : explain.levers.length === 0 ? (
+              <div className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2.5 text-xs text-amber-800">
+                Todos os critérios já estão no nível máximo — só alterar pesos ou escalas mudaria o perfil «{explain.nextBand.band.label}».
+              </div>
+            ) : (() => {
+              const best = explain.levers[0];
+              const target = explain.nextBand.lower;
+              const newGlobal = explain.global + best.delta;
+              const reaches = newGlobal >= target;
+              return (
+                <div className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2.5 text-xs text-amber-900 leading-relaxed">
+                  🎯 <strong>Para subir a «{explain.nextBand.band.label}» (≥ {target.toFixed(1)}):</strong>{' '}
+                  melhorar <strong>{best.label}</strong> de «{best.from}» → «{best.to}» soma{' '}
+                  <strong>+{best.delta.toFixed(1)}</strong> → {newGlobal.toFixed(1)}
+                  {reaches
+                    ? ' — fecha a lacuna.'
+                    : ` — faltam ainda ${(target - newGlobal).toFixed(1)} (combine vários critérios).`}
+                  <span className="block text-amber-700/70 mt-0.5">Alavanca mais eficiente: maior ganho de V(p) por melhoria de um nível.</span>
+                </div>
+              );
+            })()
+          )}
         </div>
       )}
 
