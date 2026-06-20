@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 import type { MacbethJudgment, MacbethCategory } from '../../domain/types';
 
 /**
@@ -40,9 +40,11 @@ interface Props {
   /** Renders the plain-language question for a pair (more vs less attractive). */
   renderQuestion: (more: GuidedItem, less: GuidedItem) => ReactNode;
   emptyHint?: string;
+  /** Called whenever the currently active pair changes (key = `idA__idB`). */
+  onActivePairChange?: (key: string | null) => void;
 }
 
-export default function GuidedJudgments({ items, judgments, onChange, renderQuestion, emptyHint }: Props) {
+export default function GuidedJudgments({ items, judgments, onChange, renderQuestion, emptyHint, onActivePairChange }: Props) {
   const [pairIdx, setPairIdx] = useState(0);
 
   // Upper-triangle pairs, same order/keys as JudgmentMatrixEditor.
@@ -54,11 +56,18 @@ export default function GuidedJudgments({ items, judgments, onChange, renderQues
   }
 
   const total = pairs.length;
+  const safeIdx = total > 0 ? Math.min(pairIdx, total - 1) : 0;
+
+  useEffect(() => {
+    if (total === 0) { onActivePairChange?.(null); return; }
+    const { idA, idB } = pairs[safeIdx];
+    onActivePairChange?.(`${idA}__${idB}`);
+  }, [safeIdx, total]); // eslint-disable-line react-hooks/exhaustive-deps
+
   if (total === 0) {
     return <p className="text-sm text-gray-400 italic">{emptyHint ?? 'São necessários pelo menos 2 elementos.'}</p>;
   }
 
-  const safeIdx = Math.min(pairIdx, total - 1);
   const { idA, idB } = pairs[safeIdx];
   const moreItem = items.find((it) => it.id === idA)!;
   const lessItem = items.find((it) => it.id === idB)!;

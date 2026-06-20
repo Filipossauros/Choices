@@ -32,6 +32,15 @@ export default function Analysis() {
   const [newLabel, setNewLabel] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
 
+  const isPositions = model.subjectKind === 'positions';
+  const subjectSingular = isPositions ? 'posição' : 'proposta';
+  const subjectPlaceholder = isPositions ? 'Nome da posição / momento…' : 'Nome da proposta…';
+  const subjectColumnHeader = isPositions ? 'Posição / Momento' : 'Proposta';
+  const subjectScreenTitle = isPositions ? 'Análise e monitorização' : 'Análise e avaliação';
+  const subjectScreenDesc = isPositions
+    ? 'Registe as posições / momentos, verifique a habilitação (portas 🚪) e classifique o desempenho em cada critério de qualificação 📊. Uma porta falhada exclui a posição antes da agregação.'
+    : 'Registe as propostas, verifique a habilitação (portas 🚪) e classifique o desempenho em cada critério de qualificação 📊. Uma porta falhada reprova a proposta antes da agregação.';
+
   const qualCriteria = Object.values(model.valueTree.criteria).filter(
     (c) => c.type === 'qualification',
   ) as QualificationCriterion[];
@@ -64,7 +73,7 @@ export default function Analysis() {
   }
 
   function deleteOption(id: string) {
-    if (!confirm('Eliminar esta proposta?')) return;
+    if (!confirm(`Eliminar esta ${subjectSingular}?`)) return;
     dispatch({
       type: 'UPDATE_EVALUATION',
       patch: {
@@ -90,11 +99,8 @@ export default function Analysis() {
   return (
     <div className="max-w-5xl mx-auto py-6 px-4 space-y-6">
       <div className="space-y-1">
-        <h2 className="text-lg font-semibold text-gray-800">Análise e avaliação</h2>
-        <p className="text-sm text-gray-500">
-          Registe as propostas, verifique a habilitação (portas 🚪) e classifique o desempenho em cada
-          critério de qualificação 📊. Uma porta falhada reprova a proposta antes da agregação.
-        </p>
+        <h2 className="text-lg font-semibold text-gray-800">{subjectScreenTitle}</h2>
+        <p className="text-sm text-gray-500">{subjectScreenDesc}</p>
       </div>
 
       <div className="flex items-center gap-3">
@@ -102,23 +108,23 @@ export default function Analysis() {
           value={newLabel}
           onChange={(e) => setNewLabel(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && addOption()}
-          placeholder="Nome da proposta…"
+          placeholder={subjectPlaceholder}
           className="flex-1 border border-gray-200 rounded px-3 py-2 text-sm"
         />
         <button onClick={addOption} className="px-4 py-2 bg-blue-700 text-white text-sm rounded hover:bg-blue-800">
-          + Adicionar proposta
+          + Adicionar {subjectSingular}
         </button>
       </div>
 
       {evaluation.options.length === 0 ? (
-        <p className="text-center text-gray-400 italic py-8">Nenhuma proposta registada ainda.</p>
+        <p className="text-center text-gray-400 italic py-8">Nenhuma {subjectSingular} registada ainda.</p>
       ) : (
         <>
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm border-collapse">
               <thead>
                 <tr className="bg-gray-50">
-                  <th className="px-3 py-2 text-left font-medium text-gray-600 border border-gray-200 sticky left-0 bg-gray-50">Proposta</th>
+                  <th className="px-3 py-2 text-left font-medium text-gray-600 border border-gray-200 sticky left-0 bg-gray-50">{subjectColumnHeader}</th>
                   {gateCriteria.map((c) => (
                     <th key={c.id} className="px-3 py-2 text-center font-medium text-gray-600 border border-gray-200 bg-orange-50" title="Porta (habilitação)">🚪 {c.label}</th>
                   ))}
@@ -252,7 +258,7 @@ export default function Analysis() {
         next="results"
         nextLabel="Resultados"
         hint="Registe as propostas e o seu desempenho antes de agregar."
-        blockedBy={evaluation.options.length === 0 ? 'Adicione pelo menos uma proposta para continuar.' : undefined}
+        blockedBy={evaluation.options.length === 0 ? `Adicione pelo menos uma ${subjectSingular} para continuar.` : undefined}
       />
     </div>
   );

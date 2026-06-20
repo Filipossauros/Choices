@@ -30,9 +30,11 @@ interface Props {
   judgments: Record<string, MacbethJudgment>;
   onChange: (judgments: Record<string, MacbethJudgment>) => void;
   readOnly?: boolean;
+  /** Highlight this pair with a blue ring (driven by the guided section above). */
+  activePairKey?: string;
 }
 
-export default function JudgmentMatrixEditor({ items, judgments, onChange, readOnly }: Props) {
+export default function JudgmentMatrixEditor({ items, judgments, onChange, readOnly, activePairKey }: Props) {
   const [report, setReport] = useState<ConsistencyReport | null>(null);
   const [checking, setChecking] = useState(false);
 
@@ -159,12 +161,16 @@ export default function JudgmentMatrixEditor({ items, judgments, onChange, readO
                   const isConflict = report?.inconsistentPairs.some(
                     (p) => p.idA === rowItem.id && p.idB === colItem.id,
                   );
+                  const cellKey = `${rowItem.id}__${colItem.id}`;
+                  const isActive = activePairKey === cellKey;
                   return (
                     <td
                       key={colItem.id}
                       className={`border p-0 relative ${
                         isConflict
                           ? 'bg-red-100 border-red-400 ring-2 ring-inset ring-red-400'
+                          : isActive
+                          ? 'bg-blue-50 border-blue-400 ring-2 ring-inset ring-blue-400'
                           : 'border-gray-200'
                       }`}
                       title={

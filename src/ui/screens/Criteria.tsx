@@ -369,6 +369,27 @@ export default function Criteria() {
             onBlur={commitLabel}
             className="w-full text-xl font-semibold border-0 border-b border-gray-200 focus:border-blue-400 outline-none pb-1"
           />
+          <div className="flex items-center gap-4 pt-1">
+            <span className="text-xs text-gray-500">O modelo avalia:</span>
+            <label className="flex items-center gap-1.5 text-xs cursor-pointer">
+              <input
+                type="radio"
+                name="subjectKind"
+                checked={(model.subjectKind ?? 'proposals') === 'proposals'}
+                onChange={() => dispatch({ type: 'UPDATE_MODEL', patch: { subjectKind: 'proposals' } })}
+              />
+              <span>Propostas (ex.: arquitetura)</span>
+            </label>
+            <label className="flex items-center gap-1.5 text-xs cursor-pointer">
+              <input
+                type="radio"
+                name="subjectKind"
+                checked={model.subjectKind === 'positions'}
+                onChange={() => dispatch({ type: 'UPDATE_MODEL', patch: { subjectKind: 'positions' } })}
+              />
+              <span>Posições / momentos (monitorização)</span>
+            </label>
+          </div>
         </div>
         <button onClick={exportModel} className="px-3 py-1.5 mt-4 text-sm border border-gray-300 rounded hover:bg-gray-50 shrink-0">
           Exportar modelo

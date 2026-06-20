@@ -261,6 +261,8 @@ export interface EvaluationModel {
   description?: string;
   createdAt: string;
   updatedAt: string;
+  /** Whether this model evaluates proposals (e.g. architecture) or positions/moments (monitoring). */
+  subjectKind?: 'proposals' | 'positions';
   valueTree: ValueTree;
   judgmentMatrices: JudgmentMatrix[];
   derivedScales: DerivedScale[];

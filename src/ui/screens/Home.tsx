@@ -74,6 +74,7 @@ function makeTemplateArchitecture(): EvaluationModel {
     modelVersion: MODEL_VERSION,
     label: 'Avaliação de arquiteturas de SI',
     description: 'Avaliação de propostas de arquitetura por fatores estruturados (Segurança, Interoperabilidade, Tecnologia).',
+    subjectKind: 'proposals' as const,
     createdAt: now,
     updatedAt: now,
     valueTree: {
@@ -158,6 +159,7 @@ function makeTemplateRisco(): EvaluationModel {
     modelVersion: MODEL_VERSION,
     label: 'Risco / monitorização de plataforma',
     description: 'Compõe um índice de risco a partir de HealthStatus (métricas contínuas) e factores contextuais.',
+    subjectKind: 'positions' as const,
     createdAt: now,
     updatedAt: now,
     valueTree: {

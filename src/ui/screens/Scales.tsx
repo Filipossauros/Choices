@@ -301,7 +301,7 @@ export default function Scales() {
   const model = state.model!;
   const [derivingId, setDerivingId] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
-  const [guided, setGuided] = useState(true);
+  const [activePairKey, setActivePairKey] = useState<string | null>(null);
 
   const qualCriteria = Object.values(model.valueTree.criteria).filter(
     (c) => c.type === 'qualification',
@@ -426,55 +426,41 @@ export default function Scales() {
         <div className="flex-1 space-y-6 min-w-0">
           <div className="flex items-center justify-between gap-2 flex-wrap">
             <h2 className="font-semibold text-gray-800">{activeCrit.label}</h2>
-            <div className="flex items-center gap-2">
-              {/* Mode toggle */}
-              <div className="flex items-center rounded-lg border border-gray-200 bg-gray-50 p-0.5 text-xs">
-                <button
-                  onClick={() => setGuided(false)}
-                  className={`px-3 py-1 rounded-md font-medium transition-colors ${!guided ? 'bg-white shadow text-gray-800' : 'text-gray-500 hover:text-gray-700'}`}
-                >
-                  Avançado
-                </button>
-                <button
-                  onClick={() => setGuided(true)}
-                  className={`px-3 py-1 rounded-md font-medium transition-colors ${guided ? 'bg-white shadow text-blue-700' : 'text-gray-500 hover:text-gray-700'}`}
-                >
-                  Guiado
-                </button>
-              </div>
-              <button
-                onClick={() => handleDerive(activeCrit.id)}
-                disabled={derivingId === activeCrit.id}
-                className="px-4 py-1.5 text-sm bg-blue-700 text-white rounded hover:bg-blue-800 disabled:opacity-50"
-              >
-                {derivingId === activeCrit.id ? 'A derivar…' : 'Derivar escala'}
-              </button>
-            </div>
+            <button
+              onClick={() => handleDerive(activeCrit.id)}
+              disabled={derivingId === activeCrit.id}
+              className="px-4 py-1.5 text-sm bg-blue-700 text-white rounded hover:bg-blue-800 disabled:opacity-50"
+            >
+              {derivingId === activeCrit.id ? 'A derivar…' : 'Derivar escala'}
+            </button>
           </div>
 
-          {guided ? (
-            <GuidedJudgments
-              items={activeCrit.descriptor.levels.map((l) => ({ id: l.id, label: l.label }))}
-              judgments={getMatrix(activeCrit.id).judgments}
-              onChange={(j) => updateMatrix(activeCrit.id, j)}
-              emptyHint="São necessários pelo menos 2 níveis."
-              renderQuestion={(more, less) => (
-                <>
-                  Qual a diferença de atratividade de passar de{' '}
-                  <span className="inline-block bg-white border border-gray-300 rounded-lg px-2 py-0.5 font-semibold text-gray-700">{less.label}</span>
-                  {' '}para{' '}
-                  <span className="inline-block bg-white border border-blue-400 rounded-lg px-2 py-0.5 font-semibold text-blue-700">{more.label}</span>
-                  ?
-                </>
-              )}
-            />
-          ) : (
+          <GuidedJudgments
+            items={activeCrit.descriptor.levels.map((l) => ({ id: l.id, label: l.label }))}
+            judgments={getMatrix(activeCrit.id).judgments}
+            onChange={(j) => updateMatrix(activeCrit.id, j)}
+            onActivePairChange={setActivePairKey}
+            emptyHint="São necessários pelo menos 2 níveis."
+            renderQuestion={(more, less) => (
+              <>
+                Qual a diferença de atratividade de passar de{' '}
+                <span className="inline-block bg-white border border-gray-300 rounded-lg px-2 py-0.5 font-semibold text-gray-700">{less.label}</span>
+                {' '}para{' '}
+                <span className="inline-block bg-white border border-blue-400 rounded-lg px-2 py-0.5 font-semibold text-blue-700">{more.label}</span>
+                ?
+              </>
+            )}
+          />
+
+          <div className="border-t border-gray-100 pt-4">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Matriz de juízos</p>
             <JudgmentMatrixEditor
               items={activeCrit.descriptor.levels}
               judgments={getMatrix(activeCrit.id).judgments}
               onChange={(j) => updateMatrix(activeCrit.id, j)}
+              activePairKey={activePairKey ?? undefined}
             />
-          )}
+          </div>
 
           {/* Scale display */}
           {(() => {

@@ -14,7 +14,7 @@ function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; on
   const { state, dispatch } = useApp();
   const model = state.model!;
   const [deriving, setDeriving] = useState(false);
-  const [guided, setGuided] = useState(true);
+  const [activePairKey, setActivePairKey] = useState<string | null>(null);
 
   const { criteria } = model.valueTree;
   const childCrits = group.childIds.map((id) => criteria[id]).filter(Boolean);
@@ -88,52 +88,37 @@ function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; on
             </p>
           ) : (
             <>
-              {/* Mode toggle */}
-              <div className="flex items-center justify-end">
-                <div className="flex items-center rounded-lg border border-gray-200 bg-gray-50 p-0.5 text-xs">
-                  <button
-                    onClick={() => setGuided(true)}
-                    className={`px-3 py-1 rounded-md font-medium transition-colors ${guided ? 'bg-white shadow text-blue-700' : 'text-gray-500 hover:text-gray-700'}`}
-                  >
-                    Guiado
-                  </button>
-                  <button
-                    onClick={() => setGuided(false)}
-                    className={`px-3 py-1 rounded-md font-medium transition-colors ${!guided ? 'bg-white shadow text-gray-800' : 'text-gray-500 hover:text-gray-700'}`}
-                  >
-                    Avançado
-                  </button>
-                </div>
+              <GuidedJudgments
+                items={matrixItems}
+                judgments={matrix.judgments}
+                onChange={updateJudgments}
+                onActivePairChange={setActivePairKey}
+                emptyHint="São necessários pelo menos 2 critérios."
+                renderQuestion={(more, less) =>
+                  less.id === ALL_NEUTRAL ? (
+                    <>
+                      Partindo de um cenário em que <strong>tudo</strong> está no nível <em>Neutro</em>, qual a
+                      atratividade de melhorar apenas{' '}
+                      <span className="inline-block bg-white border border-blue-400 rounded-lg px-2 py-0.5 font-semibold text-blue-700">{more.label}</span>
+                      {' '}de <em>Neutro</em> para <em>Bom</em>?
+                    </>
+                  ) : (
+                    <>
+                      Qual a diferença de atratividade entre melhorar{' '}
+                      <span className="inline-block bg-white border border-blue-400 rounded-lg px-2 py-0.5 font-semibold text-blue-700">{more.label}</span>
+                      {' '}e melhorar{' '}
+                      <span className="inline-block bg-white border border-gray-300 rounded-lg px-2 py-0.5 font-semibold text-gray-700">{less.label}</span>
+                      , cada um de <em>Neutro</em> para <em>Bom</em>?
+                    </>
+                  )
+                }
+              />
+
+              <div className="border-t border-gray-100 pt-3">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Matriz de juízos</p>
+                <JudgmentMatrixEditor items={matrixItems} judgments={matrix.judgments} onChange={updateJudgments} activePairKey={activePairKey ?? undefined} />
               </div>
 
-              {guided ? (
-                <GuidedJudgments
-                  items={matrixItems}
-                  judgments={matrix.judgments}
-                  onChange={updateJudgments}
-                  emptyHint="São necessários pelo menos 2 critérios."
-                  renderQuestion={(more, less) =>
-                    less.id === ALL_NEUTRAL ? (
-                      <>
-                        Partindo de um cenário em que <strong>tudo</strong> está no nível <em>Neutro</em>, qual a
-                        atratividade de melhorar apenas{' '}
-                        <span className="inline-block bg-white border border-blue-400 rounded-lg px-2 py-0.5 font-semibold text-blue-700">{more.label}</span>
-                        {' '}de <em>Neutro</em> para <em>Bom</em>?
-                      </>
-                    ) : (
-                      <>
-                        Qual a diferença de atratividade entre melhorar{' '}
-                        <span className="inline-block bg-white border border-blue-400 rounded-lg px-2 py-0.5 font-semibold text-blue-700">{more.label}</span>
-                        {' '}e melhorar{' '}
-                        <span className="inline-block bg-white border border-gray-300 rounded-lg px-2 py-0.5 font-semibold text-gray-700">{less.label}</span>
-                        , cada um de <em>Neutro</em> para <em>Bom</em>?
-                      </>
-                    )
-                  }
-                />
-              ) : (
-                <JudgmentMatrixEditor items={matrixItems} judgments={matrix.judgments} onChange={updateJudgments} />
-              )}
               <button
                 onClick={handleDerive}
                 disabled={deriving || Object.keys(matrix.judgments).length === 0}
