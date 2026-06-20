@@ -36,29 +36,8 @@ export default function DecisionScale() {
   }
 
   function profileIncomplete(b: DecisionBand): boolean {
-    if (!b.referenceProfile) return false;
+    if (!b.referenceProfile) return true;
     return qualCriteria.some((c) => !b.referenceProfile![c.id]);
-  }
-
-  /** A near-uniform profile whose global V(p) is close to `target`. */
-  function seedProfileNear(target: number): Record<string, string> {
-    const out: Record<string, string> = {};
-    for (const c of qualCriteria) {
-      const scale = model.derivedScales.find((s) => s.criterionId === c.id);
-      if (!scale || scale.values.length === 0) {
-        const neutral = c.descriptor.levels[c.descriptor.neutralIndex];
-        if (neutral) out[c.id] = neutral.id;
-        continue;
-      }
-      let best = scale.values[0];
-      let bestD = Infinity;
-      for (const v of scale.values) {
-        const d = Math.abs(v.value - target);
-        if (d < bestD) { bestD = d; best = v; }
-      }
-      out[c.id] = best.levelId;
-    }
-    return out;
   }
 
   function addBand() {
@@ -71,21 +50,28 @@ export default function DecisionScale() {
     update(bands.filter((b) => b.id !== id));
   }
 
-  function activateProfile(id: string) {
-    const band = bands.find((b) => b.id === id);
-    if (!band) return;
-    const profile = seedProfileNear(band.minScore);
-    const s = scoreProfile(model, profile);
-    patchBand(id, { referenceProfile: profile, minScore: s ?? band.minScore });
-  }
-  function deactivateProfile(id: string) {
+  // Switch a band to the manual override: drop the profile, keep the current
+  // effective cut-off as the typed starting number, and mark it manual.
+  function useManual(id: string) {
     update(
       bands.map((b) => {
         if (b.id !== id) return b;
         const eff = effOf(b.id);
         const { referenceProfile: _drop, ...rest } = b;
         void _drop;
-        return { ...rest, minScore: eff };
+        return { ...rest, minScore: eff, manualThreshold: true };
+      }),
+    );
+  }
+  // Switch (back) to the grounded path: clear the manual flag and start from an
+  // empty reference alternative for the user to describe deliberately.
+  function useProfile(id: string) {
+    update(
+      bands.map((b) => {
+        if (b.id !== id) return b;
+        const { referenceProfile: _drop, manualThreshold: _m, ...rest } = b;
+        void _drop; void _m;
+        return rest;
       }),
     );
   }
@@ -93,12 +79,21 @@ export default function DecisionScale() {
     const band = bands.find((b) => b.id === id);
     if (!band) return;
     const profile = { ...(band.referenceProfile ?? {}), [criterionId]: levelId };
-    const s = scoreProfile(model, profile);
-    patchBand(id, { referenceProfile: profile, minScore: s ?? band.minScore });
+    const complete = qualCriteria.every((c) => profile[c.id]);
+    const s = complete ? scoreProfile(model, profile) : null;
+    patchBand(id, { referenceProfile: profile, manualThreshold: false, ...(s != null ? { minScore: s } : {}) });
   }
 
   // ── Validation ──────────────────────────────────────────────────────────
   const warnings: string[] = [];
+  // Zones whose threshold is NOT grounded on a reference alternative.
+  const ungrounded = bands.filter(
+    (b) => b.id !== lowestId && (b.manualThreshold || !b.referenceProfile),
+  );
+  // Grounded but not yet fully described.
+  const incomplete = bands.filter(
+    (b) => b.id !== lowestId && b.referenceProfile && profileIncomplete(b),
+  );
   // Colliding cut-offs among the non-base zones make a zone unreachable.
   const nonBase = decorated.filter((d) => d.band.id !== lowestId);
   for (let i = 1; i < nonBase.length; i++) {
@@ -108,10 +103,8 @@ export default function DecisionScale() {
       );
     }
   }
-  for (const b of bands) {
-    if (profileIncomplete(b)) {
-      warnings.push(`O perfil de referência de «${b.label}» está incompleto — defina um nível em todos os critérios.`);
-    }
+  for (const b of incomplete) {
+    warnings.push(`O perfil de referência de «${b.label}» está incompleto — defina um nível em todos os critérios.`);
   }
 
   // Preview axis bounds — ignore the base zone's own cut-off (it's a catch-all
@@ -133,12 +126,26 @@ export default function DecisionScale() {
           Cada resultado cai na zona mais alta cujo limiar atinge.
         </p>
         <p className="text-xs text-gray-400 leading-relaxed">
-          Os limiares são <strong>compensatórios</strong>: uma fraqueza num critério pode ser compensada por força
-          noutro. Para mínimos rígidos por critério (que reprovam só por si) use o <strong>Veto</strong> ou uma{' '}
-          <strong>Porta</strong> nos Critérios. Escreva o limiar a número ou, em alternativa, deixe que ele seja
-          derivado por MACBETH a partir de uma alternativa-limiar de referência.
+          Para que o limiar seja <strong>defensável</strong> (e não um número arbitrário), descreve-se uma{' '}
+          <strong>alternativa-limiar de referência</strong> — o pior caso que ainda pertence à zona — e o MACBETH
+          calcula o seu V(p). O corte fica assim ligado a uma situação concreta e rastreável. Os limiares são{' '}
+          <strong>compensatórios</strong>; para mínimos rígidos por critério use o <strong>Veto</strong> ou uma{' '}
+          <strong>Porta</strong>. O valor manual existe só como recurso provisório ou override assumido.
         </p>
       </div>
+
+      {ungrounded.length > 0 && (
+        <div className="bg-rose-50 border border-rose-200 rounded-lg px-3 py-2 text-sm text-rose-800 flex items-start gap-2">
+          <span className="mt-0.5 shrink-0">⚖️</span>
+          <span>
+            {ungrounded.length === 1 ? 'A zona' : 'As zonas'}{' '}
+            <strong>{ungrounded.map((b) => `«${b.label}»`).join(', ')}</strong>{' '}
+            {ungrounded.length === 1 ? 'tem limiar manual' : 'têm limiar manual'} (não derivado de uma
+            alternativa-limiar). Para uma decisão defensável, derive {ungrounded.length === 1 ? 'esse limiar' : 'esses limiares'}{' '}
+            a partir de um perfil de referência.
+          </span>
+        </div>
+      )}
 
       {warnings.length > 0 && (
         <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-sm text-amber-800 space-y-1">
@@ -148,6 +155,17 @@ export default function DecisionScale() {
               <span>{w}</span>
             </div>
           ))}
+        </div>
+      )}
+
+      {!ready && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 text-sm text-blue-800 flex items-start gap-2">
+          <span className="mt-0.5 shrink-0">ℹ</span>
+          <span>
+            As <strong>Escalas</strong> e a <strong>Ponderação</strong> ainda não estão concluídas e consistentes,
+            por isso os limiares por perfil não podem ser calculados. Pode definir limiares <strong>provisórios</strong> a
+            número e convertê-los depois.
+          </span>
         </div>
       )}
 
@@ -190,7 +208,13 @@ export default function DecisionScale() {
         <div className="min-w-0 space-y-3">
           {decorated.map(({ band: b, eff }) => {
             const isBase = b.id === lowestId;
-            const hasProfile = !!b.referenceProfile;
+            const grounded = !!b.referenceProfile;
+            const manual = !grounded && b.manualThreshold === true;
+            // Default path for a non-base zone when the model is ready: describe
+            // a reference alternative. Manual only when explicitly chosen, or as
+            // the provisional fallback while the model isn't ready.
+            const showProfileEditor = !isBase && ready && !manual;
+            const showManualInput = !isBase && (manual || !ready);
             return (
               <div key={b.id} className="border border-gray-200 rounded-xl bg-white overflow-hidden">
                 {/* Header strip */}
@@ -208,6 +232,11 @@ export default function DecisionScale() {
                     className="flex-1 bg-transparent border-0 focus:ring-0 px-1 py-0.5 text-sm font-semibold text-gray-800 min-w-0"
                     placeholder="Nome da zona de decisão"
                   />
+                  {!isBase && (manual || (!ready)) && (
+                    <span className="shrink-0 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-rose-100 text-rose-700" title="Limiar definido à mão, não derivado de um perfil">
+                      {manual ? 'manual' : 'provisório'}
+                    </span>
+                  )}
                   <span
                     className="shrink-0 px-2.5 py-1 rounded-full text-xs font-bold font-mono text-white"
                     style={{ backgroundColor: b.color }}
@@ -244,19 +273,23 @@ export default function DecisionScale() {
                       Zona <strong>base</strong> — aplica-se a tudo o que não atinge nenhuma das zonas acima. Não tem
                       limiar próprio.
                     </p>
-                  ) : hasProfile ? (
+                  ) : showProfileEditor ? (
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
                           Alternativa-limiar de referência
                         </p>
                         <button
-                          onClick={() => deactivateProfile(b.id)}
+                          onClick={() => useManual(b.id)}
                           className="text-xs text-gray-400 hover:text-gray-700 underline"
+                          title="Definir o limiar à mão (override assumido)"
                         >
-                          definir a número
+                          usar valor manual
                         </button>
                       </div>
+                      <p className="text-[11px] text-gray-400 -mt-1">
+                        Descreva o <em>pior</em> caso que ainda pertence a esta zona; o limiar é o seu V(p).
+                      </p>
                       <div className="grid sm:grid-cols-2 gap-x-4 gap-y-1.5">
                         {qualCriteria.map((c) => (
                           <label key={c.id} className="flex items-center gap-2 text-sm">
@@ -277,31 +310,31 @@ export default function DecisionScale() {
                       <div className="flex items-center gap-2 pt-2 mt-1 border-t border-gray-100">
                         <span className="text-xs text-gray-500">Limiar derivado por MACBETH:</span>
                         <span className="font-mono text-sm font-bold" style={{ color: b.color }}>
-                          {ready && !profileIncomplete(b) ? `V(p) ≥ ${eff.toFixed(1)}` : '— (faltam escalas/pesos)'}
+                          {grounded && !profileIncomplete(b) ? `V(p) ≥ ${eff.toFixed(1)}` : '— (descreva todos os critérios)'}
                         </span>
                       </div>
                     </div>
-                  ) : (
+                  ) : showManualInput ? (
                     <div className="flex items-center gap-3 flex-wrap">
                       <label className="text-sm text-gray-500 whitespace-nowrap">Limiar — V(p) ≥</label>
                       <input
                         type="number"
                         value={b.minScore}
-                        onChange={(e) => patchBand(b.id, { minScore: Number(e.target.value) })}
-                        className="w-24 border border-gray-200 rounded-lg px-2 py-1 text-sm text-center font-mono focus:ring-1 focus:ring-blue-400"
+                        onChange={(e) => patchBand(b.id, { minScore: Number(e.target.value), manualThreshold: true })}
+                        className="w-24 border border-gray-200 rounded-lg px-2 py-1 text-sm text-center font-mono focus:ring-1 focus:ring-rose-300"
                       />
                       <span className="text-xs text-gray-400">pontos</span>
                       {ready && (
                         <button
-                          onClick={() => activateProfile(b.id)}
+                          onClick={() => useProfile(b.id)}
                           className="text-xs text-blue-600 hover:text-blue-800 underline ml-auto"
-                          title="Descrever uma alternativa-limiar e deixar o MACBETH calcular o corte"
+                          title="Definir o limiar descrevendo uma alternativa-limiar (defensável)"
                         >
-                          derivar por perfil de referência
+                          derivar por alternativa-limiar
                         </button>
                       )}
                     </div>
-                  )}
+                  ) : null}
                 </div>
               </div>
             );

@@ -73,12 +73,29 @@ export default function Report() {
       generatedAt: new Date().toISOString(),
       evaluation: { id: evaluation.id, label: evaluation.label, createdAt: evaluation.createdAt },
       model: { id: model.id, label: model.label, version: model.modelVersion },
-      decisionBands: sortBands(result?.decisionScale ?? model.decisionScale).map((b) => ({
-        id: b.id,
-        label: b.label,
-        color: b.color,
-        minScore: b.minScore,
-      })),
+      decisionBands: sortBands(result?.decisionScale ?? model.decisionScale).map((b) => {
+        // Render the reference profile (if any) in human terms, so the threshold
+        // is auditable: which boundary alternative justifies this cut-off.
+        const referenceProfile = b.referenceProfile
+          ? Object.entries(b.referenceProfile).map(([criterionId, levelId]) => {
+              const crit = model.valueTree.criteria[criterionId];
+              const level =
+                crit?.type === 'qualification'
+                  ? crit.descriptor.levels.find((l) => l.id === levelId)
+                  : undefined;
+              return { criterionId, criterion: crit?.label ?? criterionId, levelId, level: level?.label ?? levelId };
+            })
+          : null;
+        return {
+          id: b.id,
+          label: b.label,
+          action: b.action ?? null,
+          color: b.color,
+          minScore: b.minScore,
+          thresholdSource: b.referenceProfile ? 'profile' : 'manual',
+          referenceProfile,
+        };
+      }),
       results: sorted.map((r) => {
         const opt = evaluation.options.find((o) => o.id === r.optionId);
         const band = r.bandId ? bandMap.get(r.bandId) : undefined;

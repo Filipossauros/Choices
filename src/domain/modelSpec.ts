@@ -66,7 +66,7 @@ export interface ModelSpec {
     groups: { id: string; label: string; weights: { criterionId: string; label: string; weight: number }[]; consistencyMargin?: number }[];
     effectiveLeafWeights: { criterionId: string; label: string; weight: number }[];
   };
-  decision: { bands: { label: string; action?: string; minScore: number; referenceProfile?: Record<string, string> }[] };
+  decision: { bands: { label: string; action?: string; minScore: number; thresholdSource: 'profile' | 'manual'; referenceProfile?: Record<string, string> }[] };
   diagnostics: {
     leafCount: number;
     factorCount: number;
@@ -188,7 +188,13 @@ export function buildModelSpec(model: EvaluationModel): ModelSpec {
     decision: {
       bands: [...model.decisionScale]
         .sort((a, b) => b.minScore - a.minScore)
-        .map((b) => ({ label: b.label, action: b.action, minScore: b.minScore, referenceProfile: b.referenceProfile })),
+        .map((b) => ({
+          label: b.label,
+          action: b.action,
+          minScore: b.minScore,
+          thresholdSource: (b.referenceProfile ? 'profile' : 'manual') as 'profile' | 'manual',
+          referenceProfile: b.referenceProfile,
+        })),
     },
     diagnostics: {
       leafCount,

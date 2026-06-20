@@ -182,6 +182,13 @@ export interface DecisionBand {
    */
   action?: string;
   /**
+   * When true, the cut-off was set by hand (manual override) rather than derived
+   * from a `referenceProfile`. Kept explicit so exports/audits can flag which
+   * thresholds are grounded (defensible) vs typed. Ignored when
+   * `referenceProfile` is present (a grounded band is never manual).
+   */
+  manualThreshold?: boolean;
+  /**
    * Optional MACBETH reference profile used as an *aid* to set this band's lower
    * cut-off: a reference alternative described by a performance level per
    * qualification criterion (`criterionId -> levelId`). When set, the effective
