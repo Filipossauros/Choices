@@ -104,11 +104,11 @@ function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; on
                     </>
                   ) : (
                     <>
-                      Qual a diferença de atratividade entre melhorar{' '}
+                      Partindo de tudo <em>Neutro</em>, qual seria mais valioso: melhorar <strong>apenas</strong>{' '}
                       <span className="inline-block bg-white border border-blue-400 rounded-lg px-2 py-0.5 font-semibold text-blue-700">{more.label}</span>
-                      {' '}e melhorar{' '}
+                      {' '}de <em>Neutro</em> para <em>Bom</em>, ou melhorar <strong>apenas</strong>{' '}
                       <span className="inline-block bg-white border border-gray-300 rounded-lg px-2 py-0.5 font-semibold text-gray-700">{less.label}</span>
-                      , cada um de <em>Neutro</em> para <em>Bom</em>?
+                      {' '}de <em>Neutro</em> para <em>Bom</em>? Qual a diferença de atratividade entre esses dois cenários?
                     </>
                   )
                 }
