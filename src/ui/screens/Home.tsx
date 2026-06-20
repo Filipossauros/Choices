@@ -2,146 +2,219 @@ import { useState, useEffect, useCallback } from 'react';
 import { useApp } from '../store';
 import { repository } from '../../repository';
 import type { DocMeta } from '../../repository';
+import type { EvaluationModel } from '../../domain/types';
+import { MODEL_VERSION } from '../../domain/types';
 import MethodPage from './MethodPage';
 import ManifestPage from './ManifestPage';
+import { v4 as uuidv4 } from 'uuid';
+
+// ── Mascot ────────────────────────────────────────────────────────────────────
 
 function TealRobotMascot() {
   return (
     <>
       <style>{`
-        @keyframes rm-float {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-5px); }
-        }
-        @keyframes rm-blink {
-          0%, 88%, 100% { transform: scaleY(1); }
-          93% { transform: scaleY(0.08); }
-        }
-        .rm-body { animation: rm-float 3.2s ease-in-out infinite; display: inline-block; }
-        .rm-eyes { animation: rm-blink 5s ease-in-out infinite; transform-origin: 50% 50%; }
+        @keyframes rm-float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
+        @keyframes rm-blink { 0%,88%,100%{transform:scaleY(1)} 93%{transform:scaleY(0.08)} }
+        .rm-body{animation:rm-float 3.2s ease-in-out infinite;display:inline-block}
+        .rm-eyes{animation:rm-blink 5s ease-in-out infinite;transform-origin:50% 50%}
       `}</style>
-      <svg
-        className="rm-body"
-        width="120"
-        height="140"
-        viewBox="0 0 120 140"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        {/* ── Antennae ── */}
+      <svg className="rm-body" width="80" height="96" viewBox="0 0 120 140" xmlns="http://www.w3.org/2000/svg">
         <line x1="43" y1="18" x2="38" y2="5" stroke="#0d9488" strokeWidth="2.5" strokeLinecap="round" />
         <line x1="77" y1="18" x2="82" y2="5" stroke="#0d9488" strokeWidth="2.5" strokeLinecap="round" />
         <circle cx="38" cy="4" r="4.5" fill="#f59e0b" />
         <circle cx="82" cy="4" r="4.5" fill="#f59e0b" />
-
-        {/* ── Head ── */}
         <rect x="20" y="14" width="80" height="58" rx="26" fill="#14b8a6" />
-        {/* head top sheen */}
         <ellipse cx="60" cy="22" rx="28" ry="8" fill="#2dd4bf" opacity="0.45" />
-
-        {/* ── Headphone ears (large circles flush against head sides) ── */}
-        {/* Left outer ring */}
         <circle cx="20" cy="44" r="16" fill="#0d9488" />
-        {/* Left inner ring */}
         <circle cx="20" cy="44" r="9" fill="#14b8a6" />
-        {/* Left speaker dot */}
-        <circle cx="20" cy="44" r="4" fill="#0f766e" />
-        {/* Right outer ring */}
         <circle cx="100" cy="44" r="16" fill="#0d9488" />
-        {/* Right inner ring */}
         <circle cx="100" cy="44" r="9" fill="#14b8a6" />
-        {/* Right speaker dot */}
-        <circle cx="100" cy="44" r="4" fill="#0f766e" />
-
-        {/* ── Eyes ── */}
         <g className="rm-eyes">
-          {/* Left eye white */}
           <ellipse cx="43" cy="41" rx="11" ry="12" fill="white" />
-          {/* Right eye white */}
           <ellipse cx="77" cy="41" rx="11" ry="12" fill="white" />
-          {/* Left iris */}
           <circle cx="44" cy="42" r="7" fill="#0f172a" />
-          {/* Right iris */}
           <circle cx="78" cy="42" r="7" fill="#0f172a" />
-          {/* Left highlight */}
           <circle cx="47" cy="39" r="3" fill="white" />
-          {/* Right highlight */}
           <circle cx="81" cy="39" r="3" fill="white" />
         </g>
-
-        {/* ── Smile ── */}
         <path d="M42 62 Q60 74 78 62" stroke="#0f172a" strokeWidth="3" fill="none" strokeLinecap="round" />
-        {/* Cheeks */}
-        <ellipse cx="32" cy="60" rx="8" ry="5" fill="#f9a8d4" opacity="0.35" />
-        <ellipse cx="88" cy="60" rx="8" ry="5" fill="#f9a8d4" opacity="0.35" />
-
-        {/* ── Neck ── */}
-        <rect x="48" y="72" width="24" height="10" rx="5" fill="#0d9488" />
-
-        {/* ── Body (compact, sitting) ── */}
-        <rect x="22" y="81" width="76" height="44" rx="24" fill="#14b8a6" />
-        <ellipse cx="60" cy="88" rx="28" ry="9" fill="#2dd4bf" opacity="0.35" />
-
-        {/* ── Laptop ── */}
-        {/* Screen lid */}
-        <rect x="20" y="100" width="80" height="46" rx="7" fill="#1e293b" />
-        <rect x="23" y="103" width="74" height="38" rx="5" fill="#1e3a8a" />
-        {/* Screen glow lines */}
-        <rect x="29" y="108" width="36" height="3" rx="1.5" fill="#38bdf8" opacity="0.75" />
-        <rect x="29" y="114" width="52" height="3" rx="1.5" fill="#34d399" opacity="0.6" />
-        <rect x="29" y="120" width="28" height="3" rx="1.5" fill="#f59e0b" opacity="0.6" />
-        <rect x="29" y="126" width="44" height="3" rx="1.5" fill="#38bdf8" opacity="0.45" />
-        {/* Keyboard base / hinge */}
-        <rect x="18" y="145" width="84" height="8" rx="4" fill="#0f766e" />
-        {/* Keyboard keys hint */}
-        <rect x="26" y="147" width="68" height="4" rx="2" fill="#0d9488" />
-        {/* Legs/feet peeking at corners */}
-        <ellipse cx="32" cy="143" rx="13" ry="7" fill="#0d9488" />
-        <ellipse cx="88" cy="143" rx="13" ry="7" fill="#0d9488" />
       </svg>
     </>
   );
 }
 
-type View = 'menu' | 'create' | 'apply' | 'method' | 'manifest';
+// ── Template factories ─────────────────────────────────────────────────────────
 
-function DocList({
-  docs,
-  onOpen,
-  onDelete,
-  openLabel,
-  empty,
-}: {
-  docs: DocMeta[];
-  onOpen: (id: string) => void;
-  onDelete: (id: string) => void;
-  openLabel: string;
-  empty: string;
-}) {
-  if (docs.length === 0) {
-    return <p className="text-sm text-gray-400 italic px-1">{empty}</p>;
-  }
+function makeLevel(label: string, desc?: string) {
+  return { id: uuidv4(), label, description: desc };
+}
+
+function makeTemplateArchitecture(): EvaluationModel {
+  const now = new Date().toISOString();
+
+  const autLevels = [makeLevel('Forte (MFA + SSO)'), makeLevel('Básica (password)'), makeLevel('Sem autenticação')];
+  const cifLevels = [makeLevel('AES-256 / TLS 1.3'), makeLevel('AES-128 / TLS 1.2'), makeLevel('Sem cifra')];
+  const intLevels = [makeLevel('APIs abertas REST/GraphQL'), makeLevel('APIs proprietárias'), makeLevel('Sem integração')];
+  const matLevels = [makeLevel('Maduro (TRL 8–9)'), makeLevel('Em maturação (TRL 5–7)'), makeLevel('Experimental (TRL 1–4)')];
+  const supLevels = [makeLevel('Comunidade activa e grande'), makeLevel('Suporte moderado'), makeLevel('Suporte limitado')];
+
+  const segId = uuidv4();
+  const autId = uuidv4();
+  const cifId = uuidv4();
+  const rgpdId = uuidv4();
+  const intId = uuidv4();
+  const tecId = uuidv4();
+  const matId = uuidv4();
+  const supId = uuidv4();
+
+  return {
+    kind: 'model',
+    id: uuidv4(),
+    modelVersion: MODEL_VERSION,
+    label: 'Avaliação de arquiteturas de SI',
+    description: 'Avaliação de propostas de arquitetura por fatores estruturados (Segurança, Interoperabilidade, Tecnologia).',
+    createdAt: now,
+    updatedAt: now,
+    valueTree: {
+      root: {
+        criterionId: 'root',
+        children: [
+          {
+            criterionId: segId,
+            children: [
+              { criterionId: autId, children: [] },
+              { criterionId: cifId, children: [] },
+              { criterionId: rgpdId, children: [] },
+            ],
+          },
+          { criterionId: intId, children: [] },
+          {
+            criterionId: tecId,
+            children: [
+              { criterionId: matId, children: [] },
+              { criterionId: supId, children: [] },
+            ],
+          },
+        ],
+      },
+      criteria: {
+        [segId]: { id: segId, type: 'composite', label: 'Segurança', description: 'Proteção, cifra e conformidade regulatória.' },
+        [autId]: { id: autId, type: 'qualification', label: 'Autenticação', parentId: segId, descriptor: { levels: autLevels, neutralIndex: 1, goodIndex: 0 } },
+        [cifId]: { id: cifId, type: 'qualification', label: 'Cifra de dados', parentId: segId, descriptor: { levels: cifLevels, neutralIndex: 1, goodIndex: 0 } },
+        [rgpdId]: { id: rgpdId, type: 'gate', label: 'Conformidade RGPD', description: 'Deve cumprir o RGPD/GDPR — critério eliminatório.' },
+        [intId]: { id: intId, type: 'qualification', label: 'Interoperabilidade', descriptor: { levels: intLevels, neutralIndex: 1, goodIndex: 0 } },
+        [tecId]: { id: tecId, type: 'composite', label: 'Tecnologia', description: 'Maturidade e ecossistema da stack tecnológica.' },
+        [matId]: { id: matId, type: 'qualification', label: 'Maturidade', parentId: tecId, descriptor: { levels: matLevels, neutralIndex: 1, goodIndex: 0 } },
+        [supId]: { id: supId, type: 'qualification', label: 'Suporte da comunidade', parentId: tecId, descriptor: { levels: supLevels, neutralIndex: 1, goodIndex: 0 } },
+      },
+    },
+    judgmentMatrices: [],
+    derivedScales: [],
+    decisionScale: [
+      { id: uuidv4(), label: 'Aprovado', minScore: 70, color: '#16a34a' },
+      { id: uuidv4(), label: 'Com reservas', minScore: 45, color: '#d97706' },
+      { id: uuidv4(), label: 'Rejeitado', minScore: -999, color: '#dc2626' },
+    ],
+  };
+}
+
+function makeTemplateRisco(): EvaluationModel {
+  const now = new Date().toISOString();
+
+  const latLevels = [
+    makeLevel('< 100 ms', 'Excelente — resposta quase imediata'),
+    makeLevel('100–300 ms', 'Bom — utilizador não nota atraso'),
+    makeLevel('300–1000 ms', 'Aceitável — atraso ligeiro'),
+    makeLevel('> 1000 ms', 'Mau — atraso perceptível'),
+  ];
+  const errLevels = [
+    makeLevel('< 0,1%', 'Excelente — erros praticamente nulos'),
+    makeLevel('0,1–1%', 'Aceitável — erros raros'),
+    makeLevel('1–5%', 'Preocupante — erros frequentes'),
+    makeLevel('> 5%', 'Crítico — serviço degradado'),
+  ];
+  const satLevels = [
+    makeLevel('< 50%', 'Confortável — capacidade disponível'),
+    makeLevel('50–75%', 'Normal — uso saudável'),
+    makeLevel('75–90%', 'Elevado — aproxima-se do limite'),
+    makeLevel('> 90%', 'Crítico — sem folga'),
+  ];
+  const critLevels = [makeLevel('Crítico (produção)'), makeLevel('Importante (negócio)'), makeLevel('Secundário (interno)')];
+  const durLevels = [makeLevel('< 30 min'), makeLevel('30 min – 4 h'), makeLevel('> 4 h')];
+  const respLevels = [makeLevel('Fornecedor externo'), makeLevel('Partilhada'), makeLevel('Equipa própria')];
+
+  const hsId = uuidv4();
+  const latId = uuidv4();
+  const errId = uuidv4();
+  const satId = uuidv4();
+  const critId = uuidv4();
+  const durId = uuidv4();
+  const respId = uuidv4();
+
+  return {
+    kind: 'model',
+    id: uuidv4(),
+    modelVersion: MODEL_VERSION,
+    label: 'Risco / monitorização de plataforma',
+    description: 'Compõe um índice de risco a partir de HealthStatus (métricas contínuas) e factores contextuais.',
+    createdAt: now,
+    updatedAt: now,
+    valueTree: {
+      root: {
+        criterionId: 'root',
+        children: [
+          {
+            criterionId: hsId,
+            children: [
+              { criterionId: latId, children: [] },
+              { criterionId: errId, children: [] },
+              { criterionId: satId, children: [] },
+            ],
+          },
+          { criterionId: critId, children: [] },
+          { criterionId: durId, children: [] },
+          { criterionId: respId, children: [] },
+        ],
+      },
+      criteria: {
+        [hsId]: { id: hsId, type: 'composite', label: 'HealthStatus', description: 'Estado de saúde técnica da plataforma.' },
+        [latId]: { id: latId, type: 'qualification', label: 'Latência', parentId: hsId, continuous: true, descriptor: { levels: latLevels, neutralIndex: 2, goodIndex: 0 } },
+        [errId]: { id: errId, type: 'qualification', label: 'Taxa de erros', parentId: hsId, continuous: true, descriptor: { levels: errLevels, neutralIndex: 1, goodIndex: 0 } },
+        [satId]: { id: satId, type: 'qualification', label: 'Saturação', parentId: hsId, continuous: true, descriptor: { levels: satLevels, neutralIndex: 1, goodIndex: 0 } },
+        [critId]: { id: critId, type: 'qualification', label: 'Criticidade', descriptor: { levels: critLevels, neutralIndex: 1, goodIndex: 0 } },
+        [durId]: { id: durId, type: 'qualification', label: 'Duração', descriptor: { levels: durLevels, neutralIndex: 1, goodIndex: 0 } },
+        [respId]: { id: respId, type: 'qualification', label: 'Responsabilidade', descriptor: { levels: respLevels, neutralIndex: 1, goodIndex: 0 } },
+      },
+    },
+    judgmentMatrices: [],
+    derivedScales: [],
+    decisionScale: [
+      { id: uuidv4(), label: 'Nenhuma ação', minScore: 75, color: '#16a34a' },
+      { id: uuidv4(), label: 'Advertência', minScore: 40, color: '#d97706' },
+      { id: uuidv4(), label: 'Sanção / coima', minScore: -999, color: '#dc2626' },
+    ],
+  };
+}
+
+const TEMPLATES = [
+  { key: 'architecture', emoji: '🏛️', label: 'Avaliação de arquiteturas de SI', meta: '3 fatores · 5 critérios · 1 porta', factory: makeTemplateArchitecture },
+  { key: 'platform', emoji: '📡', label: 'Risco / monitorização de plataforma', meta: 'HealthStatus + 3 métricas contínuas', factory: makeTemplateRisco },
+];
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function StatusPill({ updatedAt }: { updatedAt: string }) {
   return (
-    <ul className="divide-y divide-gray-100 border border-gray-200 rounded-xl overflow-hidden bg-white">
-      {docs.map((m) => (
-        <li key={m.id} className="flex items-center px-4 py-3 hover:bg-gray-50 gap-3">
-          <div className="flex-1 min-w-0">
-            <p className="font-medium text-gray-800 truncate">{m.label}</p>
-            <p className="text-xs text-gray-400">{new Date(m.updatedAt).toLocaleString('pt-PT')}</p>
-          </div>
-          <button
-            onClick={() => onOpen(m.id)}
-            className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
-          >
-            {openLabel}
-          </button>
-          <button onClick={() => onDelete(m.id)} className="px-2 py-1 text-sm text-red-500 hover:text-red-700">
-            ✕
-          </button>
-        </li>
-      ))}
-    </ul>
+    <span className="text-xs text-gray-400">
+      {new Date(updatedAt).toLocaleString('pt-PT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+    </span>
   );
 }
+
+type View = 'menu' | 'method' | 'manifest';
+
+// ── Main component ────────────────────────────────────────────────────────────
 
 export default function Home() {
   const { dispatch } = useApp();
@@ -149,20 +222,22 @@ export default function Home() {
   const [models, setModels] = useState<DocMeta[]>([]);
   const [evaluations, setEvaluations] = useState<DocMeta[]>([]);
   const [importing, setImporting] = useState(false);
+  const [showAllModels, setShowAllModels] = useState(false);
+  const [showAllEvals, setShowAllEvals] = useState(false);
 
   const refresh = useCallback(() => {
     repository.listModels().then(setModels).catch(() => {});
     repository.listEvaluations().then(setEvaluations).catch(() => {});
   }, []);
 
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
+  useEffect(() => { refresh(); }, [refresh]);
 
-  // ── Create flow ──────────────────────────────────────────────────────────
-  function newModel() {
-    dispatch({ type: 'NEW_MODEL' });
+  function newModel() { dispatch({ type: 'NEW_MODEL' }); }
+
+  function fromTemplate(factory: () => EvaluationModel) {
+    dispatch({ type: 'EDIT_MODEL', model: factory() });
   }
+
   async function editModel(id: string) {
     const model = await repository.loadModel(id);
     if (model) dispatch({ type: 'EDIT_MODEL', model });
@@ -172,8 +247,6 @@ export default function Home() {
     await repository.deleteModel(id);
     refresh();
   }
-
-  // ── Apply flow ───────────────────────────────────────────────────────────
   async function applyModel(id: string) {
     const model = await repository.loadModel(id);
     if (model) dispatch({ type: 'START_EVALUATION', model });
@@ -188,7 +261,7 @@ export default function Home() {
     refresh();
   }
 
-  async function handleImport(e: React.ChangeEvent<HTMLInputElement>, target: View) {
+  async function handleImport(e: React.ChangeEvent<HTMLInputElement>, target: 'create' | 'apply') {
     const file = e.target.files?.[0];
     if (!file) return;
     setImporting(true);
@@ -218,103 +291,177 @@ export default function Home() {
   if (view === 'method') return <MethodPage onBack={() => setView('menu')} />;
   if (view === 'manifest') return <ManifestPage onBack={() => setView('menu')} />;
 
+  const recentModels = showAllModels ? models : models.slice(0, 3);
+  const recentEvals = showAllEvals ? evaluations : evaluations.slice(0, 2);
+
   return (
-    <div className="max-w-2xl mx-auto py-12 px-4 space-y-8">
-      <div className="text-center space-y-2">
-        <div className="flex justify-center mb-3">
-          <TealRobotMascot />
+    <div className="max-w-4xl mx-auto py-10 px-4">
+
+      {/* ── Welcome ── */}
+      <div className="flex items-center gap-5 mb-10">
+        <TealRobotMascot />
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">o que vais decidir hoje?</h1>
+          <p className="text-gray-500 text-sm mt-1">
+            Avaliação multicritério pelo método MACBETH — guardado neste dispositivo.{' '}
+            <span className="inline-flex items-center gap-1 text-teal-700 font-medium text-xs bg-teal-50 border border-teal-200 rounded-full px-2 py-0.5">
+              💾 local
+            </span>
+          </p>
         </div>
-        <h1 className="text-3xl font-bold text-blue-800">Choices</h1>
-        <p className="text-gray-500">Avaliação Multicritério de Alternativas</p>
-        <p className="text-gray-400 italic text-sm">o que vais decidir hoje?</p>
       </div>
 
-      {view === 'menu' && (
-        <div className="grid sm:grid-cols-2 gap-4">
-          <button
-            onClick={() => setView('create')}
-            className="p-6 rounded-2xl border-2 border-blue-200 bg-blue-50 hover:border-blue-400 hover:bg-blue-100 transition-colors text-left space-y-1"
-          >
-            <div className="text-2xl">🛠️</div>
-            <p className="font-semibold text-blue-800">Criar modelo de avaliação</p>
-            <p className="text-sm text-blue-700/70">
-              Definir critérios, escalas de valor, pesos e a escala de decisão.
-            </p>
-          </button>
-          <button
-            onClick={() => setView('apply')}
-            className="p-6 rounded-2xl border-2 border-green-200 bg-green-50 hover:border-green-400 hover:bg-green-100 transition-colors text-left space-y-1"
-          >
-            <div className="text-2xl">📋</div>
-            <p className="font-semibold text-green-800">Aplicar modelo para avaliar</p>
-            <p className="text-sm text-green-700/70">
-              Registar propostas, habilitá-las e obter resultados com um modelo.
-            </p>
-          </button>
-        </div>
-      )}
-
-      {view === 'menu' && (
-        <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm">
-          <button onClick={() => setView('method')} className="text-gray-400 hover:text-gray-700 transition-colors">
-            📘 Como funciona o método MACBETH
-          </button>
-          <span className="text-gray-200">·</span>
-          <button onClick={() => setView('manifest')} className="text-gray-400 hover:text-gray-700 transition-colors">
-            🧩 Manifesto de capacidades (para IA)
-          </button>
-        </div>
-      )}
-
-      {view === 'create' && (
-        <div className="space-y-5">
-          <button onClick={() => setView('menu')} className="text-sm text-gray-400 hover:text-gray-700">
-            ← Voltar
-          </button>
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              onClick={newModel}
-              className="col-span-2 py-4 bg-blue-700 text-white text-lg font-semibold rounded-xl hover:bg-blue-800 transition-colors"
-            >
-              + Novo modelo de avaliação
+      {/* ── Main action cards ── */}
+      <div className="grid sm:grid-cols-2 gap-4 mb-8">
+        <div className="rounded-2xl border-2 border-indigo-100 bg-gradient-to-b from-indigo-50 to-white p-5">
+          <div className="text-2xl mb-2">🛠️</div>
+          <h2 className="font-bold text-indigo-900 text-base mb-1">Criar modelo de avaliação</h2>
+          <p className="text-sm text-indigo-700/70 mb-4">
+            Definir critérios, escalas de valor, pesos e perfis de decisão.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <button onClick={newModel} className="px-3 py-1.5 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium">
+              + Novo modelo
             </button>
-            <label className={`col-span-2 py-3 text-center border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors ${importing ? 'opacity-50 pointer-events-none' : ''}`}>
-              <span className="text-sm font-medium text-gray-600">{importing ? 'A importar…' : '↑ Importar modelo (JSON)'}</span>
+            <label className={`px-3 py-1.5 text-sm bg-white border border-indigo-200 text-indigo-700 rounded-lg hover:bg-indigo-50 font-medium cursor-pointer ${importing ? 'opacity-50' : ''}`}>
+              ↑ Importar JSON
               <input type="file" accept=".json" className="hidden" onChange={(e) => handleImport(e, 'create')} />
             </label>
           </div>
-          <div className="space-y-2">
-            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Modelos guardados</h2>
-            <DocList docs={models} onOpen={editModel} onDelete={deleteModel} openLabel="Editar" empty="Ainda sem modelos guardados." />
+        </div>
+
+        <div className="rounded-2xl border-2 border-emerald-100 bg-gradient-to-b from-emerald-50 to-white p-5">
+          <div className="text-2xl mb-2">📋</div>
+          <h2 className="font-bold text-emerald-900 text-base mb-1">Aplicar modelo para avaliar</h2>
+          <p className="text-sm text-emerald-700/70 mb-4">
+            Registar propostas, habilitá-las e obter resultados com um modelo existente.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {models.length === 0 ? (
+              <span className="text-xs text-gray-400 italic pt-1">Cria um modelo primeiro.</span>
+            ) : (
+              models.slice(0, 2).map((m) => (
+                <button
+                  key={m.id}
+                  onClick={() => applyModel(m.id)}
+                  className="px-3 py-1.5 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-medium max-w-[180px] truncate"
+                >
+                  {m.label}
+                </button>
+              ))
+            )}
+            {models.length > 2 && (
+              <button onClick={() => {}} className="px-3 py-1.5 text-sm bg-white border border-emerald-200 text-emerald-700 rounded-lg hover:bg-emerald-50 font-medium">
+                ver todos →
+              </button>
+            )}
           </div>
         </div>
-      )}
+      </div>
 
-      {view === 'apply' && (
-        <div className="space-y-6">
-          <button onClick={() => setView('menu')} className="text-sm text-gray-400 hover:text-gray-700">
-            ← Voltar
-          </button>
+      <div className="grid lg:grid-cols-3 gap-6">
+        {/* ── Library ── */}
+        <div className="lg:col-span-2 space-y-5">
 
-          <div className="space-y-2">
-            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Escolher um modelo para avaliar</h2>
-            <DocList docs={models} onOpen={applyModel} onDelete={async (id) => { if (confirm('Eliminar este modelo?')) { await repository.deleteModel(id); refresh(); } }} openLabel="Aplicar" empty="Sem modelos. Crie um primeiro." />
-            <label className={`block py-3 text-center border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-green-400 hover:bg-green-50 transition-colors ${importing ? 'opacity-50 pointer-events-none' : ''}`}>
-              <span className="text-sm font-medium text-gray-600">{importing ? 'A importar…' : '↑ Importar modelo (JSON) e aplicar'}</span>
-              <input type="file" accept=".json" className="hidden" onChange={(e) => handleImport(e, 'apply')} />
-            </label>
+          {/* Models */}
+          <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+              <h3 className="font-semibold text-gray-800 text-sm">Modelos</h3>
+              {models.length > 3 && (
+                <button onClick={() => setShowAllModels(!showAllModels)} className="text-xs text-indigo-600 hover:underline">
+                  {showAllModels ? 'Mostrar menos' : `Ver todos (${models.length})`}
+                </button>
+              )}
+            </div>
+            {recentModels.length === 0 ? (
+              <p className="px-4 py-5 text-sm text-gray-400 italic">
+                Ainda sem modelos. Usa um modelo-base à direita ou começa do zero.
+              </p>
+            ) : (
+              <ul className="divide-y divide-gray-100">
+                {recentModels.map((m) => (
+                  <li key={m.id} className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-gray-800 text-sm truncate">{m.label}</p>
+                      <StatusPill updatedAt={m.updatedAt} />
+                    </div>
+                    <button onClick={() => editModel(m.id)} className="text-xs text-indigo-600 hover:text-indigo-800 font-medium">Editar</button>
+                    <button onClick={() => applyModel(m.id)} className="text-xs text-emerald-600 hover:text-emerald-800 font-medium">Aplicar</button>
+                    <button onClick={() => deleteModel(m.id)} className="text-gray-300 hover:text-red-400 text-xs">✕</button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
 
-          <div className="space-y-2">
-            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Retomar análise em curso</h2>
-            <DocList docs={evaluations} onOpen={resumeEvaluation} onDelete={deleteEvaluation} openLabel="Abrir" empty="Sem análises em curso." />
-            <label className={`block py-3 text-center border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-green-400 hover:bg-green-50 transition-colors ${importing ? 'opacity-50 pointer-events-none' : ''}`}>
-              <span className="text-sm font-medium text-gray-600">{importing ? 'A importar…' : '↑ Importar análise (JSON)'}</span>
-              <input type="file" accept=".json" className="hidden" onChange={(e) => handleImport(e, 'apply')} />
-            </label>
+          {/* Evaluations */}
+          <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+              <h3 className="font-semibold text-gray-800 text-sm">Avaliações recentes</h3>
+              {evaluations.length > 2 && (
+                <button onClick={() => setShowAllEvals(!showAllEvals)} className="text-xs text-indigo-600 hover:underline">
+                  {showAllEvals ? 'Mostrar menos' : `Ver todas (${evaluations.length})`}
+                </button>
+              )}
+            </div>
+            {recentEvals.length === 0 ? (
+              <p className="px-4 py-5 text-sm text-gray-400 italic">
+                Sem avaliações em curso. Aplica um modelo a um conjunto de propostas.
+              </p>
+            ) : (
+              <ul className="divide-y divide-gray-100">
+                {recentEvals.map((e) => (
+                  <li key={e.id} className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-gray-800 text-sm truncate">{e.label}</p>
+                      <StatusPill updatedAt={e.updatedAt} />
+                    </div>
+                    <button onClick={() => resumeEvaluation(e.id)} className="text-xs text-indigo-600 hover:text-indigo-800 font-medium">Abrir</button>
+                    <button onClick={() => deleteEvaluation(e.id)} className="text-gray-300 hover:text-red-400 text-xs">✕</button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          {/* Import evaluation */}
+          <label className={`block py-3 text-center border-2 border-dashed border-gray-200 rounded-xl cursor-pointer hover:border-indigo-300 hover:bg-indigo-50 transition-colors ${importing ? 'opacity-50' : ''}`}>
+            <span className="text-sm text-gray-500">{importing ? 'A importar…' : '↑ Importar avaliação (JSON)'}</span>
+            <input type="file" accept=".json" className="hidden" onChange={(e) => handleImport(e, 'apply')} />
+          </label>
+        </div>
+
+        {/* ── Sidebar: templates + links ── */}
+        <div className="space-y-4">
+          <div className="bg-white border border-gray-200 rounded-2xl p-4">
+            <h3 className="font-semibold text-gray-800 text-sm mb-1">Modelos-base</h3>
+            <p className="text-xs text-gray-400 mb-3">Arranca de um exemplo completo e adapta.</p>
+            <div className="space-y-2">
+              {TEMPLATES.map((t) => (
+                <button
+                  key={t.key}
+                  onClick={() => fromTemplate(t.factory)}
+                  className="w-full text-left p-3 rounded-xl border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50 transition-colors group"
+                >
+                  <div className="font-medium text-gray-800 text-sm group-hover:text-indigo-700">
+                    {t.emoji} {t.label}
+                  </div>
+                  <div className="text-xs text-gray-400 mt-0.5">{t.meta}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="bg-white border border-gray-200 rounded-2xl p-4 space-y-2">
+            <button onClick={() => setView('method')} className="w-full text-left text-sm text-gray-500 hover:text-gray-800 transition-colors py-1">
+              📘 Como funciona o método MACBETH
+            </button>
+            <button onClick={() => setView('manifest')} className="w-full text-left text-sm text-gray-500 hover:text-gray-800 transition-colors py-1">
+              🧩 Manifesto de capacidades (para IA)
+            </button>
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }
