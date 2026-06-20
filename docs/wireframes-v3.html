@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Choices — Wireframes próxima versão (hierarquia + UI)</title>
+<style>
+  :root{
+    --blue:#1d4ed8; --blue-bg:#eff6ff; --blue-bd:#bfdbfe;
+    --green:#16a34a; --amber:#d97706; --red:#dc2626;
+    --ink:#1f2937; --muted:#6b7280; --line:#e5e7eb; --bg:#f3f4f6;
+    --teal:#0d9488;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+       background:var(--bg);color:var(--ink);line-height:1.5;font-size:14px}
+  .wrap{max-width:1080px;margin:0 auto;padding:32px 20px 80px}
+  h1{font-size:26px;margin:0 0 4px}
+  h2{font-size:19px;margin:48px 0 4px;padding-top:18px;border-top:2px solid var(--line)}
+  h3{font-size:15px;margin:24px 0 8px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+  .sub{color:var(--muted);margin:0 0 8px}
+  .legend{display:flex;gap:18px;flex-wrap:wrap;background:#fff;border:1px solid var(--line);
+          border-radius:10px;padding:12px 16px;margin:16px 0 8px;font-size:12.5px}
+  .legend b{display:inline-block;margin-right:5px}
+  .new{color:var(--green);font-weight:600}
+  .chg{color:var(--amber);font-weight:600}
+
+  /* annotation callout */
+  .note{background:#fffbeb;border:1px solid #fde68a;border-left:4px solid var(--amber);
+        border-radius:6px;padding:8px 12px;margin:10px 0;font-size:12.5px;color:#78350f}
+  .note b{color:#92400e}
+
+  /* fake app frame */
+  .frame{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;
+         box-shadow:0 1px 3px rgba(0,0,0,.06);margin:14px 0 6px}
+  .topbar{display:flex;align-items:center;gap:12px;padding:8px 14px;border-bottom:1px solid var(--line)}
+  .brand{color:var(--blue);font-weight:700;font-size:16px}
+  .pill{font-size:11px;background:#f3f4f6;color:var(--muted);border-radius:999px;padding:2px 9px}
+  .doc{font-size:12.5px;color:var(--muted)}
+
+  /* stepper nav */
+  .nav{display:flex;gap:4px;padding:4px 14px 0;flex-wrap:wrap;align-items:center}
+  .tab{font-size:12.5px;color:var(--muted);padding:6px 10px;border-bottom:2px solid transparent;
+       display:flex;align-items:center;gap:6px;white-space:nowrap}
+  .tab .dot{width:6px;height:6px;border-radius:50%;background:#d1d5db}
+  .tab .dot.done{background:var(--green)} .tab .dot.part{background:var(--amber)}
+  .tab.active{color:var(--blue);border-bottom-color:var(--blue);font-weight:600}
+  .tab .arrow{color:#d1d5db;margin:0 -2px}
+
+  .body{padding:18px 16px}
+
+  /* generic node/card */
+  .card{border:1px solid var(--line);border-radius:10px;background:#fff;padding:10px 12px;margin:8px 0}
+  .row{display:flex;align-items:center;gap:10px}
+  .grow{flex:1;min-width:0}
+  .mut{color:var(--muted);font-size:12px}
+  .btn{font-size:12px;border:1px solid var(--line);border-radius:6px;padding:4px 9px;background:#fff;color:var(--ink)}
+  .btn.pri{background:var(--blue);color:#fff;border-color:var(--blue)}
+  .btn.dash{width:100%;border:2px dashed var(--line);color:var(--muted);padding:10px;border-radius:8px;
+            background:transparent;text-align:center}
+  .btn.ghost{color:var(--blue);border-color:var(--blue-bd);background:var(--blue-bg)}
+  .tag{font-size:10.5px;border-radius:999px;padding:1px 8px;font-weight:600}
+  .tag.q{background:#eef2ff;color:#4338ca}
+  .tag.g{background:#fff7ed;color:#c2410c}
+  .tag.c{background:#ecfdf5;color:#047857}
+
+  /* tree indentation */
+  .tree .node{position:relative}
+  .indent{margin-left:26px;border-left:2px solid var(--line);padding-left:14px}
+  .indent2{margin-left:26px;border-left:2px solid var(--line);padding-left:14px}
+  .composite{background:#ecfdf5;border-color:#a7f3d0}
+  .grip{color:#cbd5e1;cursor:grab;font-size:14px}
+  .caret{color:var(--muted);width:12px;display:inline-block}
+
+  .twocol{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  @media(max-width:760px){.twocol{grid-template-columns:1fr}}
+
+  .bar{height:14px;background:#f1f5f9;border-radius:999px;overflow:hidden;flex:1}
+  .bar > i{display:block;height:100%;background:var(--blue);border-radius:999px}
+
+  .acc{border:1px solid var(--line);border-radius:10px;margin:8px 0;overflow:hidden}
+  .acc > .head{display:flex;align-items:center;gap:10px;padding:9px 12px;background:#f9fafb;cursor:pointer}
+  .acc > .inner{padding:12px;border-top:1px solid var(--line)}
+  .badge-ok{color:var(--green);font-size:12px;font-weight:600}
+  .badge-no{color:var(--muted);font-size:12px;font-weight:600}
+
+  table.mx{border-collapse:collapse;font-size:11.5px;margin-top:6px}
+  table.mx td,table.mx th{border:1px solid var(--line);padding:5px 8px;text-align:center}
+  table.mx th{background:#f9fafb;color:var(--muted);font-weight:600}
+  .cat{background:#eef2ff;color:#4338ca;border-radius:4px;padding:1px 6px;font-size:10.5px}
+
+  .ribbon{display:inline-block;background:var(--green);color:#fff;font-size:10px;font-weight:700;
+          border-radius:4px;padding:1px 6px;vertical-align:middle;margin-left:6px;letter-spacing:.03em}
+  .ribbon.chg{background:var(--amber)}
+
+  .flowmap{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12.5px;color:var(--muted)}
+  .flowmap .step{background:#fff;border:1px solid var(--line);border-radius:8px;padding:6px 12px}
+  .flowmap .sep{color:#cbd5e1}
+
+  ul.tight{margin:6px 0;padding-left:20px} ul.tight li{margin:3px 0}
+  code{background:#f3f4f6;border-radius:4px;padding:1px 5px;font-size:12px}
+  .toc{columns:2;font-size:13px} .toc a{color:var(--blue);text-decoration:none}
+  @media(max-width:760px){.toc{columns:1}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Choices — Wireframes da próxima versão</h1>
+  <p class="sub">Rascunho visual (sem desenvolvimento). Foco: <b>critérios hierárquicos</b> (fatores → subfatores com agregação multinível) e <b>fluidez da navegação</b>.</p>
+
+  <div class="legend">
+    <span><b class="new">■ NOVO</b> ecrã/elemento que não existe hoje</span>
+    <span><b class="chg">■ ALTERADO</b> ecrã existente que muda</span>
+    <span><span class="ribbon">NOVO</span> / <span class="ribbon chg">ALT</span> marcas no canto dos blocos</span>
+  </div>
+
+  <div class="legend toc">
+    <a href="#fluxo">0 · Estrutura de menus / fluxo</a>
+    <a href="#criterios">1 · Critérios — editor em árvore</a>
+    <a href="#escalas">2 · Escalas (folhas)</a>
+    <a href="#ponderacao">3 · Ponderação por grupo</a>
+    <a href="#perfis">4 · Perfis de decisão</a>
+    <a href="#caso1">5 · Caso 1 — Arquiteturas</a>
+    <a href="#caso2">6 · Caso 2 — Risco/monitorização</a>
+  </div>
+
+  <!-- ================================================================ -->
+  <h2 id="fluxo">0 · Estrutura de menus e fluxo</h2>
+  <p class="sub">Pequeno acerto de fluidez: <b>stepper numerado</b> na barra de criação (em vez de só separadores), e um botão <span class="chg">«Editar modelo»</span> a partir da aplicação para evitar a ida ao Início.</p>
+
+  <h3>Hoje</h3>
+  <div class="flowmap">
+    <span class="step">Critérios</span><span class="sep">›</span>
+    <span class="step">Escalas</span><span class="sep">›</span>
+    <span class="step">Ponderação</span><span class="sep">›</span>
+    <span class="step">Perfis de decisão</span>
+  </div>
+
+  <h3>Proposto <span class="ribbon chg">ALT</span></h3>
+  <div class="frame">
+    <div class="topbar">
+      <span class="brand">Choices</span>
+      <span class="pill">Criação do modelo</span>
+      <span class="doc">Avaliação de arquiteturas</span>
+      <span style="flex:1"></span>
+      <span class="btn">↧ Exportar modelo</span>
+    </div>
+    <div class="nav">
+      <span class="tab active"><span class="dot done"></span>1 · Critérios</span><span class="arrow">→</span>
+      <span class="tab"><span class="dot part"></span>2 · Escalas</span><span class="arrow">→</span>
+      <span class="tab"><span class="dot"></span>3 · Ponderação</span><span class="arrow">→</span>
+      <span class="tab"><span class="dot"></span>4 · Perfis de decisão</span>
+    </div>
+    <div class="body mut">… conteúdo do passo …</div>
+  </div>
+  <div class="note"><b>Mudança mínima:</b> os pontos de estado (verde/âmbar/cinza) já existem no <code>ModelHeader</code>; acrescenta-se só o número do passo e as setas «→» para sugerir sequência. Sem reescrita de navegação.</div>
+
+  <!-- ================================================================ -->
+  <h2 id="criterios">1 · Critérios — editor em árvore <span class="ribbon chg">ALT (maior)</span></h2>
+  <p class="sub">É a alteração mais visível. Hoje a lista é plana; passa a uma <b>árvore</b> com nós <b>compostos</b> (fatores) que contêm subcritérios. Indentação + linha-guia mostram a hierarquia.</p>
+
+  <div class="frame">
+    <div class="topbar">
+      <span class="brand">Choices</span><span class="pill">Criação do modelo</span>
+      <span class="doc">Avaliação de arquiteturas</span>
+    </div>
+    <div class="nav">
+      <span class="tab active"><span class="dot done"></span>1 · Critérios</span><span class="arrow">→</span>
+      <span class="tab"><span class="dot"></span>2 · Escalas</span><span class="arrow">→</span>
+      <span class="tab"><span class="dot"></span>3 · Ponderação</span><span class="arrow">→</span>
+      <span class="tab"><span class="dot"></span>4 · Perfis</span>
+    </div>
+    <div class="body tree">
+      <div class="mut" style="margin-bottom:6px">Designação do modelo · <b style="color:var(--ink)">Avaliação de arquiteturas de SI</b></div>
+      <div class="mut" style="text-transform:uppercase;font-size:11px;letter-spacing:.04em;margin-bottom:8px">Árvore de critérios (3 fatores · 7 folhas)</div>
+
+      <!-- Composite node -->
+      <div class="node">
+        <div class="card composite row">
+          <span class="grip">⠿</span><span class="caret">▾</span>
+          <span class="tag c">FATOR</span>
+          <b class="grow">Segurança</b>
+          <span class="mut">3 subcritérios</span>
+          <span class="btn">+ subcritério</span>
+          <span class="btn">Editar</span><span class="btn">✕</span>
+        </div>
+        <div class="indent">
+          <div class="card row"><span class="grip">⠿</span><span class="tag q">QUALIF.</span><span class="grow">Autenticação</span><span class="mut">5 níveis</span><span class="btn">Editar</span><span class="btn">✕</span></div>
+          <div class="card row"><span class="grip">⠿</span><span class="tag q">QUALIF.</span><span class="grow">Cifra de dados</span><span class="mut">4 níveis</span><span class="btn">Editar</span><span class="btn">✕</span></div>
+          <div class="card row"><span class="grip">⠿</span><span class="tag g">PORTA</span><span class="grow">Conformidade RGPD</span><span class="mut">cumpre/não cumpre</span><span class="btn">Editar</span><span class="btn">✕</span></div>
+          <button class="btn dash" style="margin:4px 0">+ subcritério em «Segurança»</button>
+        </div>
+      </div>
+
+      <!-- Composite collapsed -->
+      <div class="node">
+        <div class="card composite row">
+          <span class="grip">⠿</span><span class="caret">▸</span>
+          <span class="tag c">FATOR</span>
+          <b class="grow">Interoperabilidade</b>
+          <span class="mut">2 subcritérios (colapsado)</span>
+          <span class="btn">+ subcritério</span><span class="btn">Editar</span><span class="btn">✕</span>
+        </div>
+      </div>
+
+      <!-- Composite with nested composite -->
+      <div class="node">
+        <div class="card composite row">
+          <span class="grip">⠿</span><span class="caret">▾</span>
+          <span class="tag c">FATOR</span>
+          <b class="grow">Escolhas tecnológicas</b>
+          <span class="mut">2 subcritérios</span>
+          <span class="btn">+ subcritério</span><span class="btn">Editar</span><span class="btn">✕</span>
+        </div>
+        <div class="indent">
+          <div class="card row"><span class="grip">⠿</span><span class="tag q">QUALIF.</span><span class="grow">Maturidade da tecnologia</span><span class="mut">5 níveis</span><span class="btn">Editar</span><span class="btn">✕</span></div>
+          <div class="card row"><span class="grip">⠿</span><span class="tag q">QUALIF.</span><span class="grow">Suporte da comunidade</span><span class="mut">4 níveis</span><span class="btn">Editar</span><span class="btn">✕</span></div>
+        </div>
+      </div>
+
+      <div class="row" style="gap:8px;margin-top:10px">
+        <button class="btn dash" style="flex:1">+ Adicionar fator (nó composto)</button>
+        <button class="btn dash" style="flex:1">+ Adicionar critério folha</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="note"><b>Comportamento:</b> «+ Adicionar fator» cria um nó <span class="new">composto</span> (sem descritor/escala — só agrega filhos). Um nó composto pode conter folhas <i>ou</i> outros fatores (aninhamento ilimitado). Folhas de qualificação/porta mantêm o formulário atual de níveis. Profundidade típica: 2–3 níveis; o <code>⠿</code> sugere reordenar/arrastar (pode ficar para 2ª iteração — mover = remover+readicionar).</div>
+  <div class="note"><b>Tipos de critério:</b> hoje o formulário tem «Porta» e «Qualificação». Acrescenta-se um 3.º: <span class="new">Fator composto</span> (decompõe em subfatores).</div>
+
+  <!-- ================================================================ -->
+  <h2 id="escalas">2 · Escalas — só folhas de qualificação</h2>
+  <p class="sub">Praticamente igual a hoje. A diferença: a lista percorre a árvore em profundidade e mostra o <b>caminho do fator</b> como contexto. Nós compostos não aparecem (não têm escala própria).</p>
+
+  <div class="frame">
+    <div class="topbar"><span class="brand">Choices</span><span class="pill">Criação do modelo</span></div>
+    <div class="nav">
+      <span class="tab"><span class="dot done"></span>1 · Critérios</span><span class="arrow">→</span>
+      <span class="tab active"><span class="dot part"></span>2 · Escalas</span><span class="arrow">→</span>
+      <span class="tab"><span class="dot"></span>3 · Ponderação</span><span class="arrow">→</span>
+      <span class="tab"><span class="dot"></span>4 · Perfis</span>
+    </div>
+    <div class="body">
+      <div class="card">
+        <div class="mut" style="font-size:11px">Segurança › <b style="color:var(--ink)">Autenticação</b> <span class="ribbon chg">contexto</span></div>
+        <div class="row mut" style="margin-top:6px"><span class="grow">Matriz de juízos + escala derivada (igual a hoje)</span><span class="badge-ok">z = 0.42 ✓</span></div>
+      </div>
+      <div class="card">
+        <div class="mut" style="font-size:11px">Segurança › <b style="color:var(--ink)">Cifra de dados</b></div>
+        <div class="row mut" style="margin-top:6px"><span class="grow">…</span><span class="badge-no">por derivar</span></div>
+      </div>
+      <div class="card">
+        <div class="mut" style="font-size:11px">Escolhas tecnológicas › <b style="color:var(--ink)">Maturidade da tecnologia</b></div>
+        <div class="row mut" style="margin-top:6px"><span class="grow">…</span><span class="badge-no">por derivar</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="note"><b>Sem rutura:</b> o editor de matriz/escala por critério não muda. Só se acrescenta o «breadcrumb» do fator-pai para orientação quando há muitas folhas.</div>
+
+  <!-- ================================================================ -->
+  <h2 id="ponderacao">3 · Ponderação — uma matriz por grupo <span class="ribbon chg">ALT</span></h2>
+  <p class="sub">Hoje há <b>uma</b> matriz de pesos global. Passa a haver <b>uma matriz por conjunto de irmãos</b> (filhos do mesmo fator), em acordeão com estado por grupo. Os pesos dos filhos de cada fator somam 1 <i>dentro do fator</i>.</p>
+
+  <div class="frame">
+    <div class="topbar"><span class="brand">Choices</span><span class="pill">Criação do modelo</span></div>
+    <div class="nav">
+      <span class="tab"><span class="dot done"></span>1 · Critérios</span><span class="arrow">→</span>
+      <span class="tab"><span class="dot done"></span>2 · Escalas</span><span class="arrow">→</span>
+      <span class="tab active"><span class="dot part"></span>3 · Ponderação</span><span class="arrow">→</span>
+      <span class="tab"><span class="dot"></span>4 · Perfis</span>
+    </div>
+    <div class="body">
+
+      <!-- group: root -->
+      <div class="acc">
+        <div class="head"><span class="caret">▾</span><b class="grow">Pesos dos fatores de topo</b><span class="mut">Segurança · Interoperabilidade · Escolhas tecnológicas</span><span class="badge-ok">z = 0.31 ✓</span></div>
+        <div class="inner">
+          <table class="mx">
+            <tr><th></th><th>Interop.</th><th>Escolhas</th><th>Tudo-Neutro</th></tr>
+            <tr><th>Segurança</th><td><span class="cat">C4</span></td><td><span class="cat">C3</span></td><td><span class="cat">C5</span></td></tr>
+            <tr><th>Interop.</th><td>—</td><td><span class="cat">C1</span></td><td><span class="cat">C3</span></td></tr>
+            <tr><th>Escolhas</th><td>—</td><td>—</td><td><span class="cat">C2</span></td></tr>
+          </table>
+          <div style="margin-top:10px">
+            <div class="row" style="margin:4px 0"><span class="mut" style="width:130px">Segurança</span><span class="bar"><i style="width:50%"></i></span><span class="mut" style="width:42px;text-align:right">50%</span></div>
+            <div class="row" style="margin:4px 0"><span class="mut" style="width:130px">Interoperabilidade</span><span class="bar"><i style="width:22%"></i></span><span class="mut" style="width:42px;text-align:right">22%</span></div>
+            <div class="row" style="margin:4px 0"><span class="mut" style="width:130px">Escolhas tecn.</span><span class="bar"><i style="width:28%"></i></span><span class="mut" style="width:42px;text-align:right">28%</span></div>
+          </div>
+          <button class="btn pri" style="margin-top:8px">Calcular pesos deste grupo</button>
+        </div>
+      </div>
+
+      <!-- group: Seguranca -->
+      <div class="acc">
+        <div class="head"><span class="caret">▾</span><b class="grow">Pesos dentro de «Segurança»</b><span class="mut">Autenticação · Cifra de dados</span><span class="badge-ok">z = 0.40 ✓</span></div>
+        <div class="inner">
+          <div class="row" style="margin:4px 0"><span class="mut" style="width:130px">Autenticação</span><span class="bar"><i style="width:60%"></i></span><span class="mut" style="width:42px;text-align:right">60%</span></div>
+          <div class="row" style="margin:4px 0"><span class="mut" style="width:130px">Cifra de dados</span><span class="bar"><i style="width:40%"></i></span><span class="mut" style="width:42px;text-align:right">40%</span></div>
+          <div class="mut" style="font-size:11px;margin-top:6px">A «Porta RGPD» não pondera — é eliminatória (habilitação).</div>
+        </div>
+      </div>
+
+      <!-- group: Escolhas, collapsed/pending -->
+      <div class="acc">
+        <div class="head"><span class="caret">▸</span><b class="grow">Pesos dentro de «Escolhas tecnológicas»</b><span class="mut">Maturidade · Suporte</span><span class="badge-no">por calcular</span></div>
+      </div>
+
+      <div class="card row" style="background:#fffbeb;border-color:#fde68a">
+        <span class="grow mut" style="color:#78350f">Avança quando <b>todos os grupos</b> tiverem pesos consistentes.</span>
+        <button class="btn" style="opacity:.5">Perfis de decisão →</button>
+      </div>
+    </div>
+  </div>
+  <div class="note"><b>Motor:</b> <code>deriveWeights()</code> não muda — corre uma vez por grupo de irmãos. O resultado deixa de ser um objeto único e passa a <code>Record&lt;fatorId, Weights&gt;</code>. A agregação fica recursiva: valor de um fator = Σ(peso·valor) dos filhos; valor global = idem na raiz.</div>
+
+  <!-- ================================================================ -->
+  <h2 id="perfis">4 · Perfis de decisão — sem mudança visual</h2>
+  <p class="sub">O ecrã mantém-se. O <code>scoreProfile()</code> passa a ser recursivo por baixo, mas o perfil de referência continua a mapear <b>cada critério folha → nível</b>. O limiar global V(p) é derivado pela árvore completa.</p>
+  <div class="frame">
+    <div class="topbar"><span class="brand">Choices</span><span class="pill">Criação do modelo</span></div>
+    <div class="body">
+      <div class="twocol">
+        <div>
+          <div class="mut" style="text-transform:uppercase;font-size:11px;margin-bottom:6px">Pré-visualização (V(p) 0–100)</div>
+          <div style="border:1px solid var(--line);border-radius:8px;overflow:hidden;width:180px">
+            <div style="background:var(--green);color:#fff;padding:14px 10px"><b>Aceitável</b><br><span class="mut" style="color:#dcfce7">≥ 72.0</span></div>
+            <div style="background:var(--amber);color:#fff;padding:14px 10px"><b>Com reservas</b><br><span style="color:#fef3c7">≥ 45.0</span></div>
+            <div style="background:var(--red);color:#fff;padding:14px 10px"><b>Rejeitado</b><br><span style="color:#fee2e2">≥ 0</span></div>
+          </div>
+        </div>
+        <div>
+          <div class="card">
+            <div class="row"><b class="grow">Aceitável</b><span class="mut">limiar por perfil MACBETH</span></div>
+            <div class="mut" style="font-size:11.5px;margin-top:6px">Autenticação: <b>Forte</b> · Cifra: <b>AES-256</b> · Maturidade: <b>Madura</b> · …</div>
+            <div style="margin-top:6px">Limiar derivado: <b style="color:var(--green)">V(p) ≥ 72.0</b></div>
+          </div>
+          <div class="mut" style="font-size:11.5px">O perfil percorre <b>todas as folhas</b>; a árvore agrega-as recursivamente até ao V(p) global.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================ -->
+  <h2 id="caso1">5 · Caso 1 — Avaliação de arquiteturas</h2>
+  <p class="sub">Como a árvore mapeia o desafio. Cada fator agrega os seus subcritérios; o topo agrega os fatores.</p>
+  <div class="frame"><div class="body tree">
+    <div class="card composite row"><span class="tag c">FATOR</span><b class="grow">root — Avaliação de arquitetura</b><span class="mut">100%</span></div>
+    <div class="indent">
+      <div class="card composite row"><span class="tag c">FATOR</span><b class="grow">Segurança</b><span class="mut">50%</span></div>
+      <div class="indent2">
+        <div class="card row"><span class="tag q">QUALIF.</span><span class="grow">Autenticação</span><span class="mut">60%</span></div>
+        <div class="card row"><span class="tag q">QUALIF.</span><span class="grow">Cifra de dados</span><span class="mut">40%</span></div>
+        <div class="card row"><span class="tag g">PORTA</span><span class="grow">Conformidade RGPD</span><span class="mut">eliminatória</span></div>
+      </div>
+      <div class="card composite row"><span class="tag c">FATOR</span><b class="grow">Interoperabilidade</b><span class="mut">22%</span></div>
+      <div class="card composite row"><span class="tag c">FATOR</span><b class="grow">Escolhas tecnológicas</b><span class="mut">28%</span></div>
+    </div>
+    <div class="mut" style="margin-top:8px">Perfis: <b style="color:var(--green)">Aprovado</b> · <b style="color:var(--amber)">Com reservas</b> · <b style="color:var(--red)">Rejeitado</b> (limiares por perfil de referência).</div>
+  </div></div>
+
+  <!-- ================================================================ -->
+  <h2 id="caso2">6 · Caso 2 — Risco / monitorização de plataforma</h2>
+  <p class="sub">Dois níveis de composição: <b>HealthStatus</b> agrega métricas técnicas; <b>Risco</b> (a raiz) pondera o HealthStatus com criticidade, duração e responsabilidade.</p>
+  <div class="frame"><div class="body tree">
+    <div class="card composite row"><span class="tag c">FATOR</span><b class="grow">root — Risco</b><span class="mut">100%</span></div>
+    <div class="indent">
+      <div class="card composite row"><span class="tag c">FATOR</span><b class="grow">HealthStatus</b><span class="mut">40%</span></div>
+      <div class="indent2">
+        <div class="card row"><span class="tag q">QUALIF.</span><span class="grow">Latência</span><span class="mut">40% · contínuo</span></div>
+        <div class="card row"><span class="tag q">QUALIF.</span><span class="grow">Taxa de erros</span><span class="mut">35% · contínuo</span></div>
+        <div class="card row"><span class="tag q">QUALIF.</span><span class="grow">Saturação</span><span class="mut">25% · contínuo</span></div>
+      </div>
+      <div class="card row"><span class="tag q">QUALIF.</span><span class="grow">Criticidade</span><span class="mut">25%</span></div>
+      <div class="card row"><span class="tag q">QUALIF.</span><span class="grow">Duração (período)</span><span class="mut">20%</span></div>
+      <div class="card row"><span class="tag q">QUALIF.</span><span class="grow">Responsabilidade (imputável?)</span><span class="mut">15%</span></div>
+    </div>
+    <div class="mut" style="margin-top:8px">Perfis: <b style="color:var(--green)">Não fazer nada</b> · <b style="color:var(--amber)">Advertência</b> · <b style="color:var(--red)">Sanção/coima</b>.</div>
+  </div></div>
+  <div class="note"><b>Encaixe direto:</b> <code>V_HealthStatus(p)</code> é calculado recursivamente e entra como <b>uma componente ponderada</b> no <code>V_Risco(p)</code>. Métricas contínuas (latência…) usam a curva suave já existente (<code>scoreAtPosition</code>). Os 3 perfis de decisão classificam o V(p) final em ação.</div>
+
+  <hr style="margin:48px 0 16px;border:none;border-top:2px solid var(--line)">
+  <p class="mut" style="font-size:12px">Wireframe estático · sem lógica · gerado para discussão da próxima versão do Choices. As marcas <span class="ribbon">NOVO</span>/<span class="ribbon chg">ALT</span> indicam o âmbito de cada alteração.</p>
+
+</div>
+</body>
+</html>
