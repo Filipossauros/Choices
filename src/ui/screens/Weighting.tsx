@@ -97,18 +97,22 @@ function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; on
                 renderQuestion={(more, less) =>
                   less.id === ALL_NEUTRAL ? (
                     <>
-                      Partindo de um cenário em que <strong>tudo</strong> está no nível <em>Neutro</em>, qual a
-                      atratividade de melhorar apenas{' '}
+                      <span className="block text-sm font-normal text-gray-500 mb-2">
+                        Tudo parte do nível <em>Neutro</em> (a referência, valor 0).
+                      </span>
+                      Quão atrativo é levar <strong>só</strong>{' '}
                       <span className="inline-block bg-white border border-blue-400 rounded-lg px-2 py-0.5 font-semibold text-blue-700">{more.label}</span>
-                      {' '}de <em>Neutro</em> para <em>Bom</em>?
+                      {' '}de <em>Neutro</em> até <em>Bom</em>?
                     </>
                   ) : (
                     <>
-                      Partindo de tudo <em>Neutro</em>, qual seria mais valioso: melhorar <strong>apenas</strong>{' '}
+                      <span className="block text-sm font-normal text-gray-500 mb-2">
+                        Só pode levar <strong>um</strong> critério de <em>Neutro</em> até <em>Bom</em> — os restantes ficam em <em>Neutro</em>.
+                      </span>
+                      Quanto mais atrativo é escolher{' '}
                       <span className="inline-block bg-white border border-blue-400 rounded-lg px-2 py-0.5 font-semibold text-blue-700">{more.label}</span>
-                      {' '}de <em>Neutro</em> para <em>Bom</em>, ou melhorar <strong>apenas</strong>{' '}
-                      <span className="inline-block bg-white border border-gray-300 rounded-lg px-2 py-0.5 font-semibold text-gray-700">{less.label}</span>
-                      {' '}de <em>Neutro</em> para <em>Bom</em>? Qual a diferença de atratividade entre esses dois cenários?
+                      {' '}do que{' '}
+                      <span className="inline-block bg-white border border-gray-300 rounded-lg px-2 py-0.5 font-semibold text-gray-700">{less.label}</span>?
                     </>
                   )
                 }
