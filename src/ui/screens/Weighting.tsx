@@ -48,10 +48,33 @@ function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; on
     });
   }
 
+  // Criteria ordered most→least valuable swing. Uses the saved ranking when
+  // present (filtered to live ids, with any new criteria appended), else the
+  // value-tree order.
+  const orderedChildIds = (() => {
+    const ids = childCrits.map((c) => c.id);
+    const saved = model.weightOrder?.[group.parentId];
+    if (!saved) return ids;
+    const inSaved = saved.filter((id) => ids.includes(id));
+    const missing = ids.filter((id) => !inSaved.includes(id));
+    return [...inSaved, ...missing];
+  })();
+
+  function moveCriterion(i: number, dir: -1 | 1) {
+    const j = i + dir;
+    if (j < 0 || j >= orderedChildIds.length) return;
+    const next = [...orderedChildIds];
+    [next[i], next[j]] = [next[j], next[i]];
+    dispatch({
+      type: 'UPDATE_MODEL',
+      patch: { weightOrder: { ...(model.weightOrder ?? {}), [group.parentId]: next } },
+    });
+  }
+
   async function handleDerive() {
     setDeriving(true);
     try {
-      const w = await deriveWeights(group.childIds, matrix.judgments);
+      const w = await deriveWeights(orderedChildIds, matrix.judgments);
       dispatch({ type: 'UPDATE_MODEL', patch: setGroupWeights(model, group.parentId, w) });
     } finally {
       setDeriving(false);
@@ -59,7 +82,7 @@ function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; on
   }
 
   const matrixItems = [
-    ...childCrits.map((c) => ({ id: c.id, label: c.label })),
+    ...orderedChildIds.map((id) => ({ id, label: criteria[id]?.label ?? id })),
     { id: ALL_NEUTRAL, label: 'Tudo-Neutro (ref.)' },
   ];
 
@@ -88,6 +111,44 @@ function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; on
             </p>
           ) : (
             <>
+              {/* Passo 1 — ranking by importance */}
+              <div className="space-y-3">
+                <div>
+                  <p className="text-sm font-semibold text-gray-700">Passo 1 — Ordene os critérios por importância</p>
+                  <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                    Antes de quantificar, ordene os critérios do <strong>mais</strong> para o <strong>menos</strong> importante —
+                    ou seja, aquele cuja melhoria de <em>Neutro</em> para <em>Bom</em> traria mais valor fica no topo.
+                    As perguntas seguintes seguem esta ordem, comparando sempre o critério mais importante com o menos
+                    importante, o que torna cada comparação mais natural. (Ordene primeiro; alterar a ordem depois de
+                    responder pode baralhar as respostas já dadas.)
+                  </p>
+                </div>
+                <ol className="space-y-1.5">
+                  {orderedChildIds.map((id, i) => (
+                    <li key={id} className="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2 bg-white">
+                      <span className="w-5 text-center text-xs font-bold text-blue-700 shrink-0">{i + 1}º</span>
+                      <span className="flex-1 text-sm text-gray-700 truncate" title={criteria[id]?.label}>{criteria[id]?.label ?? id}</span>
+                      <div className="flex flex-col gap-0.5 shrink-0">
+                        <button
+                          onClick={() => moveCriterion(i, -1)}
+                          disabled={i === 0}
+                          className="text-gray-400 hover:text-blue-600 disabled:opacity-20 text-xs leading-none"
+                          aria-label="Subir (mais importante)"
+                        >▲</button>
+                        <button
+                          onClick={() => moveCriterion(i, 1)}
+                          disabled={i === orderedChildIds.length - 1}
+                          className="text-gray-400 hover:text-blue-600 disabled:opacity-20 text-xs leading-none"
+                          aria-label="Descer (menos importante)"
+                        >▼</button>
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+
+              {/* Passo 2 — pairwise comparisons */}
+              <p className="text-sm font-semibold text-gray-700 pt-2">Passo 2 — Compare a importância dos pares</p>
               <GuidedJudgments
                 items={matrixItems}
                 judgments={matrix.judgments}

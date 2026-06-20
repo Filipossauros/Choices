@@ -58,6 +58,15 @@ export default function GuidedJudgments({ items, judgments, onChange, renderQues
   const total = pairs.length;
   const safeIdx = total > 0 ? Math.min(pairIdx, total - 1) : 0;
 
+  // When the set of elements changes (e.g. switching criterion/group, or
+  // reordering), jump to the first unanswered pair instead of keeping the
+  // previous index — otherwise the questions appear to start "in the middle".
+  const itemsKey = items.map((it) => it.id).join('|');
+  useEffect(() => {
+    const firstUnanswered = pairs.findIndex((p) => !judgments[`${p.idA}__${p.idB}`]);
+    setPairIdx(firstUnanswered === -1 ? 0 : firstUnanswered);
+  }, [itemsKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     if (total === 0) { onActivePairChange?.(null); return; }
     const { idA, idB } = pairs[safeIdx];

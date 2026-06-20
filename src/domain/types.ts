@@ -278,6 +278,14 @@ export interface EvaluationModel {
    * of a leaf is the product of group weights along its path to the root.
    */
   subWeights?: Record<string, Weights>;
+  /**
+   * Swing-weighting ranking per group, keyed by the group's parent id
+   * (ROOT_ID for the top-level group). Lists the group's child criterion ids
+   * ordered from the most to the least valuable Neutral→Good swing. Drives the
+   * order of the pairwise weighting questions so the more-important criterion is
+   * always compared as the "more attractive" side (MACBETH convention).
+   */
+  weightOrder?: Record<string, string[]>;
   decisionScale: DecisionBand[];
 }
 
