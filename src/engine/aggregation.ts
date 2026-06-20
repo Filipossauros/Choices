@@ -16,16 +16,79 @@ import type {
   AggregationResult,
   GateResult,
   GateVerdict,
+  ValueTreeNode,
+  QualificationCriterion,
 } from '../domain/types';
+import { ROOT_ID } from '../domain/types';
 import { classify } from '../domain/decision';
+import { weightsForGroup } from '../domain/tree';
 import { scoreAtPosition } from './scaling';
+
+const round2 = (n: number) => Math.round(n * 100) / 100;
+
+/** A function giving the value of a qualification leaf, or null if unscored. */
+type LeafScore = (criterionId: string, crit: QualificationCriterion) => number | null;
+
+/**
+ * Recursively aggregate the value tree under the additive MACBETH model.
+ *
+ * Leaf qualification criteria are scored by `leafScore`; composite (and root)
+ * nodes are the weighted average of their non-gate children using the group's
+ * weights (`model.weights` for root, `model.subWeights[id]` for composites).
+ * Gate criteria do not contribute to the value (handled separately as Tier 1).
+ *
+ * Returns the global V(p) plus the value of every internal/leaf node (useful
+ * for showing composite-factor scores), all on the [0,100] scale.
+ */
+export function treeValue(
+  model: EvaluationModel,
+  leafScore: LeafScore,
+): { global: number | null; nodeScores: Record<string, number | null> } {
+  const { criteria } = model.valueTree;
+  const nodeScores: Record<string, number | null> = {};
+
+  function visit(node: ValueTreeNode): number | null {
+    const id = node.criterionId;
+    const crit = id === ROOT_ID ? undefined : criteria[id];
+
+    if (crit?.type === 'gate') return null; // not part of the value
+    if (crit?.type === 'qualification') {
+      const s = leafScore(id, crit);
+      nodeScores[id] = s;
+      return s;
+    }
+
+    // Root or composite — weighted average of non-gate children.
+    const w = weightsForGroup(model, id);
+    const wmap = new Map((w?.weights ?? []).map((x) => [x.criterionId, x.weight]));
+    const nonGate = node.children.filter((c) => criteria[c.criterionId]?.type !== 'gate');
+
+    let weightedSum = 0;
+    let totalWeight = 0;
+    for (const child of nonGate) {
+      const v = visit(child);
+      if (v === null) continue;
+      // A single-child group weights its lone child at 1 (trivially 100%).
+      const cw = nonGate.length === 1 ? 1 : wmap.get(child.criterionId) ?? 0;
+      weightedSum += cw * v;
+      totalWeight += cw;
+    }
+    const val = totalWeight > 0 ? weightedSum / totalWeight : null;
+    if (id !== ROOT_ID) nodeScores[id] = val;
+    return val;
+  }
+
+  const global = visit(model.valueTree.root);
+  return { global, nodeScores };
+}
 
 /**
  * Global value V(p) of a *reference alternative* described by one performance
  * level per qualification criterion (`criterionId -> levelId`). Uses the model's
  * derived scales and weights — the same additive model as `aggregate` — so the
- * result is the MACBETH global impact of that profile. Used to turn a decision
- * reference profile into a band cut-off on the [0,100] axis.
+ * result is the MACBETH global impact of that profile (across the full
+ * hierarchy). Used to turn a decision reference profile into a band cut-off on
+ * the [0,100] axis.
  *
  * Returns null when the model has no weights yet (cut-off cannot be derived).
  */
@@ -34,27 +97,19 @@ export function scoreProfile(
   performances: Record<string, string>,
 ): number | null {
   const scaleMap = new Map(model.derivedScales.map((s) => [s.criterionId, s]));
-  const weightMap = new Map((model.weights?.weights ?? []).map((w) => [w.criterionId, w.weight]));
-
-  let weightedSum = 0;
-  let totalWeight = 0;
-  for (const [critId, crit] of Object.entries(model.valueTree.criteria)) {
-    if (crit.type !== 'qualification') continue;
+  const leafScore: LeafScore = (critId) => {
     const scale = scaleMap.get(critId);
     const levelId = performances[critId];
-    if (!scale || !levelId) continue;
-    const sv = scale.values.find((v) => v.levelId === levelId);
-    if (!sv) continue;
-    const w = weightMap.get(critId) ?? 0;
-    weightedSum += w * sv.value;
-    totalWeight += w;
-  }
-  return totalWeight > 0 ? Math.round((weightedSum / totalWeight) * 100) / 100 : null;
+    if (!scale || !levelId) return null;
+    return scale.values.find((v) => v.levelId === levelId)?.value ?? null;
+  };
+  const { global } = treeValue(model, leafScore);
+  return global === null ? null : round2(global);
 }
 
 export function aggregate(evaluation: Evaluation): AggregationResult {
   const { model, options, performances } = evaluation;
-  const { valueTree, derivedScales, weights, decisionScale } = model;
+  const { valueTree, derivedScales, decisionScale } = model;
   const { criteria } = valueTree;
 
   const perfMap = new Map<string, Map<string, { value: string; position?: number }>>();
@@ -64,17 +119,13 @@ export function aggregate(evaluation: Evaluation): AggregationResult {
   }
 
   const scaleMap = new Map(derivedScales.map((s) => [s.criterionId, s]));
-  const weightMap = new Map(
-    (weights?.weights ?? []).map((w) => [w.criterionId, w.weight]),
-  );
 
   const optionResults: OptionResult[] = options.map((option) => {
     const perf = perfMap.get(option.id) ?? new Map<string, { value: string; position?: number }>();
     const gateResults: GateResult[] = [];
     let rejectedByGate: string | undefined;
-    let vetoedByCriterion: string | undefined;
 
-    // ── Tier 1: Gate checks ─────────────────────────────────────────────
+    // ── Tier 1: Gate checks (gates may sit anywhere in the tree) ─────────
     for (const [critId, crit] of Object.entries(criteria)) {
       if (crit.type !== 'gate') continue;
       const val = perf.get(critId)?.value ?? 'pending';
@@ -96,48 +147,35 @@ export function aggregate(evaluation: Evaluation): AggregationResult {
       };
     }
 
-    // ── Tier 2: MACBETH qualification ────────────────────────────────────
-    const criterionScores: Record<string, number | null> = {};
-    let weightedSum = 0;
-    let totalWeight = 0;
-
-    for (const [critId, crit] of Object.entries(criteria)) {
-      if (crit.type !== 'qualification') continue;
-
+    // ── Tier 2: MACBETH qualification (recursive over the hierarchy) ─────
+    const leafScore: LeafScore = (critId, crit) => {
       const entry = perf.get(critId);
       const scale = scaleMap.get(critId);
-      const w = weightMap.get(critId) ?? 0;
-
-      if (!entry || !scale) {
-        criterionScores[critId] = null;
-        continue;
-      }
-
-      let score: number | null = null;
+      if (!entry || !scale) return null;
       if (entry.position != null) {
         // Continuous performance — read from the smooth curve.
-        score = scoreAtPosition(crit.descriptor, scale, entry.position);
-      } else if (entry.value) {
+        return scoreAtPosition(crit.descriptor, scale, entry.position);
+      }
+      if (entry.value) {
         // Discrete level.
-        score = scale.values.find((v) => v.levelId === entry.value)?.value ?? null;
+        return scale.values.find((v) => v.levelId === entry.value)?.value ?? null;
       }
+      return null;
+    };
 
-      if (score === null) {
-        criterionScores[critId] = null;
-        continue;
+    const { global, nodeScores } = treeValue(model, leafScore);
+
+    // Veto: a qualification leaf scoring below its veto level rejects upstream.
+    let vetoedByCriterion: string | undefined;
+    for (const [critId, crit] of Object.entries(criteria)) {
+      if (crit.type !== 'qualification' || !crit.vetoLevelId) continue;
+      const score = nodeScores[critId];
+      if (score == null) continue;
+      const vetoSv = scaleMap.get(critId)?.values.find((v) => v.levelId === crit.vetoLevelId);
+      if (vetoSv && score < vetoSv.value) {
+        vetoedByCriterion = critId;
+        break;
       }
-
-      criterionScores[critId] = score;
-
-      if (crit.vetoLevelId) {
-        const vetoSv = scale.values.find((v) => v.levelId === crit.vetoLevelId);
-        if (vetoSv && score < vetoSv.value && !vetoedByCriterion) {
-          vetoedByCriterion = critId;
-        }
-      }
-
-      weightedSum += w * score;
-      totalWeight += w;
     }
 
     if (vetoedByCriterion) {
@@ -147,14 +185,12 @@ export function aggregate(evaluation: Evaluation): AggregationResult {
         bandId: null,
         hardRejected: true,
         gateResults,
-        criterionScores,
+        criterionScores: nodeScores,
         vetoedByCriterion,
       };
     }
 
-    const globalValue =
-      totalWeight > 0 ? Math.round((weightedSum / totalWeight) * 100) / 100 : null;
-
+    const globalValue = global === null ? null : round2(global);
     const band = globalValue !== null ? classify(globalValue, decisionScale) : null;
 
     return {
@@ -163,7 +199,7 @@ export function aggregate(evaluation: Evaluation): AggregationResult {
       bandId: band?.id ?? null,
       hardRejected: false,
       gateResults,
-      criterionScores,
+      criterionScores: nodeScores,
     };
   });
 

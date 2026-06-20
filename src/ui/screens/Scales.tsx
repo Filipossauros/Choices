@@ -6,6 +6,7 @@ import { deriveScale, scalePoints } from '../../engine/scaling';
 import { sampleCurve } from '../../engine/interpolation';
 import JudgmentMatrixEditor from '../components/JudgmentMatrixEditor';
 import ScreenNav from '../components/ScreenNav';
+import { ancestorLabels } from '../../domain/tree';
 import { v4 as uuidv4 } from 'uuid';
 import {
   LineChart,
@@ -391,6 +392,7 @@ export default function Scales() {
         {qualCriteria.map((c) => {
           const scale = getScale(c.id);
           const isActive = activeCrit?.id === c.id;
+          const path = ancestorLabels(model, c.id);
           return (
             <button
               key={c.id}
@@ -401,6 +403,9 @@ export default function Scales() {
                   : 'hover:bg-gray-100 text-gray-600'
               }`}
             >
+              {path.length > 0 && (
+                <span className="block text-[10px] text-gray-400 truncate">{path.join(' › ')} ›</span>
+              )}
               <span className="block truncate">{c.label}</span>
               {scale ? (
                 <span className={`text-xs ${scale.consistencyMargin > 0 ? 'text-green-600' : 'text-red-500'}`}>

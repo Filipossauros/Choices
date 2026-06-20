@@ -323,3 +323,110 @@ describe('scoreProfile — MACBETH decision cut-offs from reference profiles', (
     expect(scoreProfile(noWeights, { q1: 'mid', q2: 'low' })).toBeNull();
   });
 });
+
+describe('Hierarchical aggregation — composite factors', () => {
+  // Tree:
+  //   root
+  //   ├── health (composite)   [root weight 0.4]
+  //   │   ├── lat (qual)        [within health: 0.6]
+  //   │   └── sat (qual)        [within health: 0.4]
+  //   └── crit (qual)           [root weight 0.6]
+  const valueTree: ValueTree = {
+    root: {
+      criterionId: 'root',
+      children: [
+        {
+          criterionId: 'health',
+          children: [
+            { criterionId: 'lat', children: [] },
+            { criterionId: 'sat', children: [] },
+          ],
+        },
+        { criterionId: 'crit', children: [] },
+      ],
+    },
+    criteria: {
+      health: { id: 'health', label: 'HealthStatus', type: 'composite' },
+      lat: {
+        id: 'lat', label: 'Latência', type: 'qualification',
+        descriptor: { levels: [{ id: 'fast', label: 'Rápido' }, { id: 'slow', label: 'Lento' }], neutralIndex: 1, goodIndex: 0 },
+      },
+      sat: {
+        id: 'sat', label: 'Saturação', type: 'qualification',
+        descriptor: { levels: [{ id: 'low', label: 'Baixa' }, { id: 'high', label: 'Alta' }], neutralIndex: 1, goodIndex: 0 },
+      },
+      crit: {
+        id: 'crit', label: 'Criticidade', type: 'qualification',
+        descriptor: { levels: [{ id: 'lo', label: 'Baixa' }, { id: 'hi', label: 'Alta' }], neutralIndex: 1, goodIndex: 0 },
+      },
+    },
+  };
+
+  function hierModel() {
+    return model({
+      valueTree,
+      derivedScales: [
+        { criterionId: 'lat', values: [{ levelId: 'fast', value: 100, admissibleRange: [100, 100] }, { levelId: 'slow', value: 0, admissibleRange: [0, 0] }], consistencyMargin: 1, derivedAt: '' },
+        { criterionId: 'sat', values: [{ levelId: 'low', value: 100, admissibleRange: [100, 100] }, { levelId: 'high', value: 0, admissibleRange: [0, 0] }], consistencyMargin: 1, derivedAt: '' },
+        { criterionId: 'crit', values: [{ levelId: 'lo', value: 100, admissibleRange: [100, 100] }, { levelId: 'hi', value: 0, admissibleRange: [0, 0] }], consistencyMargin: 1, derivedAt: '' },
+      ],
+      // root group: health 0.4, crit 0.6
+      weights: {
+        weights: [
+          { criterionId: 'health', weight: 0.4, admissibleRange: [0.4, 0.4] },
+          { criterionId: 'crit', weight: 0.6, admissibleRange: [0.6, 0.6] },
+        ],
+        consistencyMargin: 1, derivedAt: '',
+      },
+      // health group: lat 0.6, sat 0.4
+      subWeights: {
+        health: {
+          weights: [
+            { criterionId: 'lat', weight: 0.6, admissibleRange: [0.6, 0.6] },
+            { criterionId: 'sat', weight: 0.4, admissibleRange: [0.4, 0.4] },
+          ],
+          consistencyMargin: 1, derivedAt: '',
+        },
+      },
+    });
+  }
+
+  it('aggregate(): composite value feeds the global score', () => {
+    // lat=fast(100), sat=high(0) → health = 0.6*100 + 0.4*0 = 60
+    // crit=hi(0)            → global = 0.4*60 + 0.6*0 = 24
+    const result = aggregate(
+      evaluation(hierModel(), {
+        options: [{ id: 'p1', label: 'P1', createdAt: '' }],
+        performances: [
+          { optionId: 'p1', criterionId: 'lat', value: 'fast' },
+          { optionId: 'p1', criterionId: 'sat', value: 'high' },
+          { optionId: 'p1', criterionId: 'crit', value: 'hi' },
+        ],
+      }),
+    );
+    const r = result.optionResults[0];
+    expect(r.criterionScores['health']).toBeCloseTo(60, 5); // composite node scored
+    expect(r.globalValue).toBeCloseTo(24, 5);
+  });
+
+  it('aggregate(): best profile is 100 across the whole tree', () => {
+    const result = aggregate(
+      evaluation(hierModel(), {
+        options: [{ id: 'p1', label: 'P1', createdAt: '' }],
+        performances: [
+          { optionId: 'p1', criterionId: 'lat', value: 'fast' },
+          { optionId: 'p1', criterionId: 'sat', value: 'low' },
+          { optionId: 'p1', criterionId: 'crit', value: 'lo' },
+        ],
+      }),
+    );
+    const r = result.optionResults[0];
+    expect(r.criterionScores['health']).toBeCloseTo(100, 5);
+    expect(r.globalValue).toBeCloseTo(100, 5);
+  });
+
+  it('scoreProfile(): reference profile is scored through the hierarchy', () => {
+    // lat=fast(100), sat=high(0) → health=60 ; crit=hi(0) → 0.4*60 = 24
+    expect(scoreProfile(hierModel(), { lat: 'fast', sat: 'high', crit: 'hi' })).toBeCloseTo(24, 5);
+  });
+});

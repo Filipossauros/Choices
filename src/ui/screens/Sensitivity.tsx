@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useApp } from '../store';
 import { computeSensitivity } from '../../engine/sensitivity';
 import { sortBands } from '../../domain/decision';
+import { allGroupsConsistent, parentOf, weightsForGroup } from '../../domain/tree';
 import {
   LineChart,
   Line,
@@ -28,7 +29,14 @@ export default function Sensitivity() {
     () => new Set(qualCriteria[0]?.id ? [qualCriteria[0].id] : []),
   );
 
-  if (!evaluation.aggregationResult || !model.weights) {
+  // Within-group weight of a criterion (what the sensitivity analysis varies).
+  function groupWeightOf(criterionId: string): number | undefined {
+    const pid = parentOf(model.valueTree, criterionId);
+    const gw = pid ? weightsForGroup(model, pid) : undefined;
+    return gw?.weights.find((w) => w.criterionId === criterionId)?.weight;
+  }
+
+  if (!evaluation.aggregationResult || !allGroupsConsistent(model)) {
     return (
       <div className="max-w-2xl mx-auto py-10 px-4 text-center text-gray-400">
         <p>Navegue para «Resultados» para calcular a agregação e activar a análise de sensibilidade.</p>
@@ -70,7 +78,7 @@ export default function Sensitivity() {
         <div className="flex flex-wrap gap-2">
           {qualCriteria.map((c) => {
             const isActive = activeIds.has(c.id);
-            const w = model.weights!.weights.find((w) => w.criterionId === c.id);
+            const w = groupWeightOf(c.id);
             return (
               <button
                 key={c.id}
@@ -82,9 +90,9 @@ export default function Sensitivity() {
                 }`}
               >
                 {c.label}
-                {w && (
+                {w != null && (
                   <span className={`ml-1.5 text-xs ${isActive ? 'text-blue-200' : 'text-gray-400'}`}>
-                    {(w.weight * 100).toFixed(0)}%
+                    {(w * 100).toFixed(0)}%
                   </span>
                 )}
               </button>
@@ -98,7 +106,7 @@ export default function Sensitivity() {
       {[...activeIds].map((criterionId) => {
         const criterion = model.valueTree.criteria[criterionId];
         const scenario = computeSensitivity(evaluation, criterionId);
-        const currentWeight = (model.weights!.weights.find((w) => w.criterionId === criterionId)?.weight ?? 0) * 100;
+        const currentWeight = (groupWeightOf(criterionId) ?? 0) * 100;
         const currentWeightLabel = `${currentWeight.toFixed(0)}%`;
 
         // Build chartData using safe indexed keys

@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useApp } from '../store';
 import { sortBands } from '../../domain/decision';
+import { allGroupsConsistent } from '../../domain/tree';
 import { scoreProfile } from '../../engine/aggregation';
 import type { DecisionBand, QualificationCriterion } from '../../domain/types';
 import { v4 as uuidv4 } from 'uuid';
@@ -16,7 +17,7 @@ export default function DecisionScale() {
   ) as QualificationCriterion[];
 
   const scalesReady = qualCriteria.every((c) => model.derivedScales.some((s) => s.criterionId === c.id && s.consistencyMargin > 0));
-  const weightsReady = !!model.weights && model.weights.consistencyMargin > 0;
+  const weightsReady = allGroupsConsistent(model);
   const ready = qualCriteria.length > 0 && scalesReady && weightsReady;
 
   function update(next: DecisionBand[]) {
@@ -42,7 +43,7 @@ export default function DecisionScale() {
     });
     if (changed) update(next);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [model.decisionScale, model.derivedScales, model.weights]);
+  }, [model.decisionScale, model.derivedScales, model.weights, model.subWeights]);
 
   function defaultProfile(): Record<string, string> {
     const out: Record<string, string> = {};

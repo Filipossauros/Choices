@@ -52,6 +52,7 @@ export function normalizeModel(raw: Record<string, unknown>): EvaluationModel {
     judgmentMatrices: r.judgmentMatrices ?? [],
     derivedScales: r.derivedScales ?? [],
     weights: r.weights,
+    subWeights: r.subWeights,
     decisionScale,
   };
 }

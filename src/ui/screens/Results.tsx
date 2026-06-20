@@ -2,6 +2,7 @@ import { useMemo, useEffect } from 'react';
 import { useApp } from '../store';
 import { aggregate } from '../../engine/aggregation';
 import { sortBands } from '../../domain/decision';
+import { effectiveWeights, allGroupsConsistent } from '../../domain/tree';
 import type { DecisionBand } from '../../domain/types';
 import ScreenNav from '../components/ScreenNav';
 import {
@@ -34,9 +35,11 @@ export default function Results() {
   const evaluation = state.evaluation!;
   const model = evaluation.model;
 
+  const weightsReady = allGroupsConsistent(model);
+
   // Compute aggregate result fresh whenever options/performances change
   const freshResult = useMemo(() => {
-    if (!model.weights || evaluation.options.length === 0) return null;
+    if (!weightsReady || evaluation.options.length === 0) return null;
     return aggregate(evaluation);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [evaluation.options, evaluation.performances, model]);
@@ -57,6 +60,7 @@ export default function Results() {
       evaluation.options.some((o) => o.createdAt > result.computedAt));
 
   const qualCriteria = Object.values(model.valueTree.criteria).filter((c) => c.type === 'qualification');
+  const effW = effectiveWeights(model);
 
   const optionNotes = evaluation.optionNotes ?? {};
 
@@ -67,10 +71,10 @@ export default function Results() {
     });
   }
 
-  if (!model.weights) {
+  if (!weightsReady) {
     return (
       <div className="max-w-2xl mx-auto py-16 px-4 text-center space-y-3">
-        <p className="text-gray-500">Complete a ponderação no modelo para calcular resultados.</p>
+        <p className="text-gray-500">Complete a ponderação (todos os grupos) no modelo para calcular resultados.</p>
       </div>
     );
   }
@@ -236,16 +240,16 @@ export default function Results() {
               </thead>
               <tbody>
                 {qualCriteria.map((c) => {
-                  const weight = model.weights?.weights.find((w) => w.criterionId === c.id);
+                  const w = effW.get(c.id);
                   return (
                     <tr key={c.id} className="hover:bg-gray-50">
                       <td className="px-3 py-1.5 border border-gray-200 text-gray-700">
                         {c.label}
-                        {weight && <span className="ml-1.5 text-xs text-gray-400 font-normal">{(weight.weight * 100).toFixed(1)}%</span>}
+                        {w != null && <span className="ml-1.5 text-xs text-gray-400 font-normal">{(w * 100).toFixed(1)}%</span>}
                       </td>
                       {sorted.map((r) => {
                         const score = r.criterionScores[c.id];
-                        const contrib = weight && score != null ? weight.weight * score : null;
+                        const contrib = w != null && score != null ? w * score : null;
                         return (
                           <td
                             key={r.optionId}

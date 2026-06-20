@@ -3,6 +3,7 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import type { MacbethJudgment, OptionResult, DecisionBand } from '../../domain/types';
 import { sortBands, bandRangeLabel } from '../../domain/decision';
+import { effectiveWeights } from '../../domain/tree';
 
 const JUDGMENT_WORDS = ['Nula', 'Muito fraca', 'Fraca', 'Moderada', 'Forte', 'Muito forte', 'Extrema'];
 function judgmentLabel(j: MacbethJudgment): string {
@@ -19,6 +20,7 @@ export default function Report() {
   const result = evaluation.aggregationResult;
 
   const qualCriteria = Object.values(model.valueTree.criteria).filter((c) => c.type === 'qualification');
+  const effW = effectiveWeights(model);
   const bandMap = new Map((result?.decisionScale ?? model.decisionScale).map((b) => [b.id, b] as const));
   function decisionLabel(r: OptionResult): string {
     if (r.hardRejected) return 'Reprovado';
@@ -176,13 +178,13 @@ export default function Report() {
         head: [['Critério', 'Níveis (melhor → pior)', 'Neutro', 'Bom', 'Peso']],
         body: qualCrit.map((c) => {
           if (c.type !== 'qualification') return [];
-          const w = model.weights?.weights.find((w) => w.criterionId === c.id);
+          const w = effW.get(c.id);
           return [
             c.label,
             c.descriptor.levels.map((l) => l.label).join(' › '),
             c.descriptor.levels[c.descriptor.neutralIndex]?.label ?? '',
             c.descriptor.levels[c.descriptor.goodIndex]?.label ?? '',
-            w ? `${(w.weight * 100).toFixed(1)}%` : '—',
+            w != null ? `${(w * 100).toFixed(1)}%` : '—',
           ];
         }),
         styles: { fontSize: 8 },
@@ -199,12 +201,12 @@ export default function Report() {
       if (c.type !== 'qualification') continue;
       const scale = model.derivedScales.find((s) => s.criterionId === c.id);
       const matrix = model.judgmentMatrices.find((m) => m.kind === 'scale' && m.criterionId === c.id);
-      const w = model.weights?.weights.find((w) => w.criterionId === c.id);
+      const w = effW.get(c.id);
 
       checkPage(16);
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(10);
-      doc.text(`${c.label}${w ? ` — ${(w.weight * 100).toFixed(1)}%` : ''}${scale ? ` — z = ${scale.consistencyMargin.toFixed(4)}` : ''}`, 14, y);
+      doc.text(`${c.label}${w != null ? ` — ${(w * 100).toFixed(1)}%` : ''}${scale ? ` — z = ${scale.consistencyMargin.toFixed(4)}` : ''}`, 14, y);
       y += 4;
 
       if (scale) {
@@ -318,14 +320,14 @@ export default function Report() {
           if (c.type !== 'qualification') return null;
           const scale = model.derivedScales.find((s) => s.criterionId === c.id);
           const matrix = model.judgmentMatrices.find((m) => m.kind === 'scale' && m.criterionId === c.id);
-          const w = model.weights?.weights.find((w) => w.criterionId === c.id);
+          const w = effW.get(c.id);
           return (
             <div key={c.id} className="border-t border-gray-100 pt-4 space-y-2">
               <div className="flex items-center justify-between">
                 <h4 className="font-medium text-gray-700">{c.label}</h4>
                 <div className="flex gap-2 text-xs">
                   {scale && <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full">z = {scale.consistencyMargin.toFixed(4)}</span>}
-                  {w && <span className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full">peso = {(w.weight * 100).toFixed(1)}%</span>}
+                  {w != null && <span className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full">peso = {(w * 100).toFixed(1)}%</span>}
                 </div>
               </div>
               {scale && (

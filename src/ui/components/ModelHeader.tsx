@@ -1,5 +1,6 @@
 import { useApp, type Screen, type Mode } from '../store';
 import { CREATE_SCREENS, APPLY_SCREENS } from '../store';
+import { allGroupsConsistent } from '../../domain/tree';
 import type { EvaluationModel, Evaluation } from '../../domain/types';
 
 const LABELS: Record<Screen, string> = {
@@ -33,8 +34,8 @@ function createStatus(model: EvaluationModel, screen: Screen): CompletionStatus 
     }
     case 'weighting':
       if (qual.length === 0) return 'done';
-      if (!model.weights) return 'none';
-      return model.weights.consistencyMargin > 0 ? 'done' : 'partial';
+      if (!model.weights && !model.subWeights) return 'none';
+      return allGroupsConsistent(model) ? 'done' : 'partial';
     default:
       return 'none';
   }
@@ -102,24 +103,36 @@ export default function ModelHeader() {
           </span>
         )}
         {docLabel && <span className="text-sm text-gray-500 truncate max-w-xs">{docLabel}</span>}
+        {mode === 'apply' && evaluation && (
+          <button
+            onClick={() => dispatch({ type: 'EDIT_MODEL', model: evaluation.model })}
+            className="ml-auto shrink-0 text-xs px-2.5 py-1 rounded border border-gray-200 text-gray-600 hover:bg-gray-50"
+            title="Voltar à criação para editar critérios, escalas, pesos ou perfis"
+          >
+            ✎ Editar modelo
+          </button>
+        )}
       </div>
       {mode && (
-        <nav className="px-4 flex gap-1 overflow-x-auto pb-1">
-          {screens.map((screen) => {
+        <nav className="px-4 flex gap-1 overflow-x-auto pb-1 items-center">
+          {screens.map((screen, i) => {
             const status = statusOf(screen);
             return (
-              <button
-                key={screen}
-                onClick={() => dispatch({ type: 'SET_SCREEN', screen })}
-                className={`shrink-0 px-3 py-1 text-sm rounded-t border-b-2 transition-colors flex items-center gap-1.5 ${
-                  currentScreen === screen
-                    ? 'border-blue-600 text-blue-700 font-medium'
-                    : 'border-transparent text-gray-500 hover:text-gray-800'
-                }`}
-              >
-                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${DOT_CLASS[status]}`} aria-hidden="true" />
-                {LABELS[screen]}
-              </button>
+              <div key={screen} className="flex items-center shrink-0">
+                {i > 0 && <span className="text-gray-300 px-0.5" aria-hidden="true">→</span>}
+                <button
+                  onClick={() => dispatch({ type: 'SET_SCREEN', screen })}
+                  className={`px-3 py-1 text-sm rounded-t border-b-2 transition-colors flex items-center gap-1.5 ${
+                    currentScreen === screen
+                      ? 'border-blue-600 text-blue-700 font-medium'
+                      : 'border-transparent text-gray-500 hover:text-gray-800'
+                  }`}
+                >
+                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${DOT_CLASS[status]}`} aria-hidden="true" />
+                  <span className="text-gray-400 font-mono text-xs">{i + 1}</span>
+                  {LABELS[screen]}
+                </button>
+              </div>
             );
           })}
         </nav>

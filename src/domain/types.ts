@@ -1,6 +1,9 @@
 // ─── Enums & primitives ────────────────────────────────────────────────────
 
-export type CriterionType = 'gate' | 'qualification';
+export type CriterionType = 'gate' | 'qualification' | 'composite';
+
+/** The implicit top-of-tree node id (root group of the value tree). */
+export const ROOT_ID = 'root';
 
 /** MACBETH attractiveness-difference categories C0..C6 */
 export type MacbethCategory = 0 | 1 | 2 | 3 | 4 | 5 | 6;
@@ -56,7 +59,16 @@ export interface QualificationCriterion extends BaseCriterion {
   continuous?: boolean;
 }
 
-export type Criterion = GateCriterion | QualificationCriterion;
+/**
+ * An internal (non-leaf) node that aggregates its children into a single value.
+ * It has no descriptor or scale of its own — its value V = Σ kⱼ·vⱼ over its
+ * direct children, using the sub-group weights in `model.subWeights[id]`.
+ */
+export interface CompositeCriterion extends BaseCriterion {
+  type: 'composite';
+}
+
+export type Criterion = GateCriterion | QualificationCriterion | CompositeCriterion;
 
 // ─── Value tree ────────────────────────────────────────────────────────────
 
@@ -104,6 +116,12 @@ export interface JudgmentMatrix {
   id: string;
   /** 'scale' = per-criterion value matrix; 'weighting' = swing-weight matrix */
   kind: 'scale' | 'weighting';
+  /**
+   * For 'scale': the criterion whose value scale this matrix derives.
+   * For 'weighting': the GROUP whose children this matrix weighs — the parent
+   * composite's id, or ROOT_ID for the top-level group. Undefined = ROOT_ID
+   * (legacy single global weighting matrix).
+   */
   criterionId?: string;
   assessorId: string;
   /**
@@ -227,7 +245,7 @@ export interface ConsistencyReport {
 
 // ─── Top-level entities ──────────────────────────────────────────────────────
 
-export const MODEL_VERSION = '2.0.0';
+export const MODEL_VERSION = '3.0.0';
 export const DEFAULT_ASSESSOR_ID = 'assessor-default';
 
 /**
@@ -246,7 +264,18 @@ export interface EvaluationModel {
   valueTree: ValueTree;
   judgmentMatrices: JudgmentMatrix[];
   derivedScales: DerivedScale[];
+  /**
+   * Weights of the ROOT group's direct children (sums to 1). For a flat model
+   * these are the only weights. Kept as the legacy field for backward
+   * compatibility — equivalent to `subWeights[ROOT_ID]`.
+   */
   weights?: Weights;
+  /**
+   * Weights of each composite node's direct children, keyed by the composite
+   * criterion id. Each entry sums to 1 within its group. The effective weight
+   * of a leaf is the product of group weights along its path to the root.
+   */
+  subWeights?: Record<string, Weights>;
   decisionScale: DecisionBand[];
 }
 
