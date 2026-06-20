@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useApp } from '../store';
-import type { MacbethJudgment, JudgmentMatrix, DerivedScale, QualificationCriterion } from '../../domain/types';
+import type { MacbethJudgment, MacbethCategory, JudgmentMatrix, DerivedScale, QualificationCriterion } from '../../domain/types';
 import { DEFAULT_ASSESSOR_ID } from '../../domain/types';
 import { deriveScale, scalePoints } from '../../engine/scaling';
 import { sampleCurve } from '../../engine/interpolation';
@@ -293,6 +293,175 @@ function ScaleFormula({
   );
 }
 
+// ── Guided-mode pair-by-pair judgment entry ───────────────────────────────────
+
+const GUIDE_CATS: { value: MacbethCategory; label: string; bg: string; text: string; hint: string }[] = [
+  { value: 0, label: 'Indiferente', bg: 'bg-gray-100 hover:bg-gray-200 border-gray-300', text: 'text-gray-700', hint: 'C0 — a diferença não tem relevância prática' },
+  { value: 1, label: 'Muito fraca', bg: 'bg-emerald-50 hover:bg-emerald-100 border-emerald-300', text: 'text-emerald-800', hint: 'C1 — diferença quase imperceptível' },
+  { value: 2, label: 'Fraca', bg: 'bg-teal-50 hover:bg-teal-100 border-teal-300', text: 'text-teal-800', hint: 'C2 — diferença pequena mas perceptível' },
+  { value: 3, label: 'Moderada', bg: 'bg-yellow-50 hover:bg-yellow-100 border-yellow-400', text: 'text-yellow-800', hint: 'C3 — diferença claramente sentida' },
+  { value: 4, label: 'Forte', bg: 'bg-orange-50 hover:bg-orange-100 border-orange-400', text: 'text-orange-800', hint: 'C4 — diferença significativa' },
+  { value: 5, label: 'Muito forte', bg: 'bg-red-50 hover:bg-red-100 border-red-400', text: 'text-red-800', hint: 'C5 — diferença muito marcada' },
+  { value: 6, label: 'Extrema', bg: 'bg-red-100 hover:bg-red-200 border-red-600', text: 'text-red-900', hint: 'C6 — diferença máxima concebível' },
+];
+
+interface GuidedModeProps {
+  criterion: QualificationCriterion;
+  judgments: Record<string, MacbethJudgment>;
+  onChange: (j: Record<string, MacbethJudgment>) => void;
+}
+
+function GuidedMode({ criterion, judgments, onChange }: GuidedModeProps) {
+  const levels = criterion.descriptor.levels;
+  const [pairIdx, setPairIdx] = useState(0);
+
+  // Build all upper-triangle pairs (row=more attractive, col=less attractive).
+  // Same order as JudgmentMatrixEditor.
+  const pairs: { idA: string; idB: string }[] = [];
+  for (let ri = 0; ri < levels.length - 1; ri++) {
+    for (let ci = ri + 1; ci < levels.length; ci++) {
+      pairs.push({ idA: levels[ri].id, idB: levels[ci].id });
+    }
+  }
+
+  const total = pairs.length;
+  if (total === 0) return <p className="text-sm text-gray-400 italic">São necessários pelo menos 2 níveis.</p>;
+
+  const safeIdx = Math.min(pairIdx, total - 1);
+  const { idA, idB } = pairs[safeIdx];
+  const labelA = levels.find((l) => l.id === idA)?.label ?? idA;
+  const labelB = levels.find((l) => l.id === idB)?.label ?? idB;
+
+  const key = `${idA}__${idB}`;
+  const currentJ = judgments[key];
+  const currentCat: MacbethCategory | null = currentJ
+    ? currentJ.kind === 'exact'
+      ? currentJ.category
+      : currentJ.lo
+    : null;
+
+  function pick(cat: MacbethCategory) {
+    onChange({ ...judgments, [key]: { kind: 'exact', category: cat } });
+    // Auto-advance to next unanswered pair
+    const nextUnanswered = pairs.findIndex((p, i) => i > safeIdx && !judgments[`${p.idA}__${p.idB}`]);
+    if (nextUnanswered !== -1) setPairIdx(nextUnanswered);
+    else if (safeIdx < total - 1) setPairIdx(safeIdx + 1);
+  }
+
+  const answered = pairs.filter((p) => judgments[`${p.idA}__${p.idB}`] !== undefined).length;
+
+  return (
+    <div className="space-y-5">
+      {/* Progress */}
+      <div className="space-y-1">
+        <div className="flex items-center justify-between text-xs text-gray-500">
+          <span>Par {safeIdx + 1} de {total}</span>
+          <span>{answered}/{total} respondidos</span>
+        </div>
+        <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+          <div className="h-full bg-blue-500 rounded-full transition-all" style={{ width: `${(answered / total) * 100}%` }} />
+        </div>
+      </div>
+
+      {/* Pair overview dots */}
+      <div className="flex flex-wrap gap-1">
+        {pairs.map((p, i) => {
+          const done = !!judgments[`${p.idA}__${p.idB}`];
+          const active = i === safeIdx;
+          return (
+            <button
+              key={i}
+              onClick={() => setPairIdx(i)}
+              title={`${levels.find((l) => l.id === p.idA)?.label} vs ${levels.find((l) => l.id === p.idB)?.label}`}
+              className={`w-5 h-5 rounded-full border text-[9px] font-bold transition-all ${
+                active
+                  ? 'bg-blue-600 border-blue-700 text-white scale-110'
+                  : done
+                  ? 'bg-green-500 border-green-600 text-white'
+                  : 'bg-gray-100 border-gray-300 text-gray-500 hover:bg-gray-200'
+              }`}
+            >
+              {i + 1}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Question card */}
+      <div className="border border-blue-200 rounded-2xl bg-blue-50 p-5 space-y-4">
+        <p className="text-xs text-blue-600 font-semibold uppercase tracking-wider">Diferença de atratividade</p>
+        <p className="text-base font-medium text-gray-800 leading-snug">
+          Qual a diferença de atratividade de passar de{' '}
+          <span className="inline-block bg-white border border-gray-300 rounded-lg px-2 py-0.5 font-semibold text-gray-700">{labelB}</span>
+          {' '}para{' '}
+          <span className="inline-block bg-white border border-blue-400 rounded-lg px-2 py-0.5 font-semibold text-blue-700">{labelA}</span>
+          ?
+        </p>
+
+        {/* Category buttons */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          {GUIDE_CATS.map((cat) => {
+            const active = currentCat === cat.value;
+            return (
+              <button
+                key={cat.value}
+                onClick={() => pick(cat.value)}
+                title={cat.hint}
+                className={`flex flex-col items-center gap-0.5 px-3 py-2.5 border rounded-xl text-xs font-semibold transition-all ${cat.bg} ${cat.text} ${
+                  active ? 'ring-2 ring-blue-500 ring-offset-1 scale-105 shadow-sm' : ''
+                }`}
+              >
+                <span className="text-[10px] font-normal opacity-60">C{cat.value}</span>
+                {cat.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {currentJ && (
+          <p className="text-xs text-blue-700 font-medium">
+            ✓ Juízo registado: <strong>{GUIDE_CATS.find((c) => c.value === currentCat)?.label}</strong>
+          </p>
+        )}
+      </div>
+
+      {/* Navigation */}
+      <div className="flex items-center justify-between">
+        <button
+          onClick={() => setPairIdx(Math.max(0, safeIdx - 1))}
+          disabled={safeIdx === 0}
+          className="px-4 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-40 text-gray-600"
+        >
+          ← Anterior
+        </button>
+        <button
+          onClick={() => setPairIdx(Math.min(total - 1, safeIdx + 1))}
+          disabled={safeIdx === total - 1}
+          className="px-4 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-40 text-gray-600"
+        >
+          Próximo →
+        </button>
+      </div>
+
+      {/* MACBETH reference */}
+      <details className="text-xs text-gray-500">
+        <summary className="cursor-pointer hover:text-gray-700 font-medium">Referência MACBETH — categorias C0–C6</summary>
+        <div className="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-1">
+          {GUIDE_CATS.map((c) => (
+            <span key={c.value} className="px-2 py-1 bg-gray-50 border border-gray-100 rounded-lg">
+              <strong>C{c.value}</strong> — {c.label}
+            </span>
+          ))}
+        </div>
+        <p className="mt-2 text-gray-400 leading-relaxed">
+          As categorias são ordinais: a diferença C4 (Forte) deve ser maior que C3 (Moderada), e assim por diante.
+          O LP de consistência verifica que a ordenação cardinal dos juízos não contém contradições.
+        </p>
+      </details>
+    </div>
+  );
+}
+
 // ── Main screen ───────────────────────────────────────────────────────────────
 
 export default function Scales() {
@@ -300,6 +469,7 @@ export default function Scales() {
   const model = state.model!;
   const [derivingId, setDerivingId] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
+  const [guided, setGuided] = useState(false);
 
   const qualCriteria = Object.values(model.valueTree.criteria).filter(
     (c) => c.type === 'qualification',
@@ -422,22 +592,47 @@ export default function Scales() {
       {/* Main area */}
       {activeCrit && (
         <div className="flex-1 space-y-6 min-w-0">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
             <h2 className="font-semibold text-gray-800">{activeCrit.label}</h2>
-            <button
-              onClick={() => handleDerive(activeCrit.id)}
-              disabled={derivingId === activeCrit.id}
-              className="px-4 py-1.5 text-sm bg-blue-700 text-white rounded hover:bg-blue-800 disabled:opacity-50"
-            >
-              {derivingId === activeCrit.id ? 'A derivar…' : 'Derivar escala'}
-            </button>
+            <div className="flex items-center gap-2">
+              {/* Mode toggle */}
+              <div className="flex items-center rounded-lg border border-gray-200 bg-gray-50 p-0.5 text-xs">
+                <button
+                  onClick={() => setGuided(false)}
+                  className={`px-3 py-1 rounded-md font-medium transition-colors ${!guided ? 'bg-white shadow text-gray-800' : 'text-gray-500 hover:text-gray-700'}`}
+                >
+                  Avançado
+                </button>
+                <button
+                  onClick={() => setGuided(true)}
+                  className={`px-3 py-1 rounded-md font-medium transition-colors ${guided ? 'bg-white shadow text-blue-700' : 'text-gray-500 hover:text-gray-700'}`}
+                >
+                  Guiado
+                </button>
+              </div>
+              <button
+                onClick={() => handleDerive(activeCrit.id)}
+                disabled={derivingId === activeCrit.id}
+                className="px-4 py-1.5 text-sm bg-blue-700 text-white rounded hover:bg-blue-800 disabled:opacity-50"
+              >
+                {derivingId === activeCrit.id ? 'A derivar…' : 'Derivar escala'}
+              </button>
+            </div>
           </div>
 
-          <JudgmentMatrixEditor
-            items={activeCrit.descriptor.levels}
-            judgments={getMatrix(activeCrit.id).judgments}
-            onChange={(j) => updateMatrix(activeCrit.id, j)}
-          />
+          {guided ? (
+            <GuidedMode
+              criterion={activeCrit}
+              judgments={getMatrix(activeCrit.id).judgments}
+              onChange={(j) => updateMatrix(activeCrit.id, j)}
+            />
+          ) : (
+            <JudgmentMatrixEditor
+              items={activeCrit.descriptor.levels}
+              judgments={getMatrix(activeCrit.id).judgments}
+              onChange={(j) => updateMatrix(activeCrit.id, j)}
+            />
+          )}
 
           {/* Scale display */}
           {(() => {

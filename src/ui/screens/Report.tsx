@@ -4,6 +4,9 @@ import autoTable from 'jspdf-autotable';
 import type { MacbethJudgment, OptionResult, DecisionBand } from '../../domain/types';
 import { sortBands, bandRangeLabel } from '../../domain/decision';
 import { effectiveWeights } from '../../domain/tree';
+import { buildModelSpec, downloadJson } from '../../domain/modelSpec';
+
+const DECISION_SCHEMA = 'choices/decision@1';
 
 const JUDGMENT_WORDS = ['Nula', 'Muito fraca', 'Fraca', 'Moderada', 'Forte', 'Muito forte', 'Extrema'];
 function judgmentLabel(j: MacbethJudgment): string {
@@ -22,6 +25,7 @@ export default function Report() {
   const qualCriteria = Object.values(model.valueTree.criteria).filter((c) => c.type === 'qualification');
   const effW = effectiveWeights(model);
   const bandMap = new Map((result?.decisionScale ?? model.decisionScale).map((b) => [b.id, b] as const));
+
   function decisionLabel(r: OptionResult): string {
     if (r.hardRejected) return 'Reprovado';
     return r.bandId ? bandMap.get(r.bandId)?.label ?? '—' : '—';
@@ -30,6 +34,78 @@ export default function Report() {
     return r.bandId ? bandMap.get(r.bandId) : undefined;
   }
 
+  // ── CSV export ─────────────────────────────────────────────────────────────
+  function exportCSV() {
+    if (!result) return;
+    const qualCrit = Object.values(model.valueTree.criteria).filter((c) => c.type === 'qualification');
+    const sorted = [...result.optionResults].sort((a, b) => (b.globalValue ?? -Infinity) - (a.globalValue ?? -Infinity));
+    const headers = ['#', 'Proposta', 'V(p)', 'Decisão', ...qualCrit.map((c) => c.label)];
+    const rows = sorted.map((r, i) => {
+      const opt = evaluation.options.find((o) => o.id === r.optionId);
+      const band = r.bandId ? bandMap.get(r.bandId) : undefined;
+      const decision = r.hardRejected ? 'Reprovado' : (band?.label ?? '—');
+      const score = r.globalValue !== null ? r.globalValue.toFixed(1) : '—';
+      const critScores = qualCrit.map((c) => {
+        const s = r.criterionScores[c.id];
+        return s !== null && s !== undefined ? s.toFixed(1) : '—';
+      });
+      return [String(i + 1), opt?.label ?? r.optionId, score, decision, ...critScores];
+    });
+    const csv = [headers, ...rows]
+      .map((row) => row.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `choices-resultados-${evaluation.id.slice(0, 8)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // ── JSON Decision export (choices/decision@1) ──────────────────────────────
+  function exportDecisionJSON() {
+    const sorted = result
+      ? [...result.optionResults].sort((a, b) => (b.globalValue ?? -Infinity) - (a.globalValue ?? -Infinity))
+      : [];
+    const record = {
+      schema: DECISION_SCHEMA,
+      generatedAt: new Date().toISOString(),
+      evaluation: { id: evaluation.id, label: evaluation.label, createdAt: evaluation.createdAt },
+      model: { id: model.id, label: model.label, version: model.modelVersion },
+      decisionBands: sortBands(result?.decisionScale ?? model.decisionScale).map((b) => ({
+        id: b.id,
+        label: b.label,
+        color: b.color,
+        minScore: b.minScore,
+      })),
+      results: sorted.map((r) => {
+        const opt = evaluation.options.find((o) => o.id === r.optionId);
+        const band = r.bandId ? bandMap.get(r.bandId) : undefined;
+        return {
+          optionId: r.optionId,
+          label: opt?.label ?? r.optionId,
+          globalValue: r.globalValue,
+          bandId: r.bandId ?? null,
+          bandLabel: band?.label ?? null,
+          hardRejected: r.hardRejected ?? false,
+          rejectedByGate: r.rejectedByGate ?? null,
+          criterionScores: r.criterionScores,
+          notes: evaluation.optionNotes?.[r.optionId] ?? null,
+        };
+      }),
+      modelSpec: buildModelSpec(model),
+    };
+    downloadJson(`choices-decisao-${evaluation.id.slice(0, 8)}.json`, record);
+  }
+
+  // ── JSON Model Spec export (choices/model-spec@1) ──────────────────────────
+  function exportSpecJSON() {
+    const spec = buildModelSpec(model);
+    downloadJson(`choices-modelo-${model.id.slice(0, 8)}.json`, spec);
+  }
+
+  // ── PDF export ─────────────────────────────────────────────────────────────
   async function exportPDF() {
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' }) as Doc;
     const pageW = doc.internal.pageSize.getWidth();
@@ -37,10 +113,7 @@ export default function Report() {
     let y = 16;
 
     function checkPage(needed = 25) {
-      if (y + needed > pageH - 16) {
-        doc.addPage();
-        y = 16;
-      }
+      if (y + needed > pageH - 16) { doc.addPage(); y = 16; }
     }
 
     function sectionTitle(n: number, title: string) {
@@ -51,7 +124,6 @@ export default function Report() {
       y += 6;
     }
 
-    // ── Header ──────────────────────────────────────────────────────────────
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(16);
     doc.text('Relatório de Decisão', pageW / 2, y, { align: 'center' });
@@ -60,10 +132,9 @@ export default function Report() {
     doc.setFontSize(10);
     doc.text(evaluation.label, pageW / 2, y, { align: 'center' });
     y += 5;
-    doc.text(`Gerado em: ${new Date().toLocaleString('pt-PT')}`, pageW / 2, y, { align: 'center' });
+    doc.text(`Gerado localmente em: ${new Date().toLocaleString('pt-PT')}`, pageW / 2, y, { align: 'center' });
     y += 10;
 
-    // ── 1. Decisão ──────────────────────────────────────────────────────────
     sectionTitle(1, 'Decisão');
     if (result) {
       const scaleBands = sortBands(result.decisionScale);
@@ -131,7 +202,6 @@ export default function Report() {
       y += 8;
     }
 
-    // ── 2. Metodologia ─────────────────────────────────────────────────────
     sectionTitle(2, 'Metodologia');
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
@@ -141,7 +211,6 @@ export default function Report() {
     doc.text(mLines, 14, y);
     y += mLines.length * 4.5 + 6;
 
-    // ── 3. Escala de Decisão ───────────────────────────────────────────────
     sectionTitle(3, 'Escala de Decisão');
     const scaleBands = sortBands(result?.decisionScale ?? model.decisionScale);
     autoTable(doc, {
@@ -155,7 +224,6 @@ export default function Report() {
     y = doc.lastAutoTable?.finalY ?? y;
     y += 6;
 
-    // ── 4. Critérios ───────────────────────────────────────────────────────
     sectionTitle(4, 'Critérios');
     const gateCrit = Object.values(model.valueTree.criteria).filter((c) => c.type === 'gate');
     const qualCrit = Object.values(model.valueTree.criteria).filter((c) => c.type === 'qualification');
@@ -195,7 +263,6 @@ export default function Report() {
       y += 6;
     }
 
-    // ── 5. Trilho de Auditoria ─────────────────────────────────────────────
     sectionTitle(5, 'Trilho de Auditoria');
     for (const c of qualCrit) {
       if (c.type !== 'qualification') continue;
@@ -246,14 +313,13 @@ export default function Report() {
       }
     }
 
-    // ── Page footer ─────────────────────────────────────────────────────────
     const pageCount = doc.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
       doc.setPage(i);
       doc.setFont('helvetica', 'italic');
       doc.setFontSize(7);
       doc.setTextColor(150);
-      doc.text(`Choices · MACBETH · ${evaluation.label} · Página ${i}/${pageCount}`, pageW / 2, pageH - 8, { align: 'center' });
+      doc.text(`Choices · MACBETH · ${evaluation.label} · Página ${i}/${pageCount} · Gerado localmente`, pageW / 2, pageH - 8, { align: 'center' });
       doc.setTextColor(0);
     }
     doc.save(`choices-relatorio-${evaluation.id.slice(0, 8)}.pdf`);
@@ -262,10 +328,66 @@ export default function Report() {
   // ── HTML render ────────────────────────────────────────────────────────────
   return (
     <div className="max-w-4xl mx-auto py-6 px-4 space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-gray-800">Relatório de Decisão</h2>
-        <button onClick={exportPDF} className="px-5 py-2 bg-blue-700 text-white rounded-lg hover:bg-blue-800 font-medium">
-          ↓ Exportar PDF
+      {/* Header */}
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h2 className="text-xl font-semibold text-gray-800">Relatório de Decisão</h2>
+          <p className="text-sm text-gray-500 mt-0.5">{evaluation.label}</p>
+        </div>
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-green-50 border border-green-200 text-green-700 text-xs font-medium">
+          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+          </svg>
+          Gerado localmente
+        </span>
+      </div>
+
+      {/* Export buttons — 2×2 grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <button
+          onClick={exportPDF}
+          className="flex flex-col items-center gap-1.5 px-3 py-3 bg-blue-700 hover:bg-blue-800 text-white rounded-xl transition-colors"
+        >
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          <span className="text-xs font-semibold">PDF</span>
+          <span className="text-[10px] opacity-80">Relatório completo</span>
+        </button>
+
+        <button
+          onClick={exportCSV}
+          disabled={!result}
+          className="flex flex-col items-center gap-1.5 px-3 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white rounded-xl transition-colors"
+        >
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+          </svg>
+          <span className="text-xs font-semibold">CSV</span>
+          <span className="text-[10px] opacity-80">Resultados tabulares</span>
+        </button>
+
+        <button
+          onClick={exportDecisionJSON}
+          className="flex flex-col items-center gap-1.5 px-3 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-colors"
+        >
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          <span className="text-xs font-semibold">JSON Decisão</span>
+          <span className="text-[10px] opacity-80">choices/decision@1</span>
+        </button>
+
+        <button
+          onClick={exportSpecJSON}
+          className="flex flex-col items-center gap-1.5 px-3 py-3 bg-violet-600 hover:bg-violet-700 text-white rounded-xl transition-colors"
+        >
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          <span className="text-xs font-semibold">Spec IA</span>
+          <span className="text-[10px] opacity-80">choices/model-spec@1</span>
         </button>
       </div>
 

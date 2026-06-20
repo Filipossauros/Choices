@@ -227,7 +227,7 @@ export default function Results() {
               // For composite, show children too
               const children = isComposite
                 ? Object.values(model.valueTree.criteria).filter(
-                    (c) => c.type === 'qualification' && (model.valueTree.order ?? []).includes(c.id) &&
+                    (c) => c.type === 'qualification' &&
                     weightingGroups(model).some((g) => g.parentId === critId && g.childIds.includes(c.id)),
                   )
                 : [];
