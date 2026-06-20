@@ -46,6 +46,7 @@ export function normalizeModel(raw: Record<string, unknown>): EvaluationModel {
     modelVersion: MODEL_VERSION,
     label: r.label ?? 'Modelo',
     description: r.description,
+    subjectKind: r.subjectKind,
     createdAt: r.createdAt ?? new Date().toISOString(),
     updatedAt: r.updatedAt ?? new Date().toISOString(),
     valueTree: r.valueTree ?? { root: { criterionId: 'root', children: [] }, criteria: {} },
@@ -53,6 +54,7 @@ export function normalizeModel(raw: Record<string, unknown>): EvaluationModel {
     derivedScales: r.derivedScales ?? [],
     weights: r.weights,
     subWeights: r.subWeights,
+    weightOrder: r.weightOrder,
     decisionScale,
   };
 }

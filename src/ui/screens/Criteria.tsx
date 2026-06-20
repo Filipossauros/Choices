@@ -13,6 +13,7 @@ import { ROOT_ID } from '../../domain/types';
 import { addChild, updateCriterion, removeNode, findNode } from '../../domain/tree';
 import { v4 as uuidv4 } from 'uuid';
 import ScreenNav from '../components/ScreenNav';
+import { IconGate, IconQualification, IconComposite } from '../components/icons';
 
 const DEFAULT_LEVELS = ['Excelente', 'Bom', 'Suficiente', 'Neutro', 'Insuficiente'];
 
@@ -151,15 +152,15 @@ function CriterionForm({
           <div className="flex flex-wrap gap-4">
             <label className={`flex items-center gap-2 ${lockedComposite ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}>
               <input type="radio" checked={type === 'composite'} disabled={lockedComposite && type !== 'composite'} onChange={() => setType('composite')} />
-              <span className="text-sm">🗂️ Fator composto (decompõe em subcritérios)</span>
+              <span className="text-sm flex items-center gap-1.5"><IconComposite className="w-4 h-4 text-emerald-600" /> Fator composto (decompõe em subcritérios)</span>
             </label>
             <label className={`flex items-center gap-2 ${lockedComposite ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}>
               <input type="radio" checked={type === 'qualification'} disabled={lockedComposite} onChange={() => setType('qualification')} />
-              <span className="text-sm">📊 Qualificação (escala graduada)</span>
+              <span className="text-sm flex items-center gap-1.5"><IconQualification className="w-4 h-4 text-indigo-600" /> Qualificação (escala graduada)</span>
             </label>
             <label className={`flex items-center gap-2 ${lockedComposite ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}>
               <input type="radio" checked={type === 'gate'} disabled={lockedComposite} onChange={() => setType('gate')} />
-              <span className="text-sm">🚪 Porta (habilitação binária)</span>
+              <span className="text-sm flex items-center gap-1.5"><IconGate className="w-4 h-4 text-orange-600" /> Porta (habilitação binária)</span>
             </label>
           </div>
           {lockedComposite && (
@@ -205,11 +206,15 @@ function CriterionForm({
   );
 }
 
-const TYPE_ICON: Record<CritType, string> = { gate: '🚪', qualification: '📊', composite: '🗂️' };
+const TYPE_ICON: Record<CritType, { Icon: typeof IconGate; cls: string }> = {
+  gate: { Icon: IconGate, cls: 'bg-orange-50 text-orange-600' },
+  qualification: { Icon: IconQualification, cls: 'bg-indigo-50 text-indigo-600' },
+  composite: { Icon: IconComposite, cls: 'bg-emerald-50 text-emerald-600' },
+};
 const TYPE_TAG: Record<CritType, { label: string; cls: string }> = {
-  composite: { label: 'FATOR', cls: 'bg-emerald-100 text-emerald-700' },
-  qualification: { label: 'QUALIF.', cls: 'bg-indigo-100 text-indigo-700' },
-  gate: { label: 'PORTA', cls: 'bg-orange-100 text-orange-700' },
+  composite: { label: 'Fator', cls: 'bg-emerald-100 text-emerald-700' },
+  qualification: { label: 'Qualificação', cls: 'bg-indigo-100 text-indigo-700' },
+  gate: { label: 'Porta', cls: 'bg-orange-100 text-orange-700' },
 };
 
 export default function Criteria() {
@@ -310,7 +315,9 @@ export default function Criteria() {
           ) : (
             <span className="w-3" />
           )}
-          <span className="text-lg leading-none mt-0.5">{TYPE_ICON[c.type]}</span>
+          <span className={`mt-0.5 w-7 h-7 rounded-lg grid place-items-center shrink-0 ${TYPE_ICON[c.type].cls}`}>
+            {(() => { const Ic = TYPE_ICON[c.type].Icon; return <Ic className="w-4 h-4" />; })()}
+          </span>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${tag.cls}`}>{tag.label}</span>

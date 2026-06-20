@@ -2,6 +2,7 @@ import { useApp, type Screen, type Mode } from '../store';
 import { CREATE_SCREENS, APPLY_SCREENS } from '../store';
 import { allGroupsConsistent } from '../../domain/tree';
 import type { EvaluationModel, Evaluation } from '../../domain/types';
+import { v4 as uuidv4 } from 'uuid';
 
 const LABELS: Record<Screen, string> = {
   home: 'Início',
@@ -63,19 +64,13 @@ function applyStatus(evaluation: Evaluation, screen: Screen): CompletionStatus {
       return stale ? 'partial' : 'done';
     }
     case 'sensitivity':
-      return evaluation.aggregationResult && model.weights && qual.length >= 2 ? 'done' : 'none';
+      return evaluation.aggregationResult && allGroupsConsistent(model) && qual.length >= 2 ? 'done' : 'none';
     case 'report':
       return evaluation.aggregationResult ? 'done' : 'none';
     default:
       return 'none';
   }
 }
-
-const DOT_CLASS: Record<CompletionStatus, string> = {
-  done: 'bg-green-500',
-  partial: 'bg-amber-400',
-  none: 'bg-gray-300',
-};
 
 export default function ModelHeader() {
   const { state, dispatch } = useApp();
@@ -91,9 +86,28 @@ export default function ModelHeader() {
     return 'none';
   }
 
+  /** Edit the model behind this evaluation as a separate copy — never silently
+   *  overwrite the library original, and the evaluation keeps its snapshot. */
+  function editModelCopy() {
+    if (!evaluation) return;
+    const now = new Date().toISOString();
+    const fork: EvaluationModel = {
+      ...structuredClone(evaluation.model),
+      id: uuidv4(),
+      label: `${evaluation.model.label} (cópia)`,
+      createdAt: now,
+      updatedAt: now,
+    };
+    dispatch({ type: 'EDIT_MODEL', model: fork });
+  }
+
+  const statuses = screens.map(statusOf);
+  const doneCount = statuses.filter((s) => s === 'done').length;
+  const progress = screens.length ? doneCount / screens.length : 0;
+
   return (
     <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
-      <div className="px-4 py-2 flex items-center gap-4">
+      <div className="px-4 py-2.5 flex items-center gap-3">
         <button
           onClick={() => dispatch({ type: 'GO_HOME' })}
           className="text-blue-700 font-bold text-lg tracking-tight shrink-0"
@@ -101,44 +115,59 @@ export default function ModelHeader() {
           Choices
         </button>
         {mode && (
-          <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 shrink-0">
+          <span className="text-[11px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 shrink-0">
             {modeLabel[mode]}
           </span>
         )}
         {docLabel && <span className="text-sm text-gray-500 truncate max-w-xs">{docLabel}</span>}
         {mode === 'apply' && evaluation && (
           <button
-            onClick={() => dispatch({ type: 'EDIT_MODEL', model: evaluation.model })}
-            className="ml-auto shrink-0 text-xs px-2.5 py-1 rounded border border-gray-200 text-gray-600 hover:bg-gray-50"
-            title="Voltar à criação para editar critérios, escalas, pesos ou perfis"
+            onClick={editModelCopy}
+            className="ml-auto shrink-0 text-xs px-2.5 py-1 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50"
+            title="Cria uma cópia editável do modelo desta avaliação — não altera o original nem esta avaliação"
           >
-            ✎ Editar modelo
+            Editar modelo (cópia)
           </button>
         )}
       </div>
       {mode && (
-        <nav className="px-4 flex gap-1 overflow-x-auto pb-1 items-center">
-          {screens.map((screen, i) => {
-            const status = statusOf(screen);
-            return (
-              <div key={screen} className="flex items-center shrink-0">
-                {i > 0 && <span className="text-gray-300 px-0.5" aria-hidden="true">→</span>}
-                <button
-                  onClick={() => dispatch({ type: 'SET_SCREEN', screen })}
-                  className={`px-3 py-1 text-sm rounded-t border-b-2 transition-colors flex items-center gap-1.5 ${
-                    currentScreen === screen
-                      ? 'border-blue-600 text-blue-700 font-medium'
-                      : 'border-transparent text-gray-500 hover:text-gray-800'
-                  }`}
-                >
-                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${DOT_CLASS[status]}`} aria-hidden="true" />
-                  <span className="text-gray-400 font-mono text-xs">{i + 1}</span>
-                  {LABELS[screen]}
-                </button>
-              </div>
-            );
-          })}
-        </nav>
+        <>
+          <nav className="px-4 flex gap-1 overflow-x-auto items-center">
+            {screens.map((screen, i) => {
+              const status = statuses[i];
+              const active = currentScreen === screen;
+              const dotCls = active
+                ? 'bg-blue-600 text-white ring-4 ring-blue-100'
+                : status === 'done'
+                ? 'bg-green-500 text-white'
+                : status === 'partial'
+                ? 'bg-amber-400 text-white'
+                : 'bg-gray-200 text-gray-500';
+              return (
+                <div key={screen} className="flex items-center shrink-0">
+                  {i > 0 && <span className="w-5 h-px bg-gray-200 mx-0.5" aria-hidden="true" />}
+                  <button
+                    onClick={() => dispatch({ type: 'SET_SCREEN', screen })}
+                    className={`px-2.5 py-2 text-sm rounded-lg transition-colors flex items-center gap-2 ${
+                      active ? 'text-blue-700 font-semibold' : status === 'done' ? 'text-gray-700 hover:text-gray-900' : 'text-gray-400 hover:text-gray-700'
+                    }`}
+                  >
+                    <span className={`w-[18px] h-[18px] rounded-full shrink-0 grid place-items-center text-[10px] font-bold transition-all ${dotCls}`} aria-hidden="true">
+                      {status === 'done' && !active ? '✓' : i + 1}
+                    </span>
+                    {LABELS[screen]}
+                  </button>
+                </div>
+              );
+            })}
+          </nav>
+          <div className="h-[3px] bg-gray-100">
+            <div
+              className="h-full bg-gradient-to-r from-blue-600 to-green-500 transition-all duration-500"
+              style={{ width: `${progress * 100}%` }}
+            />
+          </div>
+        </>
       )}
     </header>
   );

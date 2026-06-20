@@ -1,14 +1,16 @@
 import { useMemo, useEffect, useState } from 'react';
 import { useApp } from '../store';
 import { aggregate } from '../../engine/aggregation';
-import { sortBands } from '../../domain/decision';
+import { displayBands, bandRangeLabel } from '../../domain/decision';
+import { subjectNoun } from '../../domain/subject';
 import { effectiveWeights, allGroupsConsistent, weightingGroups } from '../../domain/tree';
 import type { DecisionBand } from '../../domain/types';
 import { ROOT_ID } from '../../domain/types';
+import { IconExport } from '../components/icons';
 import ScreenNav from '../components/ScreenNav';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ReferenceLine, ResponsiveContainer, Cell,
+  ReferenceArea, ResponsiveContainer, Cell,
 } from 'recharts';
 
 const REJECT_COLOR = '#9ca3af';
@@ -28,6 +30,7 @@ export default function Results() {
   const { state, dispatch } = useApp();
   const evaluation = state.evaluation!;
   const model = evaluation.model;
+  const subj = subjectNoun(model);
 
   const weightsReady = allGroupsConsistent(model);
   const [whyOptionId, setWhyOptionId] = useState<string | null>(null);
@@ -73,7 +76,7 @@ export default function Results() {
   if (evaluation.options.length === 0) {
     return (
       <div className="max-w-2xl mx-auto py-16 px-4 text-center">
-        <p className="text-gray-500">Adicione propostas no separador «Análise e avaliação».</p>
+        <p className="text-gray-500">Adicione {subj.many} no separador «Análise e avaliação».</p>
       </div>
     );
   }
@@ -85,7 +88,7 @@ export default function Results() {
     );
   }
 
-  const bands = sortBands(result.decisionScale);
+  const bandViews = displayBands(result.decisionScale);
   const bandMap = new Map(result.decisionScale.map((b) => [b.id, b] as const));
   function bandOf(bandId: string | null): DecisionBand | undefined {
     return bandId ? bandMap.get(bandId) : undefined;
@@ -102,7 +105,11 @@ export default function Results() {
     optionId: r.optionId,
   }));
 
-  const minBand = bands.length ? bands[bands.length - 1].minScore : 0;
+  // Axis bounds ignore the base zone's (possibly sentinel) lower edge.
+  const nonBaseLowers = bandViews.filter((v) => !v.isBase).map((v) => v.lower);
+  const values = chartData.map((d) => d.value);
+  const axisBottom = Math.floor(Math.min(0, ...nonBaseLowers, ...values) - 6);
+  const axisTop = Math.ceil(Math.max(100, ...values) + 6);
 
   // "Why" panel data — top-level factors/criteria with contribution
   const topGroups = weightingGroups(model).filter((g) => g.parentId === ROOT_ID);
@@ -133,9 +140,9 @@ export default function Results() {
           </button>
           <button
             onClick={() => exportEvaluation(evaluation)}
-            className="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
+            className="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 flex items-center gap-1.5"
           >
-            ↓ JSON
+            <IconExport className="w-4 h-4" /> JSON
           </button>
         </div>
       </div>
@@ -156,7 +163,9 @@ export default function Results() {
             >
               <div className="p-4">
                 <p className="text-xs text-gray-400 font-medium mb-1">
-                  {r.hardRejected ? '— · Reprovado (porta)' : `#${i + 1}${band ? ` · ${band.label}` : ''}`}
+                  {r.hardRejected
+                    ? `— · ${r.vetoedByCriterion ? 'Vetado' : 'Reprovado'}`
+                    : `#${i + 1}${band ? ` · ${band.label}` : ''}`}
                 </p>
                 <p className="font-semibold text-gray-800 text-sm leading-snug">
                   {option?.label ?? r.optionId}
@@ -165,7 +174,11 @@ export default function Results() {
                   <>
                     <p className="text-3xl font-black text-gray-300 mt-2 mb-1">—</p>
                     <p className="text-xs text-red-500 font-medium">
-                      ❌ {r.rejectedByGate ? model.valueTree.criteria[r.rejectedByGate]?.label : 'Porta eliminatória'}
+                      {r.rejectedByGate
+                        ? `Porta: ${model.valueTree.criteria[r.rejectedByGate]?.label ?? 'eliminatória'}`
+                        : r.vetoedByCriterion
+                        ? `Veto: ${model.valueTree.criteria[r.vetoedByCriterion]?.label ?? ''}`
+                        : 'Eliminado'}
                     </p>
                   </>
                 ) : (
@@ -193,18 +206,31 @@ export default function Results() {
         })}
       </div>
 
-      {/* ── Decision policy bands ── */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-3 flex-wrap">
-        <span className="text-xs text-gray-400 font-semibold uppercase tracking-wide">Política de decisão:</span>
-        {bands.map((b) => (
-          <span
-            key={b.id}
-            className="text-xs px-3 py-1 rounded-full font-semibold text-white"
-            style={{ backgroundColor: b.color }}
-          >
-            {b.label} · V(p) ≥ {b.minScore.toFixed(0)}
-          </span>
-        ))}
+      {/* ── Decision policy ── */}
+      <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-2.5">
+        <span className="text-xs text-gray-400 font-semibold uppercase tracking-wide">Política de decisão</span>
+        <div className="grid sm:grid-cols-2 gap-x-6 gap-y-2">
+          {bandViews.map((v) => {
+            const b = v.band;
+            const grounded = !!b.referenceProfile;
+            return (
+              <div key={b.id} className="flex items-center gap-2.5 text-sm min-w-0">
+                <span className="w-3 h-3 rounded shrink-0" style={{ backgroundColor: b.color }} />
+                <span className="font-medium text-gray-800 shrink-0">{b.label}</span>
+                {b.action && <span className="text-xs text-gray-400 truncate">· {b.action}</span>}
+                <span className="ml-auto font-mono text-xs text-gray-500 shrink-0">{bandRangeLabel(b, result.decisionScale)}</span>
+                {!v.isBase && (
+                  <span
+                    className={`text-[10px] px-1.5 py-0.5 rounded-full shrink-0 ${grounded ? 'bg-green-100 text-green-700' : 'bg-rose-100 text-rose-700'}`}
+                    title={grounded ? 'Limiar fundamentado por alternativa-limiar' : 'Limiar definido manualmente'}
+                  >
+                    {grounded ? 'fund.' : 'manual'}
+                  </span>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {/* ── "Why" panel ── */}
@@ -291,19 +317,21 @@ export default function Results() {
         <ResponsiveContainer width="100%" height={200}>
           <BarChart data={chartData} margin={{ top: 4, right: 16, left: 0, bottom: 4 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-            <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-            <YAxis
-              domain={[
-                (dataMin: number) => Math.floor(Math.min(dataMin, minBand) - 10),
-                (dataMax: number) => Math.ceil(Math.max(dataMax, 100) + 5),
-              ]}
-              tick={{ fontSize: 11 }}
-            />
-            <Tooltip formatter={(v) => [`${v}`, 'V(p)']} />
-            {bands.map((b) => (
-              <ReferenceLine key={b.id} y={b.minScore} stroke={b.color} strokeDasharray="4 4"
-                label={{ value: b.label, fontSize: 9, fill: b.color, position: 'insideTopRight' }} />
+            {/* Decision zones as translucent background bands */}
+            {bandViews.map((v) => (
+              <ReferenceArea
+                key={v.band.id}
+                y1={v.isBase ? axisBottom : v.lower}
+                y2={v.upper ?? axisTop}
+                fill={v.band.color}
+                fillOpacity={0.1}
+                stroke="none"
+                ifOverflow="extendDomain"
+              />
             ))}
+            <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+            <YAxis domain={[axisBottom, axisTop]} tick={{ fontSize: 11 }} />
+            <Tooltip formatter={(v) => [`${v}`, 'V(p)']} />
             <Bar dataKey="value" radius={[4, 4, 0, 0]}>
               {chartData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
             </Bar>
@@ -369,7 +397,7 @@ export default function Results() {
       {/* ── Notes ── */}
       {sorted.some((r) => !r.hardRejected) && (
         <div className="border border-gray-200 rounded-xl p-4 bg-white space-y-3">
-          <h3 className="text-sm font-semibold text-gray-700">Observações por proposta</h3>
+          <h3 className="text-sm font-semibold text-gray-700">Observações por {subj.one}</h3>
           <div className="space-y-2">
             {sorted.filter((r) => !r.hardRejected).map((r) => {
               const option = evaluation.options.find((o) => o.id === r.optionId);

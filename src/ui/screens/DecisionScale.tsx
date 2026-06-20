@@ -110,7 +110,8 @@ export default function DecisionScale() {
   // Preview axis bounds — ignore the base zone's own cut-off (it's a catch-all
   // and may hold a sentinel like -999 that would otherwise crush the axis).
   const axisEffs = decorated.filter((d) => d.band.id !== lowestId).map((d) => d.eff);
-  const top = Math.max(100, ...axisEffs);
+  // Headroom above the highest threshold so a band cutting at 100 stays visible.
+  const top = Math.max(100, ...axisEffs) + 4;
   const bottom = Math.min(0, ...axisEffs);
   const span = top - bottom || 1;
 
@@ -232,9 +233,14 @@ export default function DecisionScale() {
                     className="flex-1 bg-transparent border-0 focus:ring-0 px-1 py-0.5 text-sm font-semibold text-gray-800 min-w-0"
                     placeholder="Nome da zona de decisão"
                   />
+                  {!isBase && grounded && !profileIncomplete(b) && (
+                    <span className="shrink-0 px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-green-100 text-green-700" title="Limiar fundamentado por uma alternativa-limiar (rastreável)">
+                      ● Fundamentado
+                    </span>
+                  )}
                   {!isBase && (manual || (!ready)) && (
-                    <span className="shrink-0 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-rose-100 text-rose-700" title="Limiar definido à mão, não derivado de um perfil">
-                      {manual ? 'manual' : 'provisório'}
+                    <span className="shrink-0 px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-rose-100 text-rose-700" title="Limiar definido à mão, não derivado de um perfil">
+                      ● {manual ? 'manual' : 'provisório'}
                     </span>
                   )}
                   <span

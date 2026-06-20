@@ -3,6 +3,7 @@ import { useApp } from '../store';
 import type { Option, Performance, QualificationCriterion } from '../../domain/types';
 import { v4 as uuidv4 } from 'uuid';
 import ScreenNav from '../components/ScreenNav';
+import { IconGate, IconQualification } from '../components/icons';
 
 /** Position [0,1] of a descriptor level (0 = least attractive). */
 function levelPos(crit: QualificationCriterion, levelId: string): number {
@@ -38,8 +39,8 @@ export default function Analysis() {
   const subjectColumnHeader = isPositions ? 'Posição / Momento' : 'Proposta';
   const subjectScreenTitle = isPositions ? 'Análise e monitorização' : 'Análise e avaliação';
   const subjectScreenDesc = isPositions
-    ? 'Registe as posições / momentos, verifique a habilitação (portas 🚪) e classifique o desempenho em cada critério de qualificação 📊. Uma porta falhada exclui a posição antes da agregação.'
-    : 'Registe as propostas, verifique a habilitação (portas 🚪) e classifique o desempenho em cada critério de qualificação 📊. Uma porta falhada reprova a proposta antes da agregação.';
+    ? 'Registe as posições / momentos, verifique a habilitação (portas) e classifique o desempenho em cada critério de qualificação. Uma porta falhada exclui a posição antes da agregação.'
+    : 'Registe as propostas, verifique a habilitação (portas) e classifique o desempenho em cada critério de qualificação. Uma porta falhada reprova a proposta antes da agregação.';
 
   const qualCriteria = Object.values(model.valueTree.criteria).filter(
     (c) => c.type === 'qualification',
@@ -126,11 +127,13 @@ export default function Analysis() {
                 <tr className="bg-gray-50">
                   <th className="px-3 py-2 text-left font-medium text-gray-600 border border-gray-200 sticky left-0 bg-gray-50">{subjectColumnHeader}</th>
                   {gateCriteria.map((c) => (
-                    <th key={c.id} className="px-3 py-2 text-center font-medium text-gray-600 border border-gray-200 bg-orange-50" title="Porta (habilitação)">🚪 {c.label}</th>
+                    <th key={c.id} className="px-3 py-2 text-center font-medium text-gray-600 border border-gray-200 bg-orange-50" title="Porta (habilitação)">
+                      <span className="inline-flex items-center gap-1.5"><IconGate className="w-3.5 h-3.5 text-orange-500" /> {c.label}</span>
+                    </th>
                   ))}
                   {qualCriteria.map((c) => (
                     <th key={c.id} className="px-3 py-2 text-center font-medium text-gray-600 border border-gray-200" title="Critério de qualificação">
-                      📊 {c.label}{c.continuous ? ' (contínuo)' : ''}
+                      <span className="inline-flex items-center gap-1.5"><IconQualification className="w-3.5 h-3.5 text-indigo-500" /> {c.label}{c.continuous ? ' (contínuo)' : ''}</span>
                     </th>
                   ))}
                   <th className="px-2 py-2 border border-gray-200" />

@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useApp } from '../store';
 import { computeSensitivity } from '../../engine/sensitivity';
-import { sortBands } from '../../domain/decision';
+import { displayBands } from '../../domain/decision';
+import { resolveBands } from '../../engine/aggregation';
 import { allGroupsConsistent, parentOf, weightsForGroup } from '../../domain/tree';
 import {
   LineChart,
@@ -12,6 +13,7 @@ import {
   Tooltip,
   Legend,
   ReferenceLine,
+  ReferenceArea,
   ResponsiveContainer,
 } from 'recharts';
 import ScreenNav from '../components/ScreenNav';
@@ -64,7 +66,7 @@ export default function Sensitivity() {
     });
   }
 
-  const bands = sortBands(model.decisionScale);
+  const bandViews = displayBands(resolveBands(model));
   const options = evaluation.options;
   // Use safe indexed keys for recharts dataKey (avoid UUID issues)
   const optKeys = options.map((_, i) => `v${i}`);
@@ -121,9 +123,9 @@ export default function Sensitivity() {
         });
 
         const allValues = scenario.points.flatMap((pt) => options.map((o) => pt.optionValues[o.id] ?? 0));
-        const minBand = bands.length ? bands[bands.length - 1].minScore : 0;
-        const yMin = allValues.length ? Math.floor(Math.min(...allValues, minBand) - 10) : -20;
-        const yMax = allValues.length ? Math.ceil(Math.max(...allValues, 100) + 5) : 110;
+        const nonBaseLowers = bandViews.filter((v) => !v.isBase).map((v) => v.lower);
+        const yMin = Math.floor(Math.min(0, ...allValues, ...nonBaseLowers) - 6);
+        const yMax = Math.ceil(Math.max(100, ...allValues) + 6);
 
         return (
           <div key={criterionId} className="border border-gray-200 rounded-xl p-4 bg-white space-y-3">
@@ -140,21 +142,23 @@ export default function Sensitivity() {
             <ResponsiveContainer width="100%" height={260}>
               <LineChart data={chartData} margin={{ top: 4, right: 16, bottom: 4, left: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                {bandViews.map((v) => (
+                  <ReferenceArea
+                    key={v.band.id}
+                    y1={v.isBase ? yMin : v.lower}
+                    y2={v.upper ?? yMax}
+                    fill={v.band.color}
+                    fillOpacity={0.09}
+                    stroke="none"
+                    ifOverflow="extendDomain"
+                  />
+                ))}
                 <XAxis dataKey="weight" tick={{ fontSize: 11 }} />
                 <YAxis domain={[yMin, yMax]} tick={{ fontSize: 11 }} />
                 <Tooltip
                   formatter={(value, key) => [Number(value).toFixed(1), optLabelOf(String(key))]}
                 />
                 <Legend formatter={(value) => optLabelOf(value)} />
-                {bands.map((b) => (
-                  <ReferenceLine
-                    key={b.id}
-                    y={b.minScore}
-                    stroke={b.color}
-                    strokeDasharray="4 4"
-                    label={{ value: b.label, position: 'insideTopRight', fontSize: 9, fill: b.color }}
-                  />
-                ))}
                 <ReferenceLine
                   x={currentWeightLabel}
                   stroke="#3b82f6"

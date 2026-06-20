@@ -3,7 +3,8 @@ import { useApp } from '../store';
 import { repository } from '../../repository';
 import { buildModelSpec, downloadJson } from '../../domain/modelSpec';
 import { allGroupsConsistent } from '../../domain/tree';
-import { sortBands } from '../../domain/decision';
+import { displayBands, bandRangeLabel } from '../../domain/decision';
+import { resolveBands } from '../../engine/aggregation';
 
 export default function ModelSummary() {
   const { state, dispatch } = useApp();
@@ -28,7 +29,8 @@ export default function ModelSummary() {
     downloadJson(`choices-spec-${model.id.slice(0, 8)}.json`, spec);
   }
 
-  const bands = sortBands(model.decisionScale);
+  const resolvedScale = resolveBands(model);
+  const bandViews = displayBands(resolvedScale);
 
   return (
     <div className="max-w-4xl mx-auto py-6 px-4 space-y-6">
@@ -153,14 +155,41 @@ export default function ModelSummary() {
       </section>
 
       {/* Decision bands */}
-      <section className="border border-gray-200 rounded-xl p-5 bg-white space-y-2">
+      <section className="border border-gray-200 rounded-xl p-5 bg-white space-y-3">
         <h3 className="font-semibold text-gray-800">Perfis de decisão</h3>
-        <div className="flex flex-wrap gap-2">
-          {bands.map((b) => (
-            <span key={b.id} className="px-2.5 py-1 rounded-full text-xs font-medium text-white" style={{ backgroundColor: b.color }}>
-              {b.label}: V(p) ≥ {b.minScore.toFixed(1)}
-            </span>
-          ))}
+        <div className="space-y-1.5">
+          {bandViews.map((v) => {
+            const b = v.band;
+            const grounded = !!b.referenceProfile;
+            const refText = grounded
+              ? Object.entries(b.referenceProfile!)
+                  .map(([cid, lid]) => {
+                    const c = model.valueTree.criteria[cid];
+                    const lvl = c?.type === 'qualification' ? c.descriptor.levels.find((l) => l.id === lid) : undefined;
+                    return lvl ? `${c?.label}: ${lvl.label}` : null;
+                  })
+                  .filter(Boolean)
+                  .join(' · ')
+              : null;
+            return (
+              <div key={b.id} className="flex items-start gap-2.5 text-sm">
+                <span className="w-3 h-3 rounded shrink-0 mt-1" style={{ backgroundColor: b.color }} />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-medium text-gray-800">{b.label}</span>
+                    <span className="font-mono text-xs text-gray-500">{bandRangeLabel(b, resolvedScale)}</span>
+                    {b.action && <span className="text-xs text-gray-400">· {b.action}</span>}
+                    {!v.isBase && (
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${grounded ? 'bg-green-100 text-green-700' : 'bg-rose-100 text-rose-700'}`}>
+                        {grounded ? 'fundamentado' : 'manual'}
+                      </span>
+                    )}
+                  </div>
+                  {refText && <p className="text-xs text-gray-400 mt-0.5">Alternativa-limiar — {refText}</p>}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </section>
 

@@ -6,7 +6,9 @@ import type { EvaluationModel } from '../../domain/types';
 import { MODEL_VERSION } from '../../domain/types';
 import MethodPage from './MethodPage';
 import ManifestPage from './ManifestPage';
+import { IconPencil, IconClipboard, IconArchitecture, IconMonitor, IconImport } from '../components/icons';
 import { v4 as uuidv4 } from 'uuid';
+import type { ComponentType, SVGProps } from 'react';
 
 // ── Mascot ────────────────────────────────────────────────────────────────────
 
@@ -115,7 +117,7 @@ function makeTemplateArchitecture(): EvaluationModel {
     decisionScale: [
       { id: uuidv4(), label: 'Aprovado', minScore: 70, color: '#16a34a' },
       { id: uuidv4(), label: 'Com reservas', minScore: 45, color: '#d97706' },
-      { id: uuidv4(), label: 'Rejeitado', minScore: -999, color: '#dc2626' },
+      { id: uuidv4(), label: 'Rejeitado', minScore: 0, color: '#dc2626' },
     ],
   };
 }
@@ -194,14 +196,14 @@ function makeTemplateRisco(): EvaluationModel {
     decisionScale: [
       { id: uuidv4(), label: 'Nenhuma ação', minScore: 75, color: '#16a34a' },
       { id: uuidv4(), label: 'Advertência', minScore: 40, color: '#d97706' },
-      { id: uuidv4(), label: 'Sanção / coima', minScore: -999, color: '#dc2626' },
+      { id: uuidv4(), label: 'Sanção / coima', minScore: 0, color: '#dc2626' },
     ],
   };
 }
 
-const TEMPLATES = [
-  { key: 'architecture', emoji: '🏛️', label: 'Avaliação de arquiteturas de SI', meta: '3 fatores · 5 critérios · 1 porta', factory: makeTemplateArchitecture },
-  { key: 'platform', emoji: '📡', label: 'Risco / monitorização de plataforma', meta: 'HealthStatus + 3 métricas contínuas', factory: makeTemplateRisco },
+const TEMPLATES: { key: string; Icon: ComponentType<SVGProps<SVGSVGElement>>; label: string; meta: string; factory: () => EvaluationModel }[] = [
+  { key: 'architecture', Icon: IconArchitecture, label: 'Avaliação de arquiteturas de SI', meta: '3 fatores · 5 critérios · 1 porta', factory: makeTemplateArchitecture },
+  { key: 'platform', Icon: IconMonitor, label: 'Risco / monitorização de plataforma', meta: 'HealthStatus + 3 métricas contínuas', factory: makeTemplateRisco },
 ];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -314,7 +316,7 @@ export default function Home() {
       {/* ── Main action cards ── */}
       <div className="grid sm:grid-cols-2 gap-4 mb-8">
         <div className="rounded-2xl border-2 border-indigo-100 bg-gradient-to-b from-indigo-50 to-white p-5 flex flex-col">
-          <div className="text-2xl mb-2">🛠️</div>
+          <div className="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-600 grid place-items-center mb-2"><IconPencil className="w-5 h-5" /></div>
           <h2 className="font-bold text-indigo-900 text-base mb-1">Criar modelo de avaliação</h2>
           <p className="text-sm text-indigo-700/70 mb-4 flex-1">
             Definir critérios, escalas de valor, pesos e perfis de decisão.
@@ -327,7 +329,7 @@ export default function Home() {
         </div>
 
         <div className="rounded-2xl border-2 border-emerald-100 bg-gradient-to-b from-emerald-50 to-white p-5 flex flex-col">
-          <div className="text-2xl mb-2">📋</div>
+          <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 grid place-items-center mb-2"><IconClipboard className="w-5 h-5" /></div>
           <h2 className="font-bold text-emerald-900 text-base mb-1">Avaliar propostas ou posições</h2>
           <p className="text-sm text-emerald-700/70 mb-4 flex-1">
             Aplicar um modelo a um conjunto concreto de alternativas e obter resultados.
@@ -370,8 +372,8 @@ export default function Home() {
                     {showAllModels ? 'Mostrar menos' : `Ver todos (${models.length})`}
                   </button>
                 )}
-                <label className={`text-xs text-indigo-600 hover:text-indigo-800 font-medium cursor-pointer ${importing ? 'opacity-50 pointer-events-none' : ''}`}>
-                  {importing ? 'A importar…' : '↑ Importar JSON'}
+                <label className={`text-xs text-indigo-600 hover:text-indigo-800 font-medium cursor-pointer inline-flex items-center gap-1 ${importing ? 'opacity-50 pointer-events-none' : ''}`}>
+                  {importing ? 'A importar…' : <><IconImport className="w-3.5 h-3.5" /> Importar JSON</>}
                   <input type="file" accept=".json" className="hidden" onChange={(e) => handleImport(e, 'create')} />
                 </label>
               </div>
@@ -407,8 +409,8 @@ export default function Home() {
                     {showAllEvals ? 'Mostrar menos' : `Ver todas (${evaluations.length})`}
                   </button>
                 )}
-                <label className={`text-xs text-indigo-600 hover:text-indigo-800 font-medium cursor-pointer ${importing ? 'opacity-50 pointer-events-none' : ''}`}>
-                  {importing ? 'A importar…' : '↑ Importar JSON'}
+                <label className={`text-xs text-indigo-600 hover:text-indigo-800 font-medium cursor-pointer inline-flex items-center gap-1 ${importing ? 'opacity-50 pointer-events-none' : ''}`}>
+                  {importing ? 'A importar…' : <><IconImport className="w-3.5 h-3.5" /> Importar JSON</>}
                   <input type="file" accept=".json" className="hidden" onChange={(e) => handleImport(e, 'apply')} />
                 </label>
               </div>
@@ -446,10 +448,10 @@ export default function Home() {
                   onClick={() => fromTemplate(t.factory)}
                   className="w-full text-left p-3 rounded-xl border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50 transition-colors group"
                 >
-                  <div className="font-medium text-gray-800 text-sm group-hover:text-indigo-700">
-                    {t.emoji} {t.label}
+                  <div className="font-medium text-gray-800 text-sm group-hover:text-indigo-700 flex items-center gap-2">
+                    <t.Icon className="w-4 h-4 text-indigo-500" /> {t.label}
                   </div>
-                  <div className="text-xs text-gray-400 mt-0.5">{t.meta}</div>
+                  <div className="text-xs text-gray-400 mt-0.5 pl-6">{t.meta}</div>
                 </button>
               ))}
             </div>

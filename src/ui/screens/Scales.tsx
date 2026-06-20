@@ -452,15 +452,17 @@ export default function Scales() {
             )}
           />
 
-          <div className="border-t border-gray-100 pt-4">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Matriz de juízos</p>
+          <details className="border-t border-gray-100 pt-4 group" open={activeCrit.descriptor.levels.length <= 4}>
+            <summary className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 cursor-pointer select-none flex items-center gap-1.5 hover:text-gray-700">
+              <span className="transition-transform group-open:rotate-90">▸</span> Matriz de juízos
+            </summary>
             <JudgmentMatrixEditor
               items={activeCrit.descriptor.levels}
               judgments={getMatrix(activeCrit.id).judgments}
               onChange={(j) => updateMatrix(activeCrit.id, j)}
               activePairKey={activePairKey ?? undefined}
             />
-          </div>
+          </details>
 
           {/* Scale display */}
           {(() => {

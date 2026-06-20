@@ -2,7 +2,9 @@ import { useApp } from '../store';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import type { MacbethJudgment, OptionResult, DecisionBand } from '../../domain/types';
-import { sortBands, bandRangeLabel } from '../../domain/decision';
+import { sortBands, bandRangeLabel, displayBands } from '../../domain/decision';
+import { subjectNoun } from '../../domain/subject';
+import { resolveBands } from '../../engine/aggregation';
 import { effectiveWeights } from '../../domain/tree';
 import { buildModelSpec, downloadJson } from '../../domain/modelSpec';
 
@@ -22,9 +24,23 @@ export default function Report() {
   const model = evaluation.model;
   const result = evaluation.aggregationResult;
 
+  const subj = subjectNoun(model);
   const qualCriteria = Object.values(model.valueTree.criteria).filter((c) => c.type === 'qualification');
   const effW = effectiveWeights(model);
   const bandMap = new Map((result?.decisionScale ?? model.decisionScale).map((b) => [b.id, b] as const));
+
+  /** Reference alternative of a band rendered in human terms (for the audit trail). */
+  function refProfileText(b: DecisionBand): string {
+    if (!b.referenceProfile) return '';
+    return Object.entries(b.referenceProfile)
+      .map(([cid, lid]) => {
+        const c = model.valueTree.criteria[cid];
+        const lvl = c?.type === 'qualification' ? c.descriptor.levels.find((l) => l.id === lid) : undefined;
+        return lvl ? `${c?.label}: ${lvl.label}` : null;
+      })
+      .filter(Boolean)
+      .join('; ');
+  }
 
   function decisionLabel(r: OptionResult): string {
     if (r.hardRejected) return 'Reprovado';
@@ -39,7 +55,7 @@ export default function Report() {
     if (!result) return;
     const qualCrit = Object.values(model.valueTree.criteria).filter((c) => c.type === 'qualification');
     const sorted = [...result.optionResults].sort((a, b) => (b.globalValue ?? -Infinity) - (a.globalValue ?? -Infinity));
-    const headers = ['#', 'Proposta', 'V(p)', 'Decisão', ...qualCrit.map((c) => c.label)];
+    const headers = ['#', subj.One, 'V(p)', 'Decisão', ...qualCrit.map((c) => c.label)];
     const rows = sorted.map((r, i) => {
       const opt = evaluation.options.find((o) => o.id === r.optionId);
       const band = r.bandId ? bandMap.get(r.bandId) : undefined;
@@ -170,7 +186,7 @@ export default function Report() {
       const optionNotes = evaluation.optionNotes ?? {};
       autoTable(doc, {
         startY: y,
-        head: [['#', 'Proposta', 'V(p)', 'Decisão', 'Observações']],
+        head: [['#', subj.One, 'V(p)', 'Decisão', 'Observações']],
         body: sorted.map((r, i) => {
           const opt = evaluation.options.find((o) => o.id === r.optionId);
           const gateNote = r.rejectedByGate ? `Porta: ${model.valueTree.criteria[r.rejectedByGate]?.label}` : '';
@@ -222,24 +238,48 @@ export default function Report() {
     sectionTitle(2, 'Metodologia');
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
-    const methodText = `Este relatório utiliza o Método MACBETH (Measuring Attractiveness by a Categorical Based Evaluation Technique, Bana e Costa & Vansnick, 1994). O método utiliza juízos qualitativos de diferença de atratividade — de Nula a Extrema — entre pares de alternativas para construir escalas cardinais de valor por programação linear. O modelo de agregação é aditivo: V(p) = Σᵢ kᵢ · vᵢ(p), ancorado em Neutro = 0 e Bom = 100. A habilitação corre a montante — qualquer porta falhada reprova a proposta antes da agregação multicritério.`;
+    const methodText = `Este relatório utiliza o Método MACBETH (Measuring Attractiveness by a Categorical Based Evaluation Technique, Bana e Costa & Vansnick, 1994). O método utiliza juízos qualitativos de diferença de atratividade — de Nula a Extrema — entre pares de alternativas para construir escalas cardinais de valor por programação linear. O modelo de agregação é aditivo: V(p) = Σᵢ kᵢ · vᵢ(p), ancorado em Neutro = 0 e Bom = 100. A habilitação corre a montante — qualquer porta falhada reprova a ${subj.one} antes da agregação multicritério.`;
     const mLines = doc.splitTextToSize(methodText, pageW - 28);
     checkPage(mLines.length * 4.5 + 8);
     doc.text(mLines, 14, y);
     y += mLines.length * 4.5 + 6;
 
     sectionTitle(3, 'Escala de Decisão');
-    const scaleBands = sortBands(result?.decisionScale ?? model.decisionScale);
+    const scale3 = result?.decisionScale ?? resolveBands(model);
     autoTable(doc, {
       startY: y,
-      head: [['Ponto de decisão', 'Intervalo de V(p)']],
-      body: scaleBands.map((b) => [b.label, bandRangeLabel(b, result?.decisionScale ?? model.decisionScale)]),
+      head: [['Zona / ação', 'Intervalo V(p)', 'Limiar', 'Fundamentação']],
+      body: displayBands(scale3).map((v) => {
+        const b = v.band;
+        const zone = b.action ? `${b.label} — ${b.action}` : b.label;
+        const src = v.isBase ? '—' : b.referenceProfile ? 'Fundamentado' : 'Manual';
+        const just = v.isBase
+          ? 'Zona base (aplica-se a tudo o que não atinge as zonas acima)'
+          : b.referenceProfile
+          ? `Alternativa-limiar — ${refProfileText(b)}`
+          : 'Definido manualmente';
+        return [zone, bandRangeLabel(b, scale3), src, just];
+      }),
       styles: { fontSize: 8 },
       headStyles: { fillColor: [99, 102, 241] },
       margin: { left: 14, right: 14 },
+      columnStyles: { 2: { fontStyle: 'bold' } },
     });
     y = doc.lastAutoTable?.finalY ?? y;
-    y += 6;
+    y += 4;
+    doc.setFont('helvetica', 'italic');
+    doc.setFontSize(7.5);
+    doc.setTextColor(110);
+    doc.text(
+      doc.splitTextToSize(
+        'Os limiares "Fundamentado" derivam de uma alternativa-limiar de referência (o pior caso ainda incluído na zona), cujo V(p) é calculado pelo modelo — rastreável e não arbitrário. "Manual" indica um valor inserido à mão.',
+        pageW - 28,
+      ),
+      14,
+      y,
+    );
+    doc.setTextColor(0);
+    y += 10;
 
     sectionTitle(4, 'Critérios');
     const gateCrit = Object.values(model.valueTree.criteria).filter((c) => c.type === 'gate');
@@ -448,7 +488,7 @@ export default function Report() {
           <em>Measuring Attractiveness by a Categorical Based Evaluation Technique</em> (Bana e Costa &amp; Vansnick, 1994). Utiliza juízos qualitativos de diferença de atratividade — de <em>Nula</em> a <em>Extrema</em> — entre pares de alternativas para construir escalas cardinais de valor por programação linear.
         </p>
         <p className="text-sm text-gray-600 leading-relaxed">
-          O modelo de agregação é aditivo: <strong>V(p) = Σᵢ kᵢ · vᵢ(p)</strong>, ancorado em Neutro = 0 e Bom = 100. A habilitação corre a montante — qualquer porta falhada reprova a proposta antes da agregação. O valor global é classificado pela escala de decisão configurada.
+          O modelo de agregação é aditivo: <strong>V(p) = Σᵢ kᵢ · vᵢ(p)</strong>, ancorado em Neutro = 0 e Bom = 100. A habilitação corre a montante — qualquer porta falhada reprova a {subj.one} antes da agregação. O valor global é classificado pela escala de decisão configurada.
         </p>
       </section>
 

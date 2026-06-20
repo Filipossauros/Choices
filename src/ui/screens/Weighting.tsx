@@ -201,10 +201,12 @@ function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; on
                 }
               />
 
-              <div className="border-t border-gray-100 pt-3">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Matriz de juízos</p>
+              <details className="border-t border-gray-100 pt-3 group" open={matrixItems.length <= 4}>
+                <summary className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 cursor-pointer select-none flex items-center gap-1.5 hover:text-gray-700">
+                  <span className="transition-transform group-open:rotate-90">▸</span> Matriz de juízos
+                </summary>
                 <JudgmentMatrixEditor items={matrixItems} judgments={matrix.judgments} onChange={updateJudgments} activePairKey={activePairKey ?? undefined} />
-              </div>
+              </details>
 
               <button
                 onClick={handleDerive}
