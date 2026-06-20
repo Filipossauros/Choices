@@ -3,6 +3,7 @@ import { useApp } from '../store';
 import { sortBands } from '../../domain/decision';
 import { allGroupsConsistent } from '../../domain/tree';
 import { scoreProfile } from '../../engine/aggregation';
+import ScreenNav from '../components/ScreenNav';
 import type { DecisionBand, QualificationCriterion } from '../../domain/types';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -241,21 +242,12 @@ export default function DecisionScale() {
         </div>
       </div>
 
-      {/* Footer — apply the completed model */}
-      <div className="mt-8 pt-4 border-t border-gray-100 flex items-center gap-3">
-        <p className="flex-1 text-xs text-gray-400">
-          O modelo está completo (critérios, escalas, pesos e perfis de decisão). Aplique-o para registar
-          propostas e obter resultados.
-        </p>
-        <button
-          className="ml-auto flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition-colors bg-green-700 text-white hover:bg-green-800 disabled:opacity-40 disabled:cursor-not-allowed"
-          disabled={!ready || bands.length === 0}
-          title={!ready ? 'Conclua escalas e ponderação consistentes antes de aplicar.' : undefined}
-          onClick={() => dispatch({ type: 'START_EVALUATION', model })}
-        >
-          Aplicar este modelo →
-        </button>
-      </div>
+      <ScreenNav
+        next="summary"
+        nextLabel="Resumo"
+        hint="Veja a síntese do modelo (fórmula, pesos) e exporte para JSON / IA."
+        blockedBy={bands.length === 0 ? 'Defina pelo menos um perfil de decisão.' : undefined}
+      />
     </div>
   );
 }

@@ -20,13 +20,14 @@ export type Screen =
   | 'decision'
   | 'scales'
   | 'weighting'
+  | 'summary'
   // aplicação do modelo
   | 'analysis'
   | 'results'
   | 'sensitivity'
   | 'report';
 
-export const CREATE_SCREENS: Screen[] = ['criteria', 'scales', 'weighting', 'decision'];
+export const CREATE_SCREENS: Screen[] = ['criteria', 'scales', 'weighting', 'decision', 'summary'];
 export const APPLY_SCREENS: Screen[] = ['analysis', 'results', 'sensitivity', 'report'];
 
 export type Mode = 'create' | 'apply';

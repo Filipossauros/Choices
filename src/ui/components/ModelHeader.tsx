@@ -9,6 +9,7 @@ const LABELS: Record<Screen, string> = {
   decision: 'Perfis de decisão',
   scales: 'Escalas',
   weighting: 'Ponderação',
+  summary: 'Resumo',
   analysis: 'Análise e avaliação',
   results: 'Resultados',
   sensitivity: 'Sensibilidade',
@@ -36,6 +37,8 @@ function createStatus(model: EvaluationModel, screen: Screen): CompletionStatus 
       if (qual.length === 0) return 'done';
       if (!model.weights && !model.subWeights) return 'none';
       return allGroupsConsistent(model) ? 'done' : 'partial';
+    case 'summary':
+      return qual.length > 0 && allGroupsConsistent(model) ? 'done' : 'none';
     default:
       return 'none';
   }

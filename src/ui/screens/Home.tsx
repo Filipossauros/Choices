@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { useApp } from '../store';
 import { repository } from '../../repository';
 import type { DocMeta } from '../../repository';
+import MethodPage from './MethodPage';
+import ManifestPage from './ManifestPage';
 
 function TealRobotMascot() {
   return (
@@ -100,7 +102,7 @@ function TealRobotMascot() {
   );
 }
 
-type View = 'menu' | 'create' | 'apply';
+type View = 'menu' | 'create' | 'apply' | 'method' | 'manifest';
 
 function DocList({
   docs,
@@ -213,6 +215,9 @@ export default function Home() {
     }
   }
 
+  if (view === 'method') return <MethodPage onBack={() => setView('menu')} />;
+  if (view === 'manifest') return <ManifestPage onBack={() => setView('menu')} />;
+
   return (
     <div className="max-w-2xl mx-auto py-12 px-4 space-y-8">
       <div className="text-center space-y-2">
@@ -245,6 +250,18 @@ export default function Home() {
             <p className="text-sm text-green-700/70">
               Registar propostas, habilitá-las e obter resultados com um modelo.
             </p>
+          </button>
+        </div>
+      )}
+
+      {view === 'menu' && (
+        <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm">
+          <button onClick={() => setView('method')} className="text-gray-400 hover:text-gray-700 transition-colors">
+            📘 Como funciona o método MACBETH
+          </button>
+          <span className="text-gray-200">·</span>
+          <button onClick={() => setView('manifest')} className="text-gray-400 hover:text-gray-700 transition-colors">
+            🧩 Manifesto de capacidades (para IA)
           </button>
         </div>
       )}
