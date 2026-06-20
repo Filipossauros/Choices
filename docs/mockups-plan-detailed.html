@@ -1,0 +1,1046 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Choices — Plano UI passo a passo</title>
+<style>
+  :root{
+    --indigo:#4f46e5;--indigo-50:#eef2ff;--indigo-100:#e0e7ff;
+    --teal:#0d9488;--teal-50:#f0fdfa;
+    --ink:#0f172a;--body:#334155;--muted:#64748b;--faint:#94a3b8;
+    --line:#e2e8f0;--line2:#eef2f6;--bg:#f6f7fb;--card:#ffffff;
+    --green:#16a34a;--amber:#d97706;--red:#dc2626;--sky:#0284c7;
+    --shadow:0 1px 2px rgba(15,23,42,.04),0 6px 20px rgba(15,23,42,.05);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+       background:#080c14;color:var(--body);-webkit-font-smoothing:antialiased}
+  .frame{width:1080px;background:var(--bg);overflow:hidden}
+  .top{height:54px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;padding:0 22px}
+  .brand{display:flex;align-items:center;gap:9px;font-weight:700;color:var(--ink);font-size:16px}
+  .brand .logo{width:24px;height:24px;border-radius:7px;background:linear-gradient(135deg,#14b8a6,#4f46e5);display:inline-block}
+  .local{font-size:11px;color:#0f766e;background:var(--teal-50);border:1px solid #99f6e4;border-radius:999px;padding:3px 9px;font-weight:600}
+  .btn{border:0;border-radius:9px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer}
+  .btn.pri{background:var(--indigo);color:#fff}
+  .btn.soft{background:var(--indigo-50);color:#4338ca}
+  .btn.ghost{background:#fff;border:1px solid var(--line);color:var(--body)}
+  .btn.teal{background:var(--teal);color:#fff}
+  .content{padding:26px}
+  h1.page{font-size:22px;color:var(--ink);margin:0 0 3px;font-weight:700}
+  .sub{color:var(--muted);font-size:13px;margin:0 0 14px}
+  .grid{display:grid;gap:16px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow)}
+  .card .pad{padding:16px 18px}
+  .mtitle{font-weight:600;color:var(--ink);font-size:14px}
+  .meta{color:var(--muted);font-size:12px}
+  .pill{font-size:11px;padding:3px 9px;border-radius:999px;font-weight:600}
+  .pill.green{background:#dcfce7;color:#15803d}
+  .pill.amber{background:#fef3c7;color:#b45309}
+  .pill.indigo{background:var(--indigo-100);color:#4338ca}
+  .pill.red{background:#fee2e2;color:#b91c1c}
+  .pill.sky{background:#e0f2fe;color:#0369a1}
+  .bar{height:8px;border-radius:999px;background:#eef2f6;overflow:hidden}
+  .bar>i{display:block;height:100%;border-radius:999px}
+  .chip{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;padding:3px 9px;border-radius:999px;background:#f1f5f9;color:#475569;font-weight:500}
+  .divider{height:1px;background:var(--line2);margin:14px 0}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  .kbd{font-family:ui-monospace,monospace;background:#0f172a;color:#7dd3fc;border-radius:9px;padding:11px 13px;font-size:11.5px;display:block;white-space:pre;overflow:auto;line-height:1.5}
+  .toggle{display:inline-flex;background:#f1f5f9;border-radius:9px;padding:3px}
+  .toggle span{padding:5px 12px;border-radius:7px;font-size:12.5px;font-weight:600;color:#64748b}
+  .toggle span.on{background:#fff;color:var(--indigo);box-shadow:0 1px 2px rgba(0,0,0,.06)}
+  .step{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--muted)}
+  .step .n{width:20px;height:20px;border-radius:50%;background:#e2e8f0;color:#64748b;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center}
+  .step.on .n{background:var(--indigo);color:#fff}.step.on{color:var(--ink);font-weight:600}
+  .step.done .n{background:var(--green);color:#fff}
+  table{border-collapse:collapse;width:100%;font-size:13px}
+  td,th{text-align:left;padding:8px 10px}
+  thead th{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--faint);border-bottom:1px solid var(--line)}
+  tbody tr{border-bottom:1px solid var(--line2)}
+  .ccat{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px}
+  .ccat.c3{background:#ede9fe;color:#5b21b6}
+  .ccat.c4{background:#fae8ff;color:#86198f}
+  .ccat.c5{background:#fce7f3;color:#9d174d}
+  .ccat.c6{background:#fee2e2;color:#991b1b}
+  .ccat.c2{background:#e0e7ff;color:#3730a3}
+  /* Section banners */
+  .pbanner{width:1080px;padding:13px 24px;display:flex;align-items:center;gap:12px;font-size:14px;font-weight:700;color:#fff}
+  .pbanner.p1{background:#3730a3}
+  .pbanner.p2{background:#0f766e}
+  .pbanner.p3{background:#b45309}
+  .pbanner.p4{background:#5b21b6}
+  .pbanner .pbg{font-size:10px;padding:2px 9px;border-radius:999px;background:rgba(255,255,255,.18);font-weight:700}
+  /* Annotation bars */
+  .snote{width:1080px;background:#10172a;color:#e2e8f0;padding:13px 24px;font-size:13px;line-height:1.55}
+  .snote b{color:#fff}.snote .stag{display:inline-block;background:#4f46e5;color:#fff;font-size:10px;font-weight:700;border-radius:5px;padding:2px 8px;margin-right:8px}
+  .snote ul{margin:6px 0 0;padding-left:18px}.snote li{margin:3px 0}
+  .snote.ok{background:#052e16}.snote.ok .stag{background:#16a34a}
+  /* Cover phase cards */
+  .pc{border-radius:12px;padding:16px;border:1px solid}
+  .pc.p1{background:#eef2ff;border-color:#c7d2fe}
+  .pc.p2{background:#f0fdfa;border-color:#99f6e4}
+  .pc.p3{background:#fffbeb;border-color:#fde68a}
+  .pc.p4{background:#f5f3ff;border-color:#ddd6fe}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════ CAPA ═══════════════════════ -->
+<div class="frame" id="cover">
+  <div class="top">
+    <div class="brand"><span class="logo"></span> Choices</div>
+    <span class="local">Plano de UI — passo a passo</span>
+  </div>
+  <div class="content">
+    <h1 class="page" style="font-size:24px">Plano de evolução da UI · 4 Fases</h1>
+    <p class="sub">O que muda, o que fica igual, e porquê — ecrã a ecrã.</p>
+
+    <div style="display:flex;gap:14px;margin-bottom:22px">
+      <div style="background:#dcfce7;border:1px solid #86efac;border-radius:12px;padding:14px 18px;flex:1">
+        <div style="font-weight:700;color:#15803d;font-size:13px;margin-bottom:8px">✅ PRESERVADO SEM QUALQUER ALTERAÇÃO</div>
+        <div style="font-size:12.5px;color:#166534;line-height:1.7">
+          <b>Régua de valor PERFORMANCE / PONTOS</b> — o SVG termómetro com colunas, brackets de gap e pills Bom/Neutro<br>
+          <b>Curva PCHIP (função matemática)</b> — o gráfico recharts com interpolação monótona-cúbica<br>
+          Motor MACBETH rigoroso (LP GLPK, consistência, ancoragem Neutro=0 / Bom=100)<br>
+          Arquitetura local-first: IndexedDB, sem backend, sem autenticação
+        </div>
+      </div>
+      <div style="background:#fef3c7;border:1px solid #fde68a;border-radius:12px;padding:14px 18px;flex:1">
+        <div style="font-weight:700;color:#92400e;font-size:13px;margin-bottom:8px">🔄 O QUE MUDA</div>
+        <div style="font-size:12.5px;color:#78350f;line-height:1.7">
+          <b>Fase 1</b> — Entrada de juízos: alternativa em linguagem comum (Modo Guiado/Avançado alternável)<br>
+          <b>Fase 2</b> — Ecrã de início: biblioteca de modelos + modelos-base (templates prontos)<br>
+          <b>Fase 3</b> — Resultados: cartões de ranking com cor de banda + painel "Porquê por fator"<br>
+          <b>Fase 4</b> — Relatório: PDF, CSV, JSON auditável (choices/decision@1), spec para IA
+        </div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+      <div class="pc p1">
+        <div style="font-size:20px;font-weight:800;color:#4f46e5;opacity:.4">01</div>
+        <div style="font-weight:700;color:#3730a3;font-size:15px;margin:2px 0 6px">Modo Guiado</div>
+        <p style="font-size:12.5px;color:#4338ca;margin:0">Substitui o jargão «C0–C6» por perguntas em linguagem natural, uma de cada vez, com cartões de resposta. Alternável com Modo Avançado. Escala + curva PCHIP: idênticas.</p>
+        <div style="margin-top:10px;font-size:11px;color:#6366f1;font-weight:600">Ecrã afetado: Escalas (Step 2 do fluxo de criação)</div>
+      </div>
+      <div class="pc p2">
+        <div style="font-size:20px;font-weight:800;color:#0d9488;opacity:.4">02</div>
+        <div style="font-weight:700;color:#0f766e;font-size:15px;margin:2px 0 6px">Home Modernizado</div>
+        <p style="font-size:12.5px;color:#115e59;margin:0">Biblioteca de modelos (rascunho / prontos / avaliações recentes) + modelos-base para arrancar sem partir do zero. 100% local, sem backend.</p>
+        <div style="margin-top:10px;font-size:11px;color:#0d9488;font-weight:600">Ecrã afetado: Home.tsx</div>
+      </div>
+      <div class="pc p3">
+        <div style="font-size:20px;font-weight:800;color:#d97706;opacity:.4">03</div>
+        <div style="font-weight:700;color:#b45309;font-size:15px;margin:2px 0 6px">Avaliação Fluida</div>
+        <p style="font-size:12.5px;color:#92400e;margin:0">Resultados com cartões de ranking (cor = banda de decisão), V(p) em destaque grande, e painel «Porquê» com contribuições por fator hierárquico. Reprovação por porta clara.</p>
+        <div style="margin-top:10px;font-size:11px;color:#d97706;font-weight:600">Ecrã afetado: Results.tsx</div>
+      </div>
+      <div class="pc p4">
+        <div style="font-size:20px;font-weight:800;color:#7c3aed;opacity:.4">04</div>
+        <div style="font-weight:700;color:#6d28d9;font-size:15px;margin:2px 0 6px">Relatórios e Exportações</div>
+        <p style="font-size:12.5px;color:#4c1d95;margin:0">PDF legível por humanos, CSV para analistas, JSON auditável com snapshot imutável do modelo (choices/decision@1), spec IA. Gerado localmente, sem servidor.</p>
+        <div style="margin-top:10px;font-size:11px;color:#7c3aed;font-weight:600">Ecrã afetado: Report.tsx</div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="snote"><span class="stag">CAPA</span><b>4 fases independentes, entregáveis separadamente.</b> A fase 1 é puramente de UI sobre a entrada de dados — zero impacto no motor MACBETH. A fase 2 adiciona apenas metadados de biblioteca no IndexedDB. As fases 3 e 4 usam dados já existentes em <code>aggregationResult</code> e <code>derivedScales</code>. Nenhuma fase introduz backend, autenticação ou armazenamento remoto.</div>
+
+
+<!-- ═══════════════════════ FASE 1 ═══════════════════════ -->
+<div class="pbanner p1">
+  <span class="pbg">FASE 1 de 4</span>
+  Modo Guiado — entrada de juízos em linguagem comum
+  <span style="margin-left:auto;font-weight:400;font-size:12px;opacity:.75">Ecrã: Escalas (Step 2 do fluxo de criação)</span>
+</div>
+
+<!-- P1·S0 — Estado atual -->
+<div class="frame" id="p1s0">
+  <div class="top">
+    <div class="brand"><span class="logo"></span> Choices</div>
+    <span class="meta" style="margin-left:6px">Risco de plataforma › Escalas · Latência</span>
+    <div style="margin-left:auto"><button class="btn ghost" style="font-size:12px">Derivar escala</button></div>
+  </div>
+  <div class="content">
+    <div style="display:flex;gap:6px;align-items:center;margin-bottom:16px">
+      <div class="step done"><span class="n">✓</span> Critérios</div><span style="color:var(--faint)">→</span>
+      <div class="step on"><span class="n">2</span> Escalas</div><span style="color:var(--faint)">→</span>
+      <div class="step"><span class="n">3</span> Pesos</div><span style="color:var(--faint)">→</span>
+      <div class="step"><span class="n">4</span> Decisão</div><span style="color:var(--faint)">→</span>
+      <div class="step"><span class="n">5</span> Resumo</div>
+    </div>
+    <div style="display:flex;gap:20px">
+      <div style="width:155px;flex-shrink:0;display:flex;flex-direction:column;gap:3px">
+        <div style="font-size:10px;color:var(--faint);font-weight:600;text-transform:uppercase;letter-spacing:.05em;padding:0 4px;margin-bottom:4px">HealthStatus ›</div>
+        <button style="width:100%;text-align:left;padding:7px 10px;border-radius:8px;background:#dbeafe;border:none;font-size:13px;color:#1e40af;font-weight:500">Latência ✓</button>
+        <button style="width:100%;text-align:left;padding:7px 10px;border-radius:8px;background:none;border:none;font-size:13px;color:#64748b">Taxa de erros</button>
+        <button style="width:100%;text-align:left;padding:7px 10px;border-radius:8px;background:none;border:none;font-size:13px;color:#64748b">Saturação</button>
+        <div style="font-size:10px;color:var(--faint);font-weight:600;text-transform:uppercase;letter-spacing:.05em;padding:0 4px;margin-top:8px;margin-bottom:4px">Raiz ›</div>
+        <button style="width:100%;text-align:left;padding:7px 10px;border-radius:8px;background:none;border:none;font-size:13px;color:#64748b">Criticidade</button>
+        <button style="width:100%;text-align:left;padding:7px 10px;border-radius:8px;background:none;border:none;font-size:13px;color:#64748b">Duração</button>
+        <button style="width:100%;text-align:left;padding:7px 10px;border-radius:8px;background:none;border:none;font-size:13px;color:#64748b">Responsab.</button>
+      </div>
+      <div style="flex:1">
+        <p style="font-size:12.5px;color:#64748b;margin:0 0 12px">Juízos de atratividade — qual a diferença entre cada par de níveis?</p>
+        <table style="font-size:12.5px">
+          <thead><tr>
+            <th></th>
+            <th>100–300 ms</th>
+            <th>300–1000 ms</th>
+            <th>&gt; 1000 ms</th>
+          </tr></thead>
+          <tbody>
+            <tr>
+              <td style="font-weight:600">&lt; 100 ms</td>
+              <td><span class="ccat c3">C3 — Moderada</span></td>
+              <td><span class="ccat c5">C5 — Muito forte</span></td>
+              <td><span class="ccat c6">C6 — Extrema</span></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600">100–300 ms</td>
+              <td></td>
+              <td><span class="ccat c4">C4 — Forte</span></td>
+              <td><span class="ccat c5">C5 — Muito forte</span></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600">300–1000 ms</td>
+              <td></td><td></td>
+              <td><span class="ccat c2">C2 — Fraca</span></td>
+            </tr>
+          </tbody>
+        </table>
+        <div style="margin-top:12px;padding:9px 14px;background:#f1f5f9;border-radius:9px;font-size:12px;color:#64748b">
+          ℹ️ C0 = Nula · C1 = Muito fraca · C2 = Fraca · C3 = Moderada · C4 = Forte · C5 = Muito forte · C6 = Extrema
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="snote"><span class="stag">P1·S0 ANTES</span><b>Estado atual — Matriz de juízos MACBETH.</b> O utilizador escolhe categorias C0–C6 para cada par de níveis. Funciona, mas a notação é hermética para quem não conhece o método. Esta interface mantém-se disponível no <b>Modo Avançado</b>. O Modo Guiado é uma alternativa, não um substituto.</div>
+
+
+<!-- P1·S1 — Modo Guiado: pergunta de par -->
+<div class="frame" id="p1s1">
+  <div class="top">
+    <div class="brand"><span class="logo"></span> Choices</div>
+    <span class="meta" style="margin-left:6px">Risco de plataforma › Escalas · Latência</span>
+    <div class="toggle" style="margin-left:auto"><span>Avançado</span><span class="on">Guiado</span></div>
+    <button class="btn ghost" style="margin-left:10px;font-size:12px">? Glossário</button>
+  </div>
+  <div class="content" style="max-width:860px;margin:0 auto">
+    <div style="display:flex;gap:6px;align-items:center;margin-bottom:14px">
+      <div class="step done"><span class="n">✓</span> Critérios</div><span style="color:var(--faint)">→</span>
+      <div class="step on"><span class="n">2</span> Escalas</div><span style="color:var(--faint)">→</span>
+      <div class="step"><span class="n">3</span> Pesos</div><span style="color:var(--faint)">→</span>
+      <div class="step"><span class="n">4</span> Decisão</div><span style="color:var(--faint)">→</span>
+      <div class="step"><span class="n">5</span> Resumo</div>
+    </div>
+    <!-- Guided progress bar -->
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+      <div style="flex:1;height:5px;background:#e2e8f0;border-radius:999px;overflow:hidden">
+        <div style="width:17%;height:100%;background:var(--indigo);border-radius:999px"></div>
+      </div>
+      <span class="meta">Par 1 de 6 · Latência</span>
+    </div>
+    <div class="card"><div class="pad" style="padding:22px 28px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+        <span class="pill indigo">Par 1 de 6</span>
+        <span class="meta" style="margin-left:auto">Comparação: <b>&lt; 100 ms</b> vs <b>100–300 ms</b></span>
+      </div>
+      <h1 class="page" style="font-size:19px;line-height:1.4">
+        Em termos de experiência do utilizador, quão melhor é<br>
+        <span style="color:var(--teal)">«latência inferior a 100 ms»</span> do que <span style="color:#64748b">«100 a 300 ms»</span>?
+      </h1>
+      <p class="sub" style="margin-top:6px;font-size:13px">Pense no impacto real — não precisa de números. Escolha a frase que melhor descreve a diferença.</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
+        <div style="border:1px solid var(--line);border-radius:11px;padding:13px 16px">
+          <div style="font-weight:600;color:var(--muted);font-size:13.5px">Diferença mínima</div>
+          <div class="meta" style="margin-top:3px">mal se nota — os utilizadores não percebem</div>
+        </div>
+        <div style="border:1px solid var(--line);border-radius:11px;padding:13px 16px">
+          <div style="font-weight:600;color:var(--body);font-size:13.5px">Diferença pequena</div>
+          <div class="meta" style="margin-top:3px">ligeiramente melhor — perceptível mas tolerável</div>
+        </div>
+        <div style="border:1px solid var(--line);border-radius:11px;padding:13px 16px">
+          <div style="font-weight:600;color:var(--body);font-size:13.5px">Diferença moderada</div>
+          <div class="meta" style="margin-top:3px">claramente melhor — melhoria notável</div>
+        </div>
+        <div style="border:1px solid var(--line);border-radius:11px;padding:13px 16px">
+          <div style="font-weight:600;color:var(--body);font-size:13.5px">Diferença grande</div>
+          <div class="meta" style="margin-top:3px">muito melhor — impacto significativo</div>
+        </div>
+        <div style="border:1px solid var(--line);border-radius:11px;padding:13px 16px">
+          <div style="font-weight:600;color:var(--body);font-size:13.5px">Diferença muito grande</div>
+          <div class="meta" style="margin-top:3px">nível superior de qualidade</div>
+        </div>
+        <div style="border:1px solid var(--line);border-radius:11px;padding:13px 16px">
+          <div style="font-weight:600;color:var(--body);font-size:13.5px">Diferença extrema</div>
+          <div class="meta" style="margin-top:3px">abismo — incomparavelmente melhor</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:18px">
+        <button class="btn ghost" style="opacity:.4" disabled>← Anterior</button>
+        <button class="btn pri" style="margin-left:auto;opacity:.4" disabled>Selecione uma resposta →</button>
+      </div>
+    </div></div>
+    <p class="meta" style="text-align:center;margin-top:12px">No fim, o Choices mostra a escala derivada e avisa se houver respostas inconsistentes, sugerindo a correção.</p>
+  </div>
+</div>
+<div class="snote"><span class="stag">P1·S1 GUIADO</span><b>Uma pergunta por par, em linguagem natural.</b> Cada um dos 6 pares de níveis é apresentado isoladamente. As 6 opções de cartão cobrem C1–C6; C0 (Nula) só surge se o utilizador marcar uma caixa «não há diferença». O toggle Avançado/Guiado permanece visível a toda a hora — o utilizador pode alternar sem perder trabalho, porque o estado é partilhado (os cartões escrevem na mesma estrutura de juízos).</div>
+
+
+<!-- P1·S2 — Resposta selecionada + mapeamento MACBETH -->
+<div class="frame" id="p1s2">
+  <div class="top">
+    <div class="brand"><span class="logo"></span> Choices</div>
+    <span class="meta" style="margin-left:6px">Risco de plataforma › Escalas · Latência</span>
+    <div class="toggle" style="margin-left:auto"><span>Avançado</span><span class="on">Guiado</span></div>
+    <button class="btn ghost" style="margin-left:10px;font-size:12px">? Glossário</button>
+  </div>
+  <div class="content" style="max-width:860px;margin:0 auto">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+      <div style="flex:1;height:5px;background:#e2e8f0;border-radius:999px;overflow:hidden">
+        <div style="width:17%;height:100%;background:var(--indigo);border-radius:999px"></div>
+      </div>
+      <span class="meta">Par 1 de 6 · Latência</span>
+    </div>
+    <div class="card"><div class="pad" style="padding:22px 28px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+        <span class="pill indigo">Par 1 de 6</span>
+        <span class="meta" style="margin-left:auto">Comparação: <b>&lt; 100 ms</b> vs <b>100–300 ms</b></span>
+      </div>
+      <h1 class="page" style="font-size:19px;line-height:1.4">
+        Em termos de experiência do utilizador, quão melhor é<br>
+        <span style="color:var(--teal)">«latência inferior a 100 ms»</span> do que <span style="color:#64748b">«100 a 300 ms»</span>?
+      </h1>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px">
+        <div style="border:1px solid var(--line);border-radius:11px;padding:13px 16px;opacity:.45">
+          <div style="font-weight:600;color:var(--muted)">Diferença mínima</div>
+          <div class="meta">mal se nota</div>
+        </div>
+        <div style="border:1px solid var(--line);border-radius:11px;padding:13px 16px;opacity:.45">
+          <div style="font-weight:600;color:var(--body)">Diferença pequena</div>
+          <div class="meta">ligeiramente melhor</div>
+        </div>
+        <div style="border:2px solid var(--indigo);border-radius:11px;padding:13px 16px;background:var(--indigo-50)">
+          <div style="font-weight:700;color:#4338ca;font-size:13.5px">✓ Diferença moderada</div>
+          <div class="meta" style="color:#4338ca">claramente melhor — melhoria notável</div>
+        </div>
+        <div style="border:1px solid var(--line);border-radius:11px;padding:13px 16px;opacity:.45">
+          <div style="font-weight:600;color:var(--body)">Diferença grande</div>
+          <div class="meta">muito melhor</div>
+        </div>
+        <div style="border:1px solid var(--line);border-radius:11px;padding:13px 16px;opacity:.45">
+          <div style="font-weight:600;color:var(--body)">Diferença muito grande</div>
+        </div>
+        <div style="border:1px solid var(--line);border-radius:11px;padding:13px 16px;opacity:.45">
+          <div style="font-weight:600;color:var(--body)">Diferença extrema</div>
+        </div>
+      </div>
+      <!-- MACBETH mapping tooltip -->
+      <div style="display:flex;align-items:center;gap:10px;margin-top:14px;padding:10px 14px;background:var(--teal-50);border:1px solid #99f6e4;border-radius:10px">
+        <span style="font-size:16px">🔬</span>
+        <span style="font-size:12.5px;color:#0f766e">Corresponde a <b>«C3 — Moderada»</b> em MACBETH. Pode consultar ou ajustar no <b>Modo Avançado</b> a qualquer momento.</span>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:16px">
+        <button class="btn ghost">← Anterior</button>
+        <button class="btn pri" style="margin-left:auto">Próximo par →</button>
+      </div>
+    </div></div>
+  </div>
+</div>
+<div class="snote"><span class="stag">P1·S2 SELEÇÃO</span><b>Resposta selecionada — feedback imediato do mapeamento MACBETH.</b> A caixa teal mostra a categoria MACBETH correspondente. Quando todos os 6 pares estiverem respondidos, o botão «Derivar escala» fica ativo — e é exatamente a mesma operação LP de sempre. O resultado (escala cardinal + régua + curva PCHIP) é completamente idêntico ao modo Avançado.</div>
+
+
+<!-- P1·S3 — RÉGUA DE VALOR (PRESERVADA) -->
+<div class="frame" id="p1s3">
+  <div class="top">
+    <div class="brand"><span class="logo"></span> Choices</div>
+    <span class="meta" style="margin-left:6px">Risco de plataforma › Escalas · Latência — Escala derivada</span>
+    <div class="toggle" style="margin-left:auto"><span>Avançado</span><span class="on">Guiado</span></div>
+  </div>
+  <div class="content">
+    <div style="display:flex;gap:22px">
+      <div style="width:155px;flex-shrink:0;display:flex;flex-direction:column;gap:3px">
+        <div style="font-size:10px;color:var(--faint);font-weight:600;text-transform:uppercase;padding:0 4px;margin-bottom:3px">HealthStatus ›</div>
+        <div style="padding:7px 10px;border-radius:8px;background:#dcfce7;font-size:13px;color:#15803d;font-weight:500">✓ Latência</div>
+        <div style="padding:7px 10px;font-size:13px;color:#64748b">Taxa de erros</div>
+        <div style="padding:7px 10px;font-size:13px;color:#64748b">Saturação</div>
+      </div>
+      <div style="flex:1">
+        <!-- Preserved badge card -->
+        <div style="position:relative;border:2.5px solid #16a34a;border-radius:14px;background:#fff;box-shadow:var(--shadow)">
+          <div style="position:absolute;top:-13px;right:18px;background:#16a34a;color:#fff;font-size:10.5px;font-weight:700;padding:3px 12px;border-radius:999px">✅ PRESERVADO — idêntico no Modo Avançado</div>
+          <div style="padding:18px 22px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+              <h3 style="font-size:14px;font-weight:600;color:var(--ink);margin:0">Escala derivada · Latência</h3>
+              <span style="font-size:11px;padding:3px 10px;background:#dcfce7;color:#15803d;border-radius:999px;font-weight:700">margem z = 0.142 ✓</span>
+            </div>
+            <p style="font-size:12px;color:#64748b;margin:0 0 10px">Régua de valor — níveis posicionados proporcionalmente ao seu valor cardinal</p>
+
+            <!-- ScaleRuler SVG — faithful to src/ui/screens/Scales.tsx ScaleRuler component -->
+            <!-- Range: -50 to 100, span=150. H=260, PAD_TOP=44. yOf(v)=44+(100-v)/150*260 -->
+            <svg width="460" height="335" viewBox="0 0 460 335" xmlns="http://www.w3.org/2000/svg">
+              <!-- Column headers -->
+              <text x="90" y="22" font-size="9" fill="#9ca3af" font-weight="600" letter-spacing="0.8">PERFORMANCE</text>
+              <text x="275" y="22" font-size="9" fill="#9ca3af" font-weight="600" text-anchor="end" letter-spacing="0.8">PONTOS</text>
+              <text x="280" y="22" font-size="9" fill="#e5e7eb">intervalo</text>
+              <!-- Header separator -->
+              <line x1="72" y1="38" x2="452" y2="38" stroke="#f3f4f6" stroke-width="1"/>
+              <!-- Axis -->
+              <line x1="72" y1="44" x2="72" y2="304" stroke="#d1d5db" stroke-width="1.5"/>
+
+              <!-- Level 1: < 100ms → 100.0pts (Bom) · yOf(100)=44 -->
+              <line x1="72" y1="44" x2="86" y2="44" stroke="#16a34a" stroke-width="2.5"/>
+              <text x="90" y="48" font-size="11" fill="#15803d" font-weight="600">&lt; 100 ms</text>
+              <text x="275" y="48" font-size="10.5" fill="#374151" text-anchor="end" font-family="monospace" font-weight="700">100.0</text>
+              <text x="280" y="48" font-size="8.5" fill="#d1d5db">[88, 118]</text>
+              <rect x="374" y="36" width="52" height="14" rx="4" fill="#dcfce7"/>
+              <text x="400" y="47" font-size="9" fill="#16a34a" font-weight="bold" text-anchor="middle">Bom</text>
+              <!-- Bracket: gap +30 to next level at y=96 -->
+              <line x1="62" y1="47" x2="62" y2="95" stroke="#e5e7eb" stroke-width="1"/>
+              <line x1="59" y1="47" x2="62" y2="47" stroke="#e5e7eb" stroke-width="1"/>
+              <line x1="59" y1="95" x2="62" y2="95" stroke="#e5e7eb" stroke-width="1"/>
+              <text x="56" y="75" font-size="9" fill="#9ca3af" text-anchor="end" font-style="italic">+30.0</text>
+
+              <!-- Level 2: 100–300ms → 70.0pts · yOf(70)=44+(30/150)*260=44+52=96 -->
+              <line x1="72" y1="96" x2="80" y2="96" stroke="#94a3b8" stroke-width="1.5"/>
+              <text x="90" y="100" font-size="11" fill="#374151">100–300 ms</text>
+              <text x="275" y="100" font-size="10.5" fill="#374151" text-anchor="end" font-family="monospace">70.0</text>
+              <text x="280" y="100" font-size="8.5" fill="#d1d5db">[57, 83]</text>
+              <!-- Bracket: gap +70 to next level at y=217 -->
+              <line x1="62" y1="99" x2="62" y2="216" stroke="#e5e7eb" stroke-width="1"/>
+              <line x1="59" y1="99" x2="62" y2="99" stroke="#e5e7eb" stroke-width="1"/>
+              <line x1="59" y1="216" x2="62" y2="216" stroke="#e5e7eb" stroke-width="1"/>
+              <text x="56" y="162" font-size="9" fill="#9ca3af" text-anchor="end" font-style="italic">+70.0</text>
+
+              <!-- Level 3: 300–1000ms → 0.0pts (Neutro) · yOf(0)=44+(100/150)*260=44+173.3=217 -->
+              <line x1="72" y1="217" x2="86" y2="217" stroke="#2563eb" stroke-width="2.5"/>
+              <text x="90" y="221" font-size="11" fill="#1d4ed8" font-weight="600">300–1000 ms</text>
+              <text x="275" y="221" font-size="10.5" fill="#374151" text-anchor="end" font-family="monospace" font-weight="700">0.0</text>
+              <text x="280" y="221" font-size="8.5" fill="#d1d5db">[0, 0]</text>
+              <rect x="374" y="209" width="52" height="14" rx="4" fill="#dbeafe"/>
+              <text x="400" y="220" font-size="9" fill="#2563eb" font-weight="bold" text-anchor="middle">Neutro</text>
+              <!-- Bracket: gap −50 to next level at y=304 -->
+              <line x1="62" y1="220" x2="62" y2="301" stroke="#e5e7eb" stroke-width="1"/>
+              <line x1="59" y1="220" x2="62" y2="220" stroke="#e5e7eb" stroke-width="1"/>
+              <line x1="59" y1="301" x2="62" y2="301" stroke="#e5e7eb" stroke-width="1"/>
+              <text x="56" y="264" font-size="9" fill="#9ca3af" text-anchor="end" font-style="italic">−50.0</text>
+
+              <!-- Level 4: > 1000ms → −50.0pts · yOf(-50)=44+(150/150)*260=304 -->
+              <line x1="72" y1="304" x2="80" y2="304" stroke="#94a3b8" stroke-width="1.5"/>
+              <text x="90" y="308" font-size="11" fill="#374151">&gt; 1000 ms</text>
+              <text x="275" y="308" font-size="10.5" fill="#374151" text-anchor="end" font-family="monospace">−50.0</text>
+              <text x="280" y="308" font-size="8.5" fill="#d1d5db">[−63, −39]</text>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="snote ok"><span class="stag">✅ P1·S3 RÉGUA PRESERVADA</span><b>A régua PERFORMANCE / PONTOS não muda absolutamente nada.</b> O componente <code>ScaleRuler</code> (SVG termómetro com ticks, brackets de gap, pills Bom/Neutro) está em <code>Scales.tsx</code> e é renderizado após «Derivar escala» — independentemente do modo de entrada. O motor LP (GLPK.js) recebe os mesmos juízos (C0–C6) quer venham de cartões de linguagem natural quer da matriz avançada.</div>
+
+
+<!-- P1·S4 — CURVA PCHIP (PRESERVADA) -->
+<div class="frame" id="p1s4">
+  <div class="top">
+    <div class="brand"><span class="logo"></span> Choices</div>
+    <span class="meta" style="margin-left:6px">Risco de plataforma › Escalas · Latência — Função matemática</span>
+    <div class="toggle" style="margin-left:auto"><span>Avançado</span><span class="on">Guiado</span></div>
+  </div>
+  <div class="content">
+    <div style="position:relative;border:2.5px solid #16a34a;border-radius:14px;background:#fff;box-shadow:var(--shadow);max-width:820px">
+      <div style="position:absolute;top:-13px;right:18px;background:#16a34a;color:#fff;font-size:10.5px;font-weight:700;padding:3px 12px;border-radius:999px">✅ PRESERVADO — idêntico no Modo Avançado</div>
+      <div style="padding:18px 22px">
+        <h3 style="font-size:14px;font-weight:600;color:var(--ink);margin:0 0 4px">Função matemática — escala cardinal suave</h3>
+        <p style="font-size:12px;color:#64748b;margin:0 0 12px">Interpolação monótona-cúbica (PCHIP) — do nível menos atrativo (esquerda) ao mais atrativo (direita). A curva passa exatamente pelos pontos derivados pelo LP.</p>
+
+        <!-- PCHIP curve SVG — approximates the recharts LineChart from ScaleFormula component -->
+        <!-- Nodes: (pos=0, v=-50), (pos=0.33, v=0), (pos=0.67, v=70), (pos=1.0, v=100)         -->
+        <!-- Chart area: x=[50,580], y=[15,195]. Value range: -60..120 (180). chart_h=180        -->
+        <!-- y_of(v) = 15 + (115-v)/175*180 ≈ 15 + (115-v)*1.029                               -->
+        <!-- v=100: y≈30 · v=70: y≈60 · v=0: y≈133 · v=-50: y≈184                            -->
+        <!-- x_of(p) = 50 + p*530: p=0→50, p=0.33→225, p=0.67→405, p=1→580                    -->
+        <svg width="100%" viewBox="0 0 640 220" xmlns="http://www.w3.org/2000/svg" style="display:block">
+          <!-- Grid -->
+          <line x1="50" y1="15" x2="595" y2="15" stroke="#e5e7eb" stroke-dasharray="3 3" stroke-width="1"/>
+          <line x1="50" y1="55" x2="595" y2="55" stroke="#e5e7eb" stroke-dasharray="3 3" stroke-width="1"/>
+          <line x1="50" y1="95" x2="595" y2="95" stroke="#e5e7eb" stroke-dasharray="3 3" stroke-width="1"/>
+          <line x1="50" y1="135" x2="595" y2="135" stroke="#e5e7eb" stroke-dasharray="3 3" stroke-width="1"/>
+          <line x1="50" y1="175" x2="595" y2="175" stroke="#e5e7eb" stroke-dasharray="3 3" stroke-width="1"/>
+          <!-- Vertical axis -->
+          <line x1="50" y1="12" x2="50" y2="195" stroke="#d1d5db" stroke-width="1"/>
+          <!-- X axis -->
+          <line x1="50" y1="195" x2="600" y2="195" stroke="#d1d5db" stroke-width="1"/>
+          <!-- Y labels -->
+          <text x="44" y="34" font-size="10" fill="#6b7280" text-anchor="end">100</text>
+          <text x="44" y="62" font-size="10" fill="#6b7280" text-anchor="end">75</text>
+          <text x="44" y="135" font-size="10" fill="#6b7280" text-anchor="end">0</text>
+          <text x="44" y="187" font-size="10" fill="#6b7280" text-anchor="end">−50</text>
+          <!-- Reference lines: Bom=100 at y≈30, Neutro=0 at y≈133 -->
+          <line x1="50" y1="30" x2="595" y2="30" stroke="#16a34a" stroke-dasharray="4 2" stroke-width="1.2"/>
+          <text x="600" y="34" font-size="10" fill="#16a34a">Bom</text>
+          <line x1="50" y1="133" x2="595" y2="133" stroke="#94a3b8" stroke-dasharray="4 2" stroke-width="1.2"/>
+          <text x="600" y="137" font-size="10" fill="#94a3b8">Neutro</text>
+          <!-- PCHIP smooth monotone cubic curve -->
+          <!-- Nodes: (50,184), (225,133), (405,60), (580,30) -->
+          <!-- Smooth bezier approximation of PCHIP interpolant -->
+          <path d="M 50,184 C 100,184 160,148 225,133 C 292,117 350,67 405,60 C 455,54 530,32 580,30"
+                fill="none" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <!-- Exact node dots (ReferenceDot in recharts) -->
+          <circle cx="50" cy="184" r="4.5" fill="#1d4ed8" stroke="#fff" stroke-width="1.5"/>
+          <circle cx="225" cy="133" r="4.5" fill="#1d4ed8" stroke="#fff" stroke-width="1.5"/>
+          <circle cx="405" cy="60" r="4.5" fill="#1d4ed8" stroke="#fff" stroke-width="1.5"/>
+          <circle cx="580" cy="30" r="4.5" fill="#1d4ed8" stroke="#fff" stroke-width="1.5"/>
+          <!-- X labels -->
+          <text x="50" y="210" font-size="9.5" fill="#6b7280" text-anchor="middle">&gt; 1000 ms</text>
+          <text x="225" y="210" font-size="9.5" fill="#6b7280" text-anchor="middle">300–1000 ms</text>
+          <text x="405" y="210" font-size="9.5" fill="#6b7280" text-anchor="middle">100–300 ms</text>
+          <text x="580" y="210" font-size="9.5" fill="#6b7280" text-anchor="middle">&lt; 100 ms</text>
+        </svg>
+
+        <!-- Node values (below chart, from ScaleFormula component) -->
+        <div style="margin-top:12px">
+          <p style="font-size:12px;font-weight:600;color:#374151;margin:0 0 8px">Valores cardinais derivados (a curva passa exatamente por estes pontos):</p>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:9px 11px">
+              <div style="color:#15803d;font-size:12px;font-weight:700">&lt; 100 ms</div>
+              <div style="font-family:monospace;font-size:14px;color:var(--ink);font-weight:700">100.0</div>
+              <div style="font-size:10px;color:#94a3b8">Bom (âncora)</div>
+            </div>
+            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:9px 11px">
+              <div style="color:#374151;font-size:12px;font-weight:600">100–300 ms</div>
+              <div style="font-family:monospace;font-size:14px;color:var(--ink)">70.0</div>
+              <div style="font-size:10px;color:#94a3b8">derivado</div>
+            </div>
+            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:9px 11px">
+              <div style="color:#1d4ed8;font-size:12px;font-weight:700">300–1000 ms</div>
+              <div style="font-family:monospace;font-size:14px;color:var(--ink);font-weight:700">0.0</div>
+              <div style="font-size:10px;color:#94a3b8">Neutro (âncora)</div>
+            </div>
+            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:9px 11px">
+              <div style="color:#374151;font-size:12px;font-weight:600">&gt; 1000 ms</div>
+              <div style="font-family:monospace;font-size:14px;color:var(--ink)">−50.0</div>
+              <div style="font-size:10px;color:#94a3b8">derivado</div>
+            </div>
+          </div>
+          <p style="font-size:10px;color:#9ca3af;margin:8px 0 0">A escala de valor é a interpolação monótona-cúbica (PCHIP) que passa por todos os pontos derivados — suave, sem oscilações. Âncoras: Neutro = 0, Bom = 100. Desempenhos contínuos são lidos diretamente desta curva.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="snote ok"><span class="stag">✅ P1·S4 PCHIP PRESERVADO</span><b>A função matemática (gráfico recharts LineChart + interpolação PCHIP) não sofre qualquer alteração.</b> O componente <code>ScaleFormula</code> em <code>Scales.tsx</code> permanece intacto. Os pontos azuis são os nós derivados pelo LP; a curva azul é a interpolação monótona-cúbica (<code>engine/interpolation.ts:sampleCurve</code>). As linhas de referência Neutro/Bom são inalteradas. O Modo Guiado apenas muda o <em>input</em> — o <em>output</em> é idêntico.</div>
+
+
+<!-- ═══════════════════════ FASE 2 ═══════════════════════ -->
+<div class="pbanner p2">
+  <span class="pbg">FASE 2 de 4</span>
+  Home Modernizado — biblioteca de modelos + modelos-base
+  <span style="margin-left:auto;font-weight:400;font-size:12px;opacity:.75">Ecrã: Home.tsx</span>
+</div>
+
+<!-- P2·S1 — Home modernizado -->
+<div class="frame" id="p2s1">
+  <div class="top">
+    <div class="brand"><span class="logo"></span> Choices</div>
+    <span class="local">💾 Guardado neste dispositivo</span>
+    <div style="margin-left:auto;display:flex;gap:8px">
+      <button class="btn ghost">↑ Importar (JSON)</button>
+      <button class="btn pri">+ Novo modelo</button>
+    </div>
+  </div>
+  <div class="content">
+    <!-- Welcome row -->
+    <div style="display:flex;align-items:center;gap:18px;margin-bottom:22px">
+      <svg width="80" height="90" viewBox="0 0 120 130" xmlns="http://www.w3.org/2000/svg">
+        <line x1="43" y1="18" x2="38" y2="6" stroke="#0d9488" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="77" y1="18" x2="82" y2="6" stroke="#0d9488" stroke-width="2.5" stroke-linecap="round"/>
+        <circle cx="38" cy="5" r="4" fill="#f59e0b"/><circle cx="82" cy="5" r="4" fill="#f59e0b"/>
+        <rect x="20" y="14" width="80" height="56" rx="25" fill="#14b8a6"/>
+        <circle cx="20" cy="44" r="14" fill="#0d9488"/><circle cx="20" cy="44" r="7" fill="#14b8a6"/>
+        <circle cx="100" cy="44" r="14" fill="#0d9488"/><circle cx="100" cy="44" r="7" fill="#14b8a6"/>
+        <ellipse cx="43" cy="41" rx="10" ry="11" fill="#fff"/><ellipse cx="77" cy="41" rx="10" ry="11" fill="#fff"/>
+        <circle cx="44" cy="42" r="6" fill="#0f172a"/><circle cx="78" cy="42" r="6" fill="#0f172a"/>
+        <path d="M42 60 Q60 72 78 60" stroke="#0f172a" stroke-width="3" fill="none" stroke-linecap="round"/>
+      </svg>
+      <div>
+        <h1 class="page" style="font-size:24px">o que vais decidir hoje?</h1>
+        <p class="sub" style="margin:2px 0 0">Avaliação multicritério de alternativas pelo método MACBETH — tudo guardado neste dispositivo.</p>
+      </div>
+    </div>
+
+    <!-- Action cards -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:22px">
+      <div class="card" style="border:2px solid var(--indigo-100);background:linear-gradient(180deg,#fbfbff,#fff)">
+        <div class="pad" style="padding:20px">
+          <div style="font-size:22px;margin-bottom:6px">🛠️</div>
+          <div class="mtitle" style="font-size:15px">Criar modelo de avaliação</div>
+          <p class="meta" style="margin:4px 0 14px">Definir critérios, escalas de valor, pesos e perfis de decisão.</p>
+          <button class="btn pri">Começar do zero →</button>
+          <button class="btn ghost" style="margin-left:8px;font-size:12px">Usar modelo-base</button>
+        </div>
+      </div>
+      <div class="card" style="border:2px solid #bbf7d0;background:linear-gradient(180deg,#f7fefb,#fff)">
+        <div class="pad" style="padding:20px">
+          <div style="font-size:22px;margin-bottom:6px">📋</div>
+          <div class="mtitle" style="font-size:15px">Aplicar modelo para avaliar</div>
+          <p class="meta" style="margin:4px 0 14px">Registar propostas, habilitá-las e obter resultados com um modelo pronto.</p>
+          <button class="btn teal">Escolher modelo →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Library + templates -->
+    <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:16px">
+      <div class="card"><div class="pad">
+        <div style="display:flex;align-items:center;margin-bottom:10px">
+          <span class="mtitle">Os teus modelos</span>
+          <a style="margin-left:auto;color:var(--indigo);font-size:12px;text-decoration:none;cursor:pointer">ver todos →</a>
+        </div>
+        <table>
+          <tbody>
+            <tr>
+              <td><b style="color:var(--ink)">Risco de plataforma</b><div class="meta">HealthStatus · Criticidade · Duração · Responsab.</div></td>
+              <td><span class="pill green">Pronto</span></td>
+              <td class="meta">há 2 h</td>
+              <td style="text-align:right"><span class="meta">Editar · Aplicar</span></td>
+            </tr>
+            <tr>
+              <td><b style="color:var(--ink)">Avaliação de arquiteturas</b><div class="meta">Segurança · Interop. · Tecnologia</div></td>
+              <td><span class="pill amber">Em construção</span></td>
+              <td class="meta">há 1 d</td>
+              <td style="text-align:right"><span class="meta">Editar</span></td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="divider"></div>
+        <div style="display:flex;align-items:center;margin-bottom:8px">
+          <span class="mtitle">Avaliações recentes</span>
+        </div>
+        <table><tbody>
+          <tr>
+            <td><b style="color:var(--ink)">Propostas Q2 — arquitetura</b><div class="meta">3 propostas · 1 recomendada</div></td>
+            <td><span class="pill sky">Concluída</span></td>
+            <td class="meta">há 1 d</td>
+            <td style="text-align:right"><span class="meta">Abrir · Relatório</span></td>
+          </tr>
+        </tbody></table>
+      </div></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card"><div class="pad">
+          <span class="mtitle">Modelos-base</span>
+          <p class="meta" style="margin:5px 0 10px">Arranca com um exemplo pronto e adapta ao teu contexto.</p>
+          <div style="display:flex;flex-direction:column;gap:7px">
+            <button class="btn ghost" style="text-align:left;font-size:12.5px">🏛️ Avaliação de arquiteturas de SI</button>
+            <button class="btn ghost" style="text-align:left;font-size:12.5px">📡 Risco / monitorização de plataforma</button>
+            <button class="btn ghost" style="text-align:left;font-size:12.5px">🧾 Seleção de fornecedores</button>
+          </div>
+        </div></div>
+        <div class="card"><div class="pad" style="display:flex;flex-direction:column;gap:9px">
+          <a class="meta" style="cursor:pointer">📘 Como funciona o método MACBETH</a>
+          <a class="meta" style="cursor:pointer">🧩 Manifesto de capacidades (para IA)</a>
+        </div></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="snote"><span class="stag">P2·S1 HOME</span><b>Home modernizado — mantém as duas portas (Criar / Aplicar) mas acrescenta biblioteca e modelos-base.</b> O mascote e a frase de boas-vindas tornam a entrada mais amigável. A biblioteca mostra modelos com estado (Em construção / Pronto) e avaliações recentes. Os modelos-base eliminam a página em branco sem exigir nenhuma infraestrutura — são JSON pré-definidos carregados localmente. O selo «Guardado neste dispositivo» reforça o modelo local-first.</div>
+
+
+<!-- P2·S2 — Seleção de modelo-base -->
+<div class="frame" id="p2s2">
+  <div class="top">
+    <div class="brand"><span class="logo"></span> Choices</div>
+    <span class="meta" style="margin-left:6px">Novo modelo → Escolher ponto de partida</span>
+    <button class="btn ghost" style="margin-left:auto;font-size:12px">✕ Cancelar</button>
+  </div>
+  <div class="content" style="max-width:860px;margin:0 auto">
+    <h1 class="page" style="font-size:20px">Escolhe um ponto de partida</h1>
+    <p class="sub">Começa do zero ou adapta um modelo-base ao teu contexto. Podes alterar tudo depois.</p>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px">
+      <!-- Blank -->
+      <div class="card" style="border:2px dashed var(--line)"><div class="pad" style="padding:20px">
+        <div style="font-size:26px;margin-bottom:8px">📄</div>
+        <div class="mtitle">Modelo em branco</div>
+        <p class="meta" style="margin:5px 0 14px">Começa com uma árvore de critérios vazia e define tudo de raiz.</p>
+        <button class="btn ghost">Começar do zero →</button>
+      </div></div>
+      <!-- Template: Architecture -->
+      <div class="card" style="border:2px solid var(--indigo-100);background:linear-gradient(160deg,#f8f8ff,#fff)"><div class="pad" style="padding:20px">
+        <div style="font-size:26px;margin-bottom:8px">🏛️</div>
+        <div class="mtitle">Avaliação de arquiteturas de SI</div>
+        <p class="meta" style="margin:5px 0 8px">3 fatores · 7 critérios · Portas de conformidade · Perfis Aprovado / Com reservas / Rejeitado</p>
+        <div style="margin-bottom:12px">
+          <div style="font-size:11px;font-family:monospace;color:#64748b;background:#f8fafc;border:1px solid var(--line);border-radius:7px;padding:7px 9px;line-height:1.6">
+            Segurança (fator)<br>
+            ├── Autenticação · Cifra · RGPD (porta)<br>
+            Interoperabilidade<br>
+            Tecnologia (fator)<br>
+            └── Maturidade · Suporte comunidade
+          </div>
+        </div>
+        <button class="btn soft">Usar este modelo-base →</button>
+      </div></div>
+      <!-- Template: Platform Risk -->
+      <div class="card" style="border:2px solid #f0fdfa;background:linear-gradient(160deg,#f7feff,#fff)"><div class="pad" style="padding:20px">
+        <div style="font-size:26px;margin-bottom:8px">📡</div>
+        <div class="mtitle">Risco / monitorização de plataforma</div>
+        <p class="meta" style="margin:5px 0 8px">HealthStatus (fator) + 3 métricas contínuas · Criticidade · Duração · Responsabilidade</p>
+        <div style="margin-bottom:12px">
+          <div style="font-size:11px;font-family:monospace;color:#64748b;background:#f8fafc;border:1px solid var(--line);border-radius:7px;padding:7px 9px;line-height:1.6">
+            HealthStatus (fator)<br>
+            ├── Latência · Taxa erros · Saturação<br>
+            Criticidade · Duração · Responsabilidade
+          </div>
+        </div>
+        <button class="btn ghost">Usar este modelo-base →</button>
+      </div></div>
+      <!-- Template: Suppliers -->
+      <div class="card"><div class="pad" style="padding:20px">
+        <div style="font-size:26px;margin-bottom:8px">🧾</div>
+        <div class="mtitle">Seleção de fornecedores</div>
+        <p class="meta" style="margin:5px 0 8px">Custo total · SLA e garantias · Conformidade legal · Capacidade técnica</p>
+        <div style="margin-bottom:12px">
+          <div style="font-size:11px;font-family:monospace;color:#64748b;background:#f8fafc;border:1px solid var(--line);border-radius:7px;padding:7px 9px;line-height:1.6">
+            Custo total · SLA · Conformidade<br>
+            Capacidade (fator)<br>
+            └── Equipa · Referências · Roadmap
+          </div>
+        </div>
+        <button class="btn ghost">Usar este modelo-base →</button>
+      </div></div>
+    </div>
+  </div>
+</div>
+<div class="snote"><span class="stag">P2·S2 MODELO-BASE</span><b>Seletor de ponto de partida.</b> O utilizador escolhe entre «modelo em branco» ou um dos templates pré-definidos. Os templates são ficheiros JSON estáticos — idênticos a um modelo exportado — que são importados para o IndexedDB e abertos no fluxo de criação normal. Nenhuma lógica nova no motor: é apenas um import automático de modelo.</div>
+
+
+<!-- ═══════════════════════ FASE 3 ═══════════════════════ -->
+<div class="pbanner p3">
+  <span class="pbg">FASE 3 de 4</span>
+  Avaliação Fluida — ranking com cor de banda + painel «Porquê»
+  <span style="margin-left:auto;font-weight:400;font-size:12px;opacity:.75">Ecrã: Results.tsx</span>
+</div>
+
+<!-- P3·S1 — Ranking cards + Porquê -->
+<div class="frame" id="p3s1">
+  <div class="top">
+    <div class="brand"><span class="logo"></span> Choices</div>
+    <span class="meta" style="margin-left:6px">Propostas Q2 — arquitetura</span>
+    <div style="margin-left:auto;display:flex;gap:8px">
+      <button class="btn ghost">↓ Exportar</button>
+      <button class="btn soft">Relatório →</button>
+    </div>
+  </div>
+  <div class="content">
+    <div style="display:flex;gap:6px;align-items:center;margin-bottom:16px">
+      <div class="step done"><span class="n">✓</span> Análise</div><span style="color:var(--faint)">→</span>
+      <div class="step on"><span class="n">2</span> Resultados</div><span style="color:var(--faint)">→</span>
+      <div class="step"><span class="n">3</span> Sensibilidade</div><span style="color:var(--faint)">→</span>
+      <div class="step"><span class="n">4</span> Relatório</div>
+    </div>
+
+    <!-- Ranking cards -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:18px">
+      <!-- #1 Recomendado -->
+      <div class="card" style="border-top:4px solid var(--green)"><div class="pad">
+        <div class="meta">#1 · Recomendado</div>
+        <div class="mtitle" style="font-size:15px;margin-top:2px">Proposta B — Microsserviços</div>
+        <div style="font-size:34px;font-weight:800;color:var(--ink);margin:6px 0 4px;line-height:1">78.4</div>
+        <div style="font-size:11px;color:var(--green);font-weight:600;margin-bottom:8px">V(p) ≥ 70 · Aprovado</div>
+        <div class="bar"><i style="width:78%;background:var(--green)"></i></div>
+      </div></div>
+      <!-- #2 Com reservas -->
+      <div class="card" style="border-top:4px solid var(--amber)"><div class="pad">
+        <div class="meta">#2 · Com reservas</div>
+        <div class="mtitle" style="font-size:15px;margin-top:2px">Proposta A — Monólito modular</div>
+        <div style="font-size:34px;font-weight:800;color:var(--ink);margin:6px 0 4px;line-height:1">61.2</div>
+        <div style="font-size:11px;color:var(--amber);font-weight:600;margin-bottom:8px">V(p) ≥ 45 · Com reservas</div>
+        <div class="bar"><i style="width:61%;background:var(--amber)"></i></div>
+      </div></div>
+      <!-- Porta eliminatória -->
+      <div class="card" style="border-top:4px solid #cbd5e1;background:#fafafa"><div class="pad">
+        <div class="meta">— · Reprovado (porta)</div>
+        <div class="mtitle" style="font-size:15px;margin-top:2px;color:#64748b">Proposta C — Serverless</div>
+        <div style="font-size:34px;font-weight:800;color:#cbd5e1;margin:6px 0 4px;line-height:1">—</div>
+        <div style="font-size:11px;color:#ef4444;font-weight:600;margin-bottom:8px">❌ Conformidade RGPD não aprovada</div>
+        <div class="meta" style="font-size:11.5px">Reprovada na porta eliminatória antes da agregação. Não é classificada.</div>
+      </div></div>
+    </div>
+
+    <!-- Why panel + Decision policy -->
+    <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:14px">
+      <div class="card"><div class="pad">
+        <div style="font-weight:600;color:var(--ink);font-size:14px;margin-bottom:10px">Porquê — contribuições por fator · <span style="color:var(--green)">Proposta B</span></div>
+        <table>
+          <thead><tr>
+            <th>Fator / Critério</th>
+            <th>Valor v(p)</th>
+            <th>Peso ef.</th>
+            <th style="width:140px">Contribuição</th>
+          </tr></thead>
+          <tbody>
+            <tr style="background:#f0fdf4">
+              <td><b>Segurança</b> <span class="meta">(composto)</span></td>
+              <td class="mono" style="color:var(--ink);font-weight:700">82</td>
+              <td class="mono">50%</td>
+              <td><div class="bar"><i style="width:82%;background:#16a34a"></i></div><span class="meta" style="font-size:11px">+41.0 pts</span></td>
+            </tr>
+            <tr style="padding-left:12px">
+              <td style="padding-left:20px;color:#64748b;font-size:12px">↳ Autenticação</td>
+              <td class="mono" style="font-size:12px">88</td>
+              <td class="mono" style="font-size:12px">20%</td>
+              <td></td>
+            </tr>
+            <tr>
+              <td style="padding-left:20px;color:#64748b;font-size:12px">↳ Cifra de dados</td>
+              <td class="mono" style="font-size:12px">78</td>
+              <td class="mono" style="font-size:12px">30%</td>
+              <td></td>
+            </tr>
+            <tr>
+              <td><b>Interoperabilidade</b></td>
+              <td class="mono">75</td>
+              <td class="mono">28%</td>
+              <td><div class="bar"><i style="width:75%;background:#6366f1"></i></div><span class="meta" style="font-size:11px">+21.0 pts</span></td>
+            </tr>
+            <tr style="background:#f8fafc">
+              <td><b>Tecnologia</b> <span class="meta">(composto)</span></td>
+              <td class="mono">70</td>
+              <td class="mono">22%</td>
+              <td><div class="bar"><i style="width:70%;background:#818cf8"></i></div><span class="meta" style="font-size:11px">+15.4 pts</span></td>
+            </tr>
+            <tr>
+              <td style="padding-left:20px;color:#64748b;font-size:12px">↳ Maturidade</td>
+              <td class="mono" style="font-size:12px">72</td>
+              <td class="mono" style="font-size:12px">14%</td>
+              <td></td>
+            </tr>
+            <tr>
+              <td style="padding-left:20px;color:#64748b;font-size:12px">↳ Suporte comunidade</td>
+              <td class="mono" style="font-size:12px">68</td>
+              <td class="mono" style="font-size:12px">8%</td>
+              <td></td>
+            </tr>
+          </tbody>
+        </table>
+      </div></div>
+
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card"><div class="pad">
+          <div class="mtitle" style="margin-bottom:10px">Política de decisão</div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;align-items:center;gap:8px">
+              <span class="pill green" style="min-width:100px;text-align:center">Recomendado</span>
+              <span class="meta">V(p) ≥ 70</span>
+              <span class="mono" style="margin-left:auto;font-size:13px">1 proposta</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span class="pill amber" style="min-width:100px;text-align:center">Com reservas</span>
+              <span class="meta">V(p) ≥ 45</span>
+              <span class="mono" style="margin-left:auto;font-size:13px">1 proposta</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span class="pill red" style="min-width:100px;text-align:center">Não recomend.</span>
+              <span class="meta">V(p) &lt; 45</span>
+              <span class="mono" style="margin-left:auto;font-size:13px">0</span>
+            </div>
+          </div>
+        </div></div>
+        <div class="card"><div class="pad">
+          <div class="mtitle" style="margin-bottom:8px">Robustez da ordenação</div>
+          <div class="chip" style="background:#fef3c7;color:#b45309;font-size:12px">⚡ Ordenação mantém-se até ±12% no peso de Segurança</div>
+          <p class="meta" style="margin-top:8px">A proposta B mantém-se em primeiro mesmo se o peso de Segurança variar entre 38% e 62%.</p>
+        </div></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="snote"><span class="stag">P3·S1 RESULTADOS</span><b>Cartões de ranking com cor de banda + painel «Porquê».</b> A cor do top-border é a cor da banda de decisão (verde/amber/cinza). O V(p) fica em destaque grande. O painel «Porquê» mostra contribuição por fator (incluindo compostos) e subcritérios recuados — usa os dados já em <code>aggregationResult.nodeScores</code>. A reprovação por porta fica visualmente clara (cartão cinza, X vermelho). O chip de robustez vem de <code>sensitivity.ts</code>.</div>
+
+
+<!-- ═══════════════════════ FASE 4 ═══════════════════════ -->
+<div class="pbanner p4">
+  <span class="pbg">FASE 4 de 4</span>
+  Relatórios e Exportações Locais — PDF · CSV · JSON · spec IA
+  <span style="margin-left:auto;font-weight:400;font-size:12px;opacity:.75">Ecrã: Report.tsx</span>
+</div>
+
+<!-- P4·S1 — Página de relatório -->
+<div class="frame" id="p4s1">
+  <div class="top">
+    <div class="brand"><span class="logo"></span> Choices</div>
+    <span class="meta" style="margin-left:6px">Propostas Q2 › Relatório</span>
+    <span class="local" style="margin-left:8px">💾 Gerado localmente</span>
+    <button class="btn teal" style="margin-left:auto">↓ Guardar registo de decisão</button>
+  </div>
+  <div class="content">
+    <div style="display:flex;gap:6px;align-items:center;margin-bottom:16px">
+      <div class="step done"><span class="n">✓</span> Análise</div><span style="color:var(--faint)">→</span>
+      <div class="step done"><span class="n">✓</span> Resultados</div><span style="color:var(--faint)">→</span>
+      <div class="step done"><span class="n">✓</span> Sensibilidade</div><span style="color:var(--faint)">→</span>
+      <div class="step on"><span class="n">4</span> Relatório</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 380px;gap:18px">
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <!-- Decision summary -->
+        <div class="card"><div class="pad">
+          <div style="display:flex;align-items:center;gap:16px">
+            <div>
+              <div class="meta">Decisão (vencedora)</div>
+              <div style="font-size:20px;font-weight:700;color:var(--ink)">Proposta B — Recomendado</div>
+            </div>
+            <div style="margin-left:auto;text-align:right">
+              <div class="meta">V(p) global</div>
+              <div style="font-size:24px;font-weight:800;color:var(--green)">78.4</div>
+            </div>
+          </div>
+        </div></div>
+        <!-- Report contents -->
+        <div class="card"><div class="pad">
+          <div class="mtitle" style="margin-bottom:10px">Conteúdo do relatório</div>
+          <div style="display:flex;flex-wrap:wrap;gap:7px">
+            <span class="chip">Decisão &amp; ranking</span>
+            <span class="chip">Contribuições por fator</span>
+            <span class="chip">Metodologia MACBETH</span>
+            <span class="chip">Trilho de auditoria</span>
+            <span class="chip">Escalas &amp; pesos</span>
+            <span class="chip">Versão do modelo</span>
+            <span class="chip">Snapshot do modelo</span>
+          </div>
+          <p class="meta" style="margin-top:10px">Reprodutível: inclui um <b>snapshot imutável</b> do modelo usado, para que a decisão seja auditável por terceiros sem precisar da app.</p>
+        </div></div>
+        <!-- Export formats -->
+        <div class="card"><div class="pad">
+          <div class="mtitle" style="margin-bottom:12px">Formatos de exportação</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px">
+            <button class="btn ghost" style="text-align:left;font-size:13px">
+              📄 <b>PDF</b> — leitura humana<br>
+              <span style="font-size:11px;color:var(--muted)">Relatório formatado, tabelas, metodologia</span>
+            </button>
+            <button class="btn ghost" style="text-align:left;font-size:13px">
+              🔢 <b>CSV</b> — analistas / Excel<br>
+              <span style="font-size:11px;color:var(--muted)">Resultados e contribuições em colunas</span>
+            </button>
+            <button class="btn ghost" style="text-align:left;font-size:13px">
+              { } <b>JSON</b> — avaliação completa<br>
+              <span style="font-size:11px;color:var(--muted)">choices/decision@1 · schema estável</span>
+            </button>
+            <button class="btn ghost" style="text-align:left;font-size:13px">
+              🧠 <b>Spec IA</b> — para agentes<br>
+              <span style="font-size:11px;color:var(--muted)">choices/model-spec@1 · briefing do modelo</span>
+            </button>
+          </div>
+        </div></div>
+      </div>
+
+      <!-- JSON preview -->
+      <div class="card"><div class="pad">
+        <div class="mtitle" style="margin-bottom:6px">Registo de decisão (legível por máquinas)</div>
+        <p class="meta" style="margin:0 0 10px">Schema estável · ficheiro local — copiar ou guardar, sem servidor.</p>
+        <pre class="kbd" style="font-size:11px;line-height:1.55">{
+  "schema": "choices/decision@1",
+  "evaluation": "propostas-q2",
+  "model": {
+    "id": "arquiteturas@v2",
+    "snapshot": { /* ... */ }
+  },
+  "winner": {
+    "optionId": "prop-b",
+    "label": "Proposta B",
+    "score": 78.4,
+    "band": "Recomendado"
+  },
+  "ranking": [
+    { "rank": 1, "optionId": "prop-b",
+      "score": 78.4, "band": "Recomendado" },
+    { "rank": 2, "optionId": "prop-a",
+      "score": 61.2, "band": "Com reservas" },
+    { "eliminated": true, "optionId": "prop-c",
+      "gate": "Conformidade RGPD" }
+  ],
+  "contributions": { /* por fator */ },
+  "generatedAt": "2026-06-20T14:32:00Z",
+  "generatedBy": "choices@3.0.0"
+}</pre>
+      </div></div>
+    </div>
+  </div>
+</div>
+<div class="snote"><span class="stag">P4·S1 RELATÓRIO</span><b>Página de relatório com 4 formatos de exportação, todos gerados localmente.</b> O PDF usa <code>jspdf</code> + <code>jspdf-autotable</code> (já instalados). O CSV serializa <code>aggregationResult</code>. O JSON (<code>choices/decision@1</code>) inclui um snapshot imutável do modelo para auditoria offline. A spec IA (<code>choices/model-spec@1</code>) é gerada por <code>buildModelSpec()</code> já implementado. O badge «Gerado localmente» reforça a proposta de valor local-first — sem chamadas a servidores.</div>
+
+
+<!-- ═══════════════════════ SUMÁRIO DE IMPLEMENTAÇÃO ═══════════════════════ -->
+<div class="frame" id="impl">
+  <div class="top">
+    <div class="brand"><span class="logo"></span> Choices</div>
+    <span class="local">Plano de implementação</span>
+  </div>
+  <div class="content">
+    <h1 class="page" style="font-size:20px;margin-bottom:14px">Sumário de implementação</h1>
+    <table>
+      <thead><tr>
+        <th>Fase</th>
+        <th>Ficheiro(s) afetado(s)</th>
+        <th>Complexidade</th>
+        <th>Preservado</th>
+      </tr></thead>
+      <tbody>
+        <tr style="background:#eef2ff">
+          <td><b style="color:#3730a3">1 — Modo Guiado</b></td>
+          <td class="mono" style="font-size:12px">Scales.tsx · JudgmentMatrixEditor.tsx</td>
+          <td><span class="pill amber">Média</span></td>
+          <td style="color:#15803d;font-size:12px">ScaleRuler, PCHIP, motor LP</td>
+        </tr>
+        <tr style="background:#f0fdfa">
+          <td><b style="color:#0f766e">2 — Home modernizado</b></td>
+          <td class="mono" style="font-size:12px">Home.tsx · indexeddb.ts (+templates JSON)</td>
+          <td><span class="pill green">Baixa</span></td>
+          <td style="color:#15803d;font-size:12px">Fluxos de criação e aplicação intactos</td>
+        </tr>
+        <tr style="background:#fffbeb">
+          <td><b style="color:#b45309">3 — Resultados fluidos</b></td>
+          <td class="mono" style="font-size:12px">Results.tsx</td>
+          <td><span class="pill green">Baixa</span></td>
+          <td style="color:#15803d;font-size:12px">aggregationResult sem alterações</td>
+        </tr>
+        <tr style="background:#f5f3ff">
+          <td><b style="color:#6d28d9">4 — Relatórios locais</b></td>
+          <td class="mono" style="font-size:12px">Report.tsx · (novo CSV export)</td>
+          <td><span class="pill amber">Média</span></td>
+          <td style="color:#15803d;font-size:12px">PDF existente, JSON e spec já implementados</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div style="margin-top:20px;display:grid;grid-template-columns:1fr 1fr;gap:14px">
+      <div style="background:#dcfce7;border:1px solid #86efac;border-radius:12px;padding:14px 16px">
+        <div style="font-weight:700;color:#15803d;font-size:13px;margin-bottom:8px">✅ Confirmado: não muda</div>
+        <ul style="margin:0;padding-left:18px;font-size:12.5px;color:#166534;line-height:1.7">
+          <li><code>engine/</code> — LP, consistência, PCHIP, agregação</li>
+          <li><code>ScaleRuler</code> SVG — PERFORMANCE / PONTOS / brackets / pills</li>
+          <li><code>ScaleFormula</code> — gráfico recharts PCHIP</li>
+          <li>Tipos <code>EvaluationModel</code>, <code>Evaluation</code></li>
+          <li>IndexedDB stores — sem migração de schema</li>
+          <li>Fluxos de criação e aplicação (stepper)</li>
+        </ul>
+      </div>
+      <div style="background:#fef3c7;border:1px solid #fde68a;border-radius:12px;padding:14px 16px">
+        <div style="font-weight:700;color:#92400e;font-size:13px;margin-bottom:8px">🔄 O que muda</div>
+        <ul style="margin:0;padding-left:18px;font-size:12.5px;color:#78350f;line-height:1.7">
+          <li><b>Fase 1:</b> toggle Guiado/Avançado em <code>Scales.tsx</code>; wizard de pares</li>
+          <li><b>Fase 2:</b> <code>Home.tsx</code> redesenhado; templates como JSON estáticos</li>
+          <li><b>Fase 3:</b> <code>Results.tsx</code> — cartões com top-border colorido; tabela «Porquê»</li>
+          <li><b>Fase 4:</b> <code>Report.tsx</code> — botão CSV; redesign da página</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="snote"><span class="stag">SUMÁRIO</span><b>Plano completo em 4 fases independentes.</b> Nenhuma fase quebra o modelo de dados existente. Prioridade recomendada: 3 → 2 → 4 → 1 (das mais simples para as mais complexas de UI). A Fase 1 é a mais rica em UX mas requer o maior esforço de UI — pode ser lançada separadamente sem bloquear as outras.</div>
+
+</body>
+</html>
