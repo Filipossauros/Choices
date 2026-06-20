@@ -18,6 +18,7 @@ import type {
   GateVerdict,
   ValueTreeNode,
   QualificationCriterion,
+  DecisionBand,
 } from '../domain/types';
 import { ROOT_ID } from '../domain/types';
 import { classify } from '../domain/decision';
@@ -107,9 +108,31 @@ export function scoreProfile(
   return global === null ? null : round2(global);
 }
 
+/**
+ * Resolve every decision band's *effective* lower cut-off. A band with a
+ * `referenceProfile` derives its cut-off from that profile's global V(p)
+ * (recomputed live from the current scales + weights); a band without one keeps
+ * its typed `minScore`. A profile that does not cover all qualification criteria
+ * is incomplete — we fall back to the cached `minScore` rather than silently
+ * averaging over a subset. Pure: never mutates the model.
+ */
+export function resolveBands(model: EvaluationModel): DecisionBand[] {
+  const qualIds = Object.values(model.valueTree.criteria)
+    .filter((c) => c.type === 'qualification')
+    .map((c) => c.id);
+  return model.decisionScale.map((b) => {
+    if (!b.referenceProfile) return b;
+    const complete = qualIds.every((id) => b.referenceProfile![id]);
+    if (!complete) return b;
+    const s = scoreProfile(model, b.referenceProfile);
+    return s == null ? b : { ...b, minScore: s };
+  });
+}
+
 export function aggregate(evaluation: Evaluation): AggregationResult {
   const { model, options, performances } = evaluation;
-  const { valueTree, derivedScales, decisionScale } = model;
+  const { valueTree, derivedScales } = model;
+  const decisionScale = resolveBands(model);
   const { criteria } = valueTree;
 
   const perfMap = new Map<string, Map<string, { value: string; position?: number }>>();

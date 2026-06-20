@@ -65,9 +65,31 @@ function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; on
     if (j < 0 || j >= orderedChildIds.length) return;
     const next = [...orderedChildIds];
     [next[i], next[j]] = [next[j], next[i]];
+
+    // Re-key the existing judgments to the new order so already-given answers
+    // stay in the matrix (the magnitude is symmetric; only which side is the
+    // "more attractive" row changes). ALL_NEUTRAL always ranks last.
+    const rank = new Map(next.map((id, k) => [id, k] as const));
+    const rankOf = (id: string) => (id === ALL_NEUTRAL ? Number.MAX_SAFE_INTEGER : rank.get(id) ?? Number.MAX_SAFE_INTEGER - 1);
+    const remapped: Record<string, MacbethJudgment> = {};
+    for (const [key, value] of Object.entries(matrix.judgments)) {
+      const [a, b] = key.split('__');
+      const [first, second] = rankOf(a) <= rankOf(b) ? [a, b] : [b, a];
+      remapped[`${first}__${second}`] = value;
+    }
+
+    const updatedMatrix: JudgmentMatrix = { ...matrix, judgments: remapped, updatedAt: new Date().toISOString() };
     dispatch({
       type: 'UPDATE_MODEL',
-      patch: { weightOrder: { ...(model.weightOrder ?? {}), [group.parentId]: next } },
+      patch: {
+        weightOrder: { ...(model.weightOrder ?? {}), [group.parentId]: next },
+        judgmentMatrices: [
+          ...model.judgmentMatrices.filter(
+            (m) => !(m.kind === 'weighting' && (m.criterionId ?? ROOT_ID) === group.parentId),
+          ),
+          updatedMatrix,
+        ],
+      },
     });
   }
 
