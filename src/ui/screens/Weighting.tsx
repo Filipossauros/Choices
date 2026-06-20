@@ -5,6 +5,7 @@ import { DEFAULT_ASSESSOR_ID, ROOT_ID } from '../../domain/types';
 import { deriveWeights, ALL_NEUTRAL } from '../../engine/weighting';
 import { weightingGroups, weightsForGroup, setGroupWeights, groupConsistent, type Group } from '../../domain/tree';
 import JudgmentMatrixEditor from '../components/JudgmentMatrixEditor';
+import GuidedJudgments from '../components/GuidedJudgments';
 import ScreenNav from '../components/ScreenNav';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -13,6 +14,7 @@ function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; on
   const { state, dispatch } = useApp();
   const model = state.model!;
   const [deriving, setDeriving] = useState(false);
+  const [guided, setGuided] = useState(true);
 
   const { criteria } = model.valueTree;
   const childCrits = group.childIds.map((id) => criteria[id]).filter(Boolean);
@@ -86,7 +88,52 @@ function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; on
             </p>
           ) : (
             <>
-              <JudgmentMatrixEditor items={matrixItems} judgments={matrix.judgments} onChange={updateJudgments} />
+              {/* Mode toggle */}
+              <div className="flex items-center justify-end">
+                <div className="flex items-center rounded-lg border border-gray-200 bg-gray-50 p-0.5 text-xs">
+                  <button
+                    onClick={() => setGuided(true)}
+                    className={`px-3 py-1 rounded-md font-medium transition-colors ${guided ? 'bg-white shadow text-blue-700' : 'text-gray-500 hover:text-gray-700'}`}
+                  >
+                    Guiado
+                  </button>
+                  <button
+                    onClick={() => setGuided(false)}
+                    className={`px-3 py-1 rounded-md font-medium transition-colors ${!guided ? 'bg-white shadow text-gray-800' : 'text-gray-500 hover:text-gray-700'}`}
+                  >
+                    Avançado
+                  </button>
+                </div>
+              </div>
+
+              {guided ? (
+                <GuidedJudgments
+                  items={matrixItems}
+                  judgments={matrix.judgments}
+                  onChange={updateJudgments}
+                  emptyHint="São necessários pelo menos 2 critérios."
+                  renderQuestion={(more, less) =>
+                    less.id === ALL_NEUTRAL ? (
+                      <>
+                        Partindo de um cenário em que <strong>tudo</strong> está no nível <em>Neutro</em>, qual a
+                        atratividade de melhorar apenas{' '}
+                        <span className="inline-block bg-white border border-blue-400 rounded-lg px-2 py-0.5 font-semibold text-blue-700">{more.label}</span>
+                        {' '}de <em>Neutro</em> para <em>Bom</em>?
+                      </>
+                    ) : (
+                      <>
+                        Qual a diferença de atratividade entre melhorar{' '}
+                        <span className="inline-block bg-white border border-blue-400 rounded-lg px-2 py-0.5 font-semibold text-blue-700">{more.label}</span>
+                        {' '}e melhorar{' '}
+                        <span className="inline-block bg-white border border-gray-300 rounded-lg px-2 py-0.5 font-semibold text-gray-700">{less.label}</span>
+                        , cada um de <em>Neutro</em> para <em>Bom</em>?
+                      </>
+                    )
+                  }
+                />
+              ) : (
+                <JudgmentMatrixEditor items={matrixItems} judgments={matrix.judgments} onChange={updateJudgments} />
+              )}
               <button
                 onClick={handleDerive}
                 disabled={deriving || Object.keys(matrix.judgments).length === 0}

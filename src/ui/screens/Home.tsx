@@ -224,6 +224,7 @@ export default function Home() {
   const [importing, setImporting] = useState(false);
   const [showAllModels, setShowAllModels] = useState(false);
   const [showAllEvals, setShowAllEvals] = useState(false);
+  const [pickModel, setPickModel] = useState(false);
 
   const refresh = useCallback(() => {
     repository.listModels().then(setModels).catch(() => {});
@@ -301,59 +302,53 @@ export default function Home() {
       <div className="flex items-center gap-5 mb-10">
         <TealRobotMascot />
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">o que vais decidir hoje?</h1>
+          <h1 className="text-2xl font-bold text-gray-900">O que vais decidir hoje?</h1>
           <p className="text-gray-500 text-sm mt-1">
-            Avaliação multicritério pelo método MACBETH — guardado neste dispositivo.{' '}
-            <span className="inline-flex items-center gap-1 text-teal-700 font-medium text-xs bg-teal-50 border border-teal-200 rounded-full px-2 py-0.5">
-              💾 local
-            </span>
+            Avaliação multicritério de propostas ou posições
           </p>
         </div>
       </div>
 
       {/* ── Main action cards ── */}
       <div className="grid sm:grid-cols-2 gap-4 mb-8">
-        <div className="rounded-2xl border-2 border-indigo-100 bg-gradient-to-b from-indigo-50 to-white p-5">
+        <div className="rounded-2xl border-2 border-indigo-100 bg-gradient-to-b from-indigo-50 to-white p-5 flex flex-col">
           <div className="text-2xl mb-2">🛠️</div>
           <h2 className="font-bold text-indigo-900 text-base mb-1">Criar modelo de avaliação</h2>
-          <p className="text-sm text-indigo-700/70 mb-4">
+          <p className="text-sm text-indigo-700/70 mb-4 flex-1">
             Definir critérios, escalas de valor, pesos e perfis de decisão.
           </p>
-          <div className="flex flex-wrap gap-2">
+          <div>
             <button onClick={newModel} className="px-3 py-1.5 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium">
               + Novo modelo
             </button>
-            <label className={`px-3 py-1.5 text-sm bg-white border border-indigo-200 text-indigo-700 rounded-lg hover:bg-indigo-50 font-medium cursor-pointer ${importing ? 'opacity-50' : ''}`}>
-              ↑ Importar JSON
-              <input type="file" accept=".json" className="hidden" onChange={(e) => handleImport(e, 'create')} />
-            </label>
           </div>
         </div>
 
-        <div className="rounded-2xl border-2 border-emerald-100 bg-gradient-to-b from-emerald-50 to-white p-5">
+        <div className="rounded-2xl border-2 border-emerald-100 bg-gradient-to-b from-emerald-50 to-white p-5 flex flex-col">
           <div className="text-2xl mb-2">📋</div>
-          <h2 className="font-bold text-emerald-900 text-base mb-1">Aplicar modelo para avaliar</h2>
-          <p className="text-sm text-emerald-700/70 mb-4">
-            Registar propostas, habilitá-las e obter resultados com um modelo existente.
+          <h2 className="font-bold text-emerald-900 text-base mb-1">Avaliar propostas ou posições</h2>
+          <p className="text-sm text-emerald-700/70 mb-4 flex-1">
+            Aplicar um modelo a um conjunto concreto de alternativas e obter resultados.
           </p>
-          <div className="flex flex-wrap gap-2">
+          <div className="space-y-2">
             {models.length === 0 ? (
-              <span className="text-xs text-gray-400 italic pt-1">Cria um modelo primeiro.</span>
-            ) : (
-              models.slice(0, 2).map((m) => (
-                <button
-                  key={m.id}
-                  onClick={() => applyModel(m.id)}
-                  className="px-3 py-1.5 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-medium max-w-[180px] truncate"
-                >
-                  {m.label}
-                </button>
-              ))
-            )}
-            {models.length > 2 && (
-              <button onClick={() => {}} className="px-3 py-1.5 text-sm bg-white border border-emerald-200 text-emerald-700 rounded-lg hover:bg-emerald-50 font-medium">
-                ver todos →
+              <span className="text-xs text-gray-400 italic">Cria um modelo primeiro.</span>
+            ) : !pickModel ? (
+              <button onClick={() => setPickModel(true)} className="px-3 py-1.5 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-medium">
+                + Nova avaliação
               </button>
+            ) : (
+              <select
+                autoFocus
+                defaultValue=""
+                onChange={(e) => { if (e.target.value) applyModel(e.target.value); }}
+                className="w-full border border-emerald-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:ring-1 focus:ring-emerald-400"
+              >
+                <option value="" disabled>Escolher modelo a avaliar…</option>
+                {models.map((m) => (
+                  <option key={m.id} value={m.id}>{m.label}</option>
+                ))}
+              </select>
             )}
           </div>
         </div>
@@ -366,16 +361,22 @@ export default function Home() {
           {/* Models */}
           <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
             <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-              <h3 className="font-semibold text-gray-800 text-sm">Modelos</h3>
-              {models.length > 3 && (
-                <button onClick={() => setShowAllModels(!showAllModels)} className="text-xs text-indigo-600 hover:underline">
-                  {showAllModels ? 'Mostrar menos' : `Ver todos (${models.length})`}
-                </button>
-              )}
+              <h3 className="font-semibold text-gray-800 text-sm">Modelos disponíveis</h3>
+              <div className="flex items-center gap-3">
+                {models.length > 3 && (
+                  <button onClick={() => setShowAllModels(!showAllModels)} className="text-xs text-indigo-600 hover:underline">
+                    {showAllModels ? 'Mostrar menos' : `Ver todos (${models.length})`}
+                  </button>
+                )}
+                <label className={`text-xs text-indigo-600 hover:text-indigo-800 font-medium cursor-pointer ${importing ? 'opacity-50 pointer-events-none' : ''}`}>
+                  {importing ? 'A importar…' : '↑ Importar JSON'}
+                  <input type="file" accept=".json" className="hidden" onChange={(e) => handleImport(e, 'create')} />
+                </label>
+              </div>
             </div>
             {recentModels.length === 0 ? (
               <p className="px-4 py-5 text-sm text-gray-400 italic">
-                Ainda sem modelos. Usa um modelo-base à direita ou começa do zero.
+                Ainda sem modelos. Cria um do zero, importa um JSON ou usa um modelo-base à direita.
               </p>
             ) : (
               <ul className="divide-y divide-gray-100">
@@ -386,7 +387,7 @@ export default function Home() {
                       <StatusPill updatedAt={m.updatedAt} />
                     </div>
                     <button onClick={() => editModel(m.id)} className="text-xs text-indigo-600 hover:text-indigo-800 font-medium">Editar</button>
-                    <button onClick={() => applyModel(m.id)} className="text-xs text-emerald-600 hover:text-emerald-800 font-medium">Aplicar</button>
+                    <button onClick={() => applyModel(m.id)} className="text-xs text-emerald-600 hover:text-emerald-800 font-medium">Avaliar</button>
                     <button onClick={() => deleteModel(m.id)} className="text-gray-300 hover:text-red-400 text-xs">✕</button>
                   </li>
                 ))}
@@ -398,15 +399,21 @@ export default function Home() {
           <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
             <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
               <h3 className="font-semibold text-gray-800 text-sm">Avaliações recentes</h3>
-              {evaluations.length > 2 && (
-                <button onClick={() => setShowAllEvals(!showAllEvals)} className="text-xs text-indigo-600 hover:underline">
-                  {showAllEvals ? 'Mostrar menos' : `Ver todas (${evaluations.length})`}
-                </button>
-              )}
+              <div className="flex items-center gap-3">
+                {evaluations.length > 2 && (
+                  <button onClick={() => setShowAllEvals(!showAllEvals)} className="text-xs text-indigo-600 hover:underline">
+                    {showAllEvals ? 'Mostrar menos' : `Ver todas (${evaluations.length})`}
+                  </button>
+                )}
+                <label className={`text-xs text-indigo-600 hover:text-indigo-800 font-medium cursor-pointer ${importing ? 'opacity-50 pointer-events-none' : ''}`}>
+                  {importing ? 'A importar…' : '↑ Importar JSON'}
+                  <input type="file" accept=".json" className="hidden" onChange={(e) => handleImport(e, 'apply')} />
+                </label>
+              </div>
             </div>
             {recentEvals.length === 0 ? (
               <p className="px-4 py-5 text-sm text-gray-400 italic">
-                Sem avaliações em curso. Aplica um modelo a um conjunto de propostas.
+                Sem avaliações em curso. Inicia uma nova avaliação acima ou importa um JSON de uma avaliação anterior.
               </p>
             ) : (
               <ul className="divide-y divide-gray-100">
@@ -423,12 +430,6 @@ export default function Home() {
               </ul>
             )}
           </div>
-
-          {/* Import evaluation */}
-          <label className={`block py-3 text-center border-2 border-dashed border-gray-200 rounded-xl cursor-pointer hover:border-indigo-300 hover:bg-indigo-50 transition-colors ${importing ? 'opacity-50' : ''}`}>
-            <span className="text-sm text-gray-500">{importing ? 'A importar…' : '↑ Importar avaliação (JSON)'}</span>
-            <input type="file" accept=".json" className="hidden" onChange={(e) => handleImport(e, 'apply')} />
-          </label>
         </div>
 
         {/* ── Sidebar: templates + links ── */}
