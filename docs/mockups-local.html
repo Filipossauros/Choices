@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Choices — Proposta de UI (local-first, sem backend)</title>
+<style>
+  :root{
+    --indigo:#4f46e5; --indigo-50:#eef2ff; --indigo-100:#e0e7ff;
+    --teal:#0d9488; --teal-50:#f0fdfa;
+    --ink:#0f172a; --body:#334155; --muted:#64748b; --faint:#94a3b8;
+    --line:#e2e8f0; --line2:#eef2f6; --bg:#f6f7fb; --card:#ffffff;
+    --green:#16a34a; --amber:#d97706; --red:#dc2626; --sky:#0284c7;
+    --shadow:0 1px 2px rgba(15,23,42,.04),0 6px 20px rgba(15,23,42,.05);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+       background:var(--bg);color:var(--body);-webkit-font-smoothing:antialiased}
+  .frame{width:1080px;background:var(--bg)}
+  .top{height:54px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;padding:0 22px}
+  .brand{display:flex;align-items:center;gap:9px;font-weight:700;color:var(--ink);font-size:16px}
+  .brand .logo{width:24px;height:24px;border-radius:7px;background:linear-gradient(135deg,#14b8a6,#4f46e5);display:inline-block}
+  .local{font-size:11px;color:#0f766e;background:var(--teal-50);border:1px solid #99f6e4;border-radius:999px;padding:3px 9px;font-weight:600}
+  .btn{border:0;border-radius:9px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer}
+  .btn.pri{background:var(--indigo);color:#fff}
+  .btn.soft{background:var(--indigo-50);color:#4338ca}
+  .btn.ghost{background:#fff;border:1px solid var(--line);color:var(--body)}
+  .btn.teal{background:var(--teal);color:#fff}
+  .content{padding:26px}
+  h1.page{font-size:22px;color:var(--ink);margin:0 0 3px;font-weight:700}
+  .sub{color:var(--muted);font-size:13.5px;margin:0 0 18px}
+  .grid{display:grid;gap:16px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow)}
+  .card .pad{padding:16px 18px}
+  .mtitle{font-weight:600;color:var(--ink);font-size:14px}
+  .meta{color:var(--muted);font-size:12px}
+  .pill{font-size:11px;padding:3px 9px;border-radius:999px;font-weight:600}
+  .pill.gray{background:#f1f5f9;color:#64748b}
+  .pill.green{background:#dcfce7;color:#15803d}
+  .pill.amber{background:#fef3c7;color:#b45309}
+  .pill.indigo{background:var(--indigo-100);color:#4338ca}
+  .pill.red{background:#fee2e2;color:#b91c1c}
+  .pill.sky{background:#e0f2fe;color:#0369a1}
+  .bar{height:8px;border-radius:999px;background:#eef2f6;overflow:hidden}
+  .bar>i{display:block;height:100%;border-radius:999px}
+  .chip{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;padding:3px 9px;border-radius:999px;background:#f1f5f9;color:#475569;font-weight:500}
+  .divider{height:1px;background:var(--line2);margin:14px 0}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  .kbd{font-family:ui-monospace,monospace;background:#0f172a;color:#7dd3fc;border-radius:9px;padding:11px 13px;font-size:11.5px;display:block;white-space:pre;overflow:auto;line-height:1.5}
+  .toggle{display:inline-flex;background:#f1f5f9;border-radius:9px;padding:3px}
+  .toggle span{padding:5px 12px;border-radius:7px;font-size:12.5px;font-weight:600;color:#64748b}
+  .toggle span.on{background:#fff;color:var(--indigo);box-shadow:0 1px 2px rgba(0,0,0,.06)}
+  .step{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--muted)}
+  .step .n{width:20px;height:20px;border-radius:50%;background:#e2e8f0;color:#64748b;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center}
+  .step.on .n{background:var(--indigo);color:#fff}.step.on{color:var(--ink);font-weight:600}
+  .step.done .n{background:var(--green);color:#fff}
+  .cscale{display:flex;align-items:center;gap:0;margin:8px 0}
+  .cseg{flex:1;height:30px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#64748b;border-right:2px solid #fff;background:#eef2f6}
+  .cseg:first-child{border-radius:8px 0 0 8px}.cseg:last-child{border-radius:0 8px 8px 0;border-right:0}
+  table{border-collapse:collapse;width:100%;font-size:13px}
+  td,th{text-align:left;padding:8px 10px}
+  thead th{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--faint);border-bottom:1px solid var(--line)}
+  tbody tr{border-bottom:1px solid var(--line2)}
+  .note{width:1080px;background:#0b1220;color:#e2e8f0;padding:18px 24px;font-size:13.5px;line-height:1.55}
+  .note b{color:#fff}
+  .note .tag{display:inline-block;background:var(--indigo);color:#fff;font-size:11px;font-weight:700;border-radius:6px;padding:2px 8px;margin-right:8px}
+  .note ul{margin:8px 0 0;padding-left:18px}.note li{margin:3px 0}
+  .robot{width:88px;height:96px}
+</style>
+</head>
+<body>
+
+<!-- ===================================================== 1. HOME / BIBLIOTECA -->
+<div class="frame" id="m1">
+  <div class="top">
+    <div class="brand"><span class="logo"></span> Choices</div>
+    <span class="local">💾 Guardado neste dispositivo</span>
+    <div style="margin-left:auto;display:flex;gap:8px">
+      <button class="btn ghost">↑ Importar (JSON)</button>
+      <button class="btn pri">+ Novo modelo</button>
+    </div>
+  </div>
+  <div class="content">
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px">
+      <svg class="robot" viewBox="0 0 120 130" xmlns="http://www.w3.org/2000/svg">
+        <line x1="43" y1="18" x2="38" y2="6" stroke="#0d9488" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="77" y1="18" x2="82" y2="6" stroke="#0d9488" stroke-width="2.5" stroke-linecap="round"/>
+        <circle cx="38" cy="5" r="4" fill="#f59e0b"/><circle cx="82" cy="5" r="4" fill="#f59e0b"/>
+        <rect x="20" y="14" width="80" height="56" rx="25" fill="#14b8a6"/>
+        <circle cx="20" cy="44" r="14" fill="#0d9488"/><circle cx="20" cy="44" r="7" fill="#14b8a6"/>
+        <circle cx="100" cy="44" r="14" fill="#0d9488"/><circle cx="100" cy="44" r="7" fill="#14b8a6"/>
+        <ellipse cx="43" cy="41" rx="10" ry="11" fill="#fff"/><ellipse cx="77" cy="41" rx="10" ry="11" fill="#fff"/>
+        <circle cx="44" cy="42" r="6" fill="#0f172a"/><circle cx="78" cy="42" r="6" fill="#0f172a"/>
+        <path d="M42 60 Q60 72 78 60" stroke="#0f172a" stroke-width="3" fill="none" stroke-linecap="round"/>
+      </svg>
+      <div>
+        <h1 class="page" style="font-size:24px">o que vais decidir hoje?</h1>
+        <p class="sub" style="margin:0">Avaliação multicritério de alternativas pelo método MACBETH — tudo no teu dispositivo.</p>
+      </div>
+    </div>
+
+    <div class="grid" style="grid-template-columns:1fr 1fr;margin-bottom:22px">
+      <div class="card" style="border:2px solid var(--indigo-100);background:linear-gradient(180deg,#fbfbff,#fff)"><div class="pad" style="padding:20px">
+        <div style="font-size:22px">🛠️</div>
+        <div class="mtitle" style="font-size:16px;margin-top:4px">Criar modelo de avaliação</div>
+        <p class="meta" style="margin:4px 0 12px">Definir critérios (e subfatores), escalas de valor, pesos e perfis de decisão.</p>
+        <button class="btn pri">Começar →</button>
+      </div></div>
+      <div class="card" style="border:2px solid #bbf7d0;background:linear-gradient(180deg,#f7fefb,#fff)"><div class="pad" style="padding:20px">
+        <div style="font-size:22px">📋</div>
+        <div class="mtitle" style="font-size:16px;margin-top:4px">Aplicar modelo para avaliar</div>
+        <p class="meta" style="margin:4px 0 12px">Registar propostas, habilitá-las e obter resultados com um modelo.</p>
+        <button class="btn teal">Escolher modelo →</button>
+      </div></div>
+    </div>
+
+    <div class="grid" style="grid-template-columns:1.4fr 1fr">
+      <div class="card"><div class="pad">
+        <div style="display:flex;align-items:center;margin-bottom:8px"><span class="mtitle">Os teus modelos</span><a style="margin-left:auto;color:var(--indigo);font-size:12.5px;text-decoration:none">ver todos</a></div>
+        <table>
+          <tbody>
+            <tr><td><b style="color:var(--ink)">Risco de plataforma</b><div class="meta">root → HealthStatus, Criticidade, …</div></td><td><span class="pill green">Pronto</span></td><td class="meta">há 2 h</td><td style="text-align:right"><span class="meta">Editar · Aplicar</span></td></tr>
+            <tr><td><b style="color:var(--ink)">Avaliação de arquiteturas</b><div class="meta">Segurança, Interop., Tecnologia</div></td><td><span class="pill amber">Em construção</span></td><td class="meta">há 1 d</td><td style="text-align:right"><span class="meta">Editar</span></td></tr>
+            <tr><td><b style="color:var(--ink)">Seleção de fornecedores</b><div class="meta">Custo, SLA, Conformidade</div></td><td><span class="pill green">Pronto</span></td><td class="meta">há 4 d</td><td style="text-align:right"><span class="meta">Editar · Aplicar</span></td></tr>
+          </tbody>
+        </table>
+        <div class="divider"></div>
+        <div style="display:flex;align-items:center;margin-bottom:8px"><span class="mtitle">Avaliações recentes</span></div>
+        <table><tbody>
+          <tr><td><b style="color:var(--ink)">Propostas Q2 — arquitetura</b><div class="meta">3 propostas · 1 recomendada</div></td><td><span class="pill sky">Concluída</span></td><td class="meta">há 1 d</td><td style="text-align:right"><span class="meta">Abrir · Relatório</span></td></tr>
+        </tbody></table>
+      </div></div>
+
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <div class="card"><div class="pad">
+          <span class="mtitle">Modelos-base</span>
+          <p class="meta" style="margin:5px 0 10px">Arranca com um exemplo pronto e adapta.</p>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <button class="btn ghost" style="text-align:left">🏛️ Avaliação de arquiteturas de SI</button>
+            <button class="btn ghost" style="text-align:left">📡 Risco / monitorização de plataforma</button>
+            <button class="btn ghost" style="text-align:left">🧾 Seleção de fornecedores</button>
+          </div>
+        </div></div>
+        <div class="card"><div class="pad" style="display:flex;flex-direction:column;gap:8px">
+          <span class="meta">📘 Como funciona o método MACBETH</span>
+          <span class="meta">🧩 Manifesto de capacidades (para IA)</span>
+        </div></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="note"><span class="tag">1 · INÍCIO MODERNIZADO (local)</span><b>Mantém o modelo de duas portas — Criar / Aplicar — mas com aspeto moderno e uma biblioteca.</b> Continua tudo no dispositivo (IndexedDB), sem login nem servidor: o selo «Guardado neste dispositivo» torna isso explícito.
+  <ul><li>Acrescenta uma <b>biblioteca</b> (modelos + avaliações recentes com estado) e <b>modelos-base</b> para arrancar de um exemplo — reduz o atrito sem qualquer infraestrutura.</li><li>Sem equipas, avatares ou aprovações multi-utilizador — fora a camada colaborativa.</li></ul>
+</div>
+
+<!-- ===================================================== 2. MODO GUIADO -->
+<div class="frame" id="m2">
+  <div class="top">
+    <div class="brand"><span class="logo"></span> Choices</div>
+    <span class="meta" style="margin-left:6px">Risco de plataforma › Escala · Latência</span>
+    <div class="toggle" style="margin-left:auto"><span>Avançado</span><span class="on">Guiado</span></div>
+    <button class="btn ghost" style="margin-left:10px">? Glossário</button>
+  </div>
+  <div class="content" style="max-width:880px;margin:0 auto">
+    <div style="display:flex;gap:16px;margin-bottom:18px">
+      <div class="step done"><span class="n">✓</span> Critérios</div><span style="color:var(--faint)">→</span>
+      <div class="step on"><span class="n">2</span> Escalas</div><span style="color:var(--faint)">→</span>
+      <div class="step"><span class="n">3</span> Pesos</div><span style="color:var(--faint)">→</span>
+      <div class="step"><span class="n">4</span> Decisão</div>
+    </div>
+    <div class="card"><div class="pad" style="padding:24px 28px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span class="pill indigo">Pergunta 3 de 6</span>
+        <span class="meta" style="margin-left:auto">Sem jargão · respostas em linguagem comum</span>
+      </div>
+      <h1 class="page" style="font-size:22px;margin-top:10px">Em latência, quão melhor é <span style="color:var(--teal)">«&lt; 100 ms»</span> do que <span style="color:var(--muted)">«100–300 ms»</span>?</h1>
+      <p class="sub">Pense no impacto real para o utilizador. Não precisa de números — escolha a frase que descreve a diferença.</p>
+      <div class="grid" style="grid-template-columns:1fr 1fr;gap:12px;margin-top:4px">
+        <div style="border:1px solid var(--line);border-radius:12px;padding:14px"><div style="font-weight:600;color:var(--muted)">Diferença mínima</div><div class="meta">mal se nota</div></div>
+        <div style="border:1px solid var(--line);border-radius:12px;padding:14px"><div style="font-weight:600;color:var(--body)">Diferença pequena</div><div class="meta">ligeiramente melhor</div></div>
+        <div style="border:1px solid var(--line);border-radius:12px;padding:14px"><div style="font-weight:600;color:var(--body)">Diferença moderada</div><div class="meta">claramente melhor</div></div>
+        <div style="border:2px solid var(--indigo);border-radius:12px;padding:14px;background:var(--indigo-50)"><div style="font-weight:700;color:#4338ca">Diferença grande ✓</div><div class="meta" style="color:#4338ca">muito melhor para o utilizador</div></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;margin-top:18px;padding:11px 14px;background:var(--teal-50);border:1px solid #99f6e4;border-radius:10px">
+        <span style="font-size:18px">🤖</span>
+        <span style="font-size:12.5px;color:#0f766e">Corresponde a uma diferença <b>«Forte (C4)»</b> em MACBETH. Pode ver e ajustar no <b>modo Avançado</b> a qualquer momento.</span>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:20px">
+        <button class="btn ghost">← Anterior</button>
+        <button class="btn pri" style="margin-left:auto">Pergunta seguinte →</button>
+      </div>
+    </div></div>
+    <p class="meta" style="text-align:center;margin-top:14px">💡 No fim, o Choices mostra a escala derivada e avisa se houver respostas <b>inconsistentes</b>, sugerindo a correção.</p>
+  </div>
+</div>
+<div class="note"><span class="tag">2 · MODO GUIADO (o que gostaste)</span><b>Simplifica para quem não conhece o método.</b> Alternável com o modo Avançado, troca o jargão («C0–C6», «oscilação», «Tudo-Neutro») por perguntas em linguagem comum, uma de cada vez, com cartões de resposta. Por baixo continua MACBETH rigoroso — a nota mostra o mapeamento. 100% local, sem qualquer dependência de backend.
+</div>
+
+<!-- ===================================================== 3. RESULTADOS MODERNOS -->
+<div class="frame" id="m3">
+  <div class="top">
+    <div class="brand"><span class="logo"></span> Choices</div>
+    <span class="meta" style="margin-left:6px">Propostas Q2 — arquitetura</span>
+    <div style="margin-left:auto;display:flex;gap:8px">
+      <button class="btn ghost">↓ Exportar</button>
+      <button class="btn soft">Relatório →</button>
+    </div>
+  </div>
+  <div class="content">
+    <div style="display:flex;gap:16px;margin-bottom:16px">
+      <div class="step done"><span class="n">✓</span> Análise</div><span style="color:var(--faint)">→</span>
+      <div class="step on"><span class="n">2</span> Resultados</div><span style="color:var(--faint)">→</span>
+      <div class="step"><span class="n">3</span> Sensibilidade</div><span style="color:var(--faint)">→</span>
+      <div class="step"><span class="n">4</span> Relatório</div>
+    </div>
+    <div class="grid" style="grid-template-columns:1fr 1fr 1fr;margin-bottom:16px">
+      <div class="card" style="border-top:3px solid var(--green)"><div class="pad">
+        <div class="meta">#1 · Recomendado</div><div class="mtitle" style="font-size:15px">Proposta B — Microsserviços</div>
+        <div style="font-size:30px;font-weight:800;color:var(--ink);margin:4px 0">78.4</div>
+        <div class="bar"><i style="width:78%;background:var(--green)"></i></div>
+      </div></div>
+      <div class="card" style="border-top:3px solid var(--amber)"><div class="pad">
+        <div class="meta">#2 · Com reservas</div><div class="mtitle" style="font-size:15px">Proposta A — Monólito modular</div>
+        <div style="font-size:30px;font-weight:800;color:var(--ink);margin:4px 0">61.2</div>
+        <div class="bar"><i style="width:61%;background:var(--amber)"></i></div>
+      </div></div>
+      <div class="card" style="border-top:3px solid #cbd5e1"><div class="pad">
+        <div class="meta">— · Reprovado (porta)</div><div class="mtitle" style="font-size:15px">Proposta C — Serverless</div>
+        <div style="font-size:30px;font-weight:800;color:var(--faint);margin:4px 0">—</div>
+        <div class="meta">Falha: Conformidade RGPD</div>
+      </div></div>
+    </div>
+    <div class="grid" style="grid-template-columns:1.3fr 1fr">
+      <div class="card"><div class="pad">
+        <span class="mtitle">Porquê — contribuições por fator (vencedora)</span>
+        <table style="margin-top:8px">
+          <thead><tr><th>Fator</th><th>Valor</th><th>Peso ef.</th><th>Contribuição</th></tr></thead>
+          <tbody>
+            <tr><td>Segurança <span class="meta">(composto)</span></td><td class="mono">82</td><td class="mono">50%</td><td><div class="bar" style="width:120px"><i style="width:82%;background:var(--indigo)"></i></div></td></tr>
+            <tr><td>Interoperabilidade</td><td class="mono">75</td><td class="mono">28%</td><td><div class="bar" style="width:120px"><i style="width:75%;background:#6366f1"></i></div></td></tr>
+            <tr><td>Tecnologia <span class="meta">(composto)</span></td><td class="mono">70</td><td class="mono">22%</td><td><div class="bar" style="width:120px"><i style="width:70%;background:#818cf8"></i></div></td></tr>
+          </tbody>
+        </table>
+      </div></div>
+      <div class="card"><div class="pad">
+        <span class="mtitle">Política de decisão</span>
+        <div style="margin-top:10px;display:flex;flex-direction:column;gap:7px">
+          <div style="display:flex;align-items:center;gap:8px"><span class="pill green" style="width:96px;text-align:center">Recomendado</span><span class="meta">V(p) ≥ 70</span><span style="margin-left:auto" class="mono">1 proposta</span></div>
+          <div style="display:flex;align-items:center;gap:8px"><span class="pill amber" style="width:96px;text-align:center">Com reservas</span><span class="meta">V(p) ≥ 45</span><span style="margin-left:auto" class="mono">1 proposta</span></div>
+          <div style="display:flex;align-items:center;gap:8px"><span class="pill red" style="width:96px;text-align:center">Não recom.</span><span class="meta">V(p) &lt; 45</span><span style="margin-left:auto" class="mono">0</span></div>
+        </div>
+        <div class="divider"></div>
+        <span class="chip" style="background:#fef3c7;color:#b45309">⚡ Sensibilidade: ordenação robusta até ±12% no peso de Segurança</span>
+      </div></div>
+    </div>
+  </div>
+</div>
+<div class="note"><span class="tag">3 · AVALIAÇÃO MAIS FLUIDA</span><b>O fluxo de avaliação ganha o mesmo aspeto moderno.</b> Cartões de ranking com cor de decisão, V(p) destacado, e um painel «Porquê» que explica a decisão pelas contribuições de cada fator — incluindo os compostos da hierarquia. Reprovação por porta fica clara (Proposta C). Tudo local; nada muda na arquitetura de dados.
+</div>
+
+<!-- ===================================================== 4. REGISTO + EXPORTS LOCAIS -->
+<div class="frame" id="m4">
+  <div class="top">
+    <div class="brand"><span class="logo"></span> Choices</div>
+    <span class="meta" style="margin-left:6px">Propostas Q2 › Relatório</span>
+    <span class="local" style="margin-left:8px">💾 Gerado localmente</span>
+    <button class="btn teal" style="margin-left:auto">↓ Guardar registo de decisão</button>
+  </div>
+  <div class="content">
+    <div class="grid" style="grid-template-columns:1fr 380px">
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <div class="card"><div class="pad">
+          <div style="display:flex;align-items:center"><div><div class="meta">Decisão (vencedora)</div><div style="font-size:20px;font-weight:700;color:var(--ink)">Proposta B — Recomendado</div></div>
+            <div style="margin-left:auto;text-align:right"><div class="meta">V(p)</div><div style="font-size:20px;font-weight:700;color:var(--green)">78.4</div></div></div>
+        </div></div>
+        <div class="card"><div class="pad">
+          <span class="mtitle">Conteúdo do relatório</span>
+          <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:7px">
+            <span class="chip">Decisão &amp; ranking</span><span class="chip">Contribuições por fator</span><span class="chip">Metodologia MACBETH</span><span class="chip">Trilho de auditoria</span><span class="chip">Escalas &amp; pesos</span><span class="chip">Versão do modelo</span>
+          </div>
+          <p class="meta" style="margin-top:10px">Reprodutível: inclui um <b>snapshot imutável</b> do modelo usado, para que a decisão seja auditável por terceiros — sem precisar da app.</p>
+        </div></div>
+        <div class="card"><div class="pad">
+          <span class="mtitle">Formatos de exportação</span>
+          <div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:9px">
+            <button class="btn ghost" style="text-align:left">📄 PDF — leitura humana</button>
+            <button class="btn ghost" style="text-align:left">🔢 CSV — analistas / Excel</button>
+            <button class="btn ghost" style="text-align:left">{ } JSON — avaliação completa</button>
+            <button class="btn ghost" style="text-align:left">🧠 Especificação (IA)</button>
+          </div>
+        </div></div>
+      </div>
+      <div class="card"><div class="pad">
+        <span class="mtitle">Registo de decisão (legível por máquinas)</span>
+        <p class="meta" style="margin:6px 0 10px">Schema estável para ingestão por outros sistemas. Ficheiro local — <b>copiar</b> ou <b>guardar</b>, sem servidor.</p>
+        <span class="kbd">{
+  "schema": "choices/decision@1",
+  "evaluation": "propostas-q2",
+  "model": "arquiteturas@v2",
+  "generatedAt": "2026-06-20",
+  "results": [
+    { "option": "Proposta B",
+      "verdict": "recomendado",
+      "score": 78.4,
+      "drivers": [
+        {"id":"seguranca","contrib":41.0},
+        {"id":"interop","contrib":21.0}
+      ] },
+    { "option": "Proposta C",
+      "verdict": "reprovado",
+      "gate": "rgpd" }
+  ]
+}</span>
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <button class="btn soft" style="flex:1">⧉ Copiar</button>
+          <button class="btn ghost" style="flex:1">↓ Guardar .json</button>
+        </div>
+      </div></div>
+    </div>
+  </div>
+</div>
+<div class="note"><span class="tag">4 · RELATÓRIOS PARA OUTROS SISTEMAS (sem backend)</span><b>Interoperabilidade por ficheiros, não por API.</b> Mantém-se local-first: o «Registo de Decisão» é um ficheiro com <b>schema estável</b> (<span class="mono">choices/decision@1</span>) que outros sistemas de informação podem ingerir — copiar para a área de transferência ou guardar. Junta-se CSV (analistas) ao PDF e ao JSON já existentes.
+  <ul><li>Sem endpoint REST, webhook ou autenticação — descartada a parte que exigia servidor.</li><li>O snapshot imutável do modelo torna cada decisão <b>reprodutível e auditável</b> de forma autónoma.</li></ul>
+</div>
+
+</body>
+</html>
