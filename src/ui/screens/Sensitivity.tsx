@@ -27,8 +27,10 @@ export default function Sensitivity() {
 
   const qualCriteria = Object.values(model.valueTree.criteria).filter((c) => c.type === 'qualification');
 
-  const [activeIds, setActiveIds] = useState<Set<string>>(
-    () => new Set(qualCriteria[0]?.id ? [qualCriteria[0].id] : []),
+  // Single-select: the sensitivity view analyses one criterion at a time so the
+  // chart's option lines (and their crossing points) stay legible.
+  const [activeCriterionId, setActiveCriterionId] = useState<string>(
+    () => qualCriteria[0]?.id ?? '',
   );
 
   // Within-group weight of a criterion (what the sensitivity analysis varies).
@@ -52,18 +54,6 @@ export default function Sensitivity() {
         <p>São necessários pelo menos 2 critérios de qualificação para a análise de sensibilidade.</p>
       </div>
     );
-  }
-
-  function toggleCriterion(id: string) {
-    setActiveIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        if (next.size > 1) next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
   }
 
   const resolvedScale = resolveBands(model);
@@ -93,17 +83,19 @@ export default function Sensitivity() {
         </div>
       </div>
 
-      {/* Criterion selector */}
+      {/* Criterion selector — single-select (radio) */}
       <div className="flex items-start gap-4 flex-wrap">
-        <span className="text-sm font-medium text-gray-700 mt-1 shrink-0">Critérios activos:</span>
-        <div className="flex flex-wrap gap-2">
+        <span className="text-sm font-medium text-gray-700 mt-1 shrink-0">Critério analisado:</span>
+        <div className="flex flex-wrap gap-2" role="radiogroup">
           {qualCriteria.map((c) => {
-            const isActive = activeIds.has(c.id);
+            const isActive = activeCriterionId === c.id;
             const w = groupWeightOf(c.id);
             return (
               <button
                 key={c.id}
-                onClick={() => toggleCriterion(c.id)}
+                role="radio"
+                aria-checked={isActive}
+                onClick={() => setActiveCriterionId(c.id)}
                 className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${
                   isActive
                     ? 'bg-blue-700 text-white border-blue-700'
@@ -120,11 +112,12 @@ export default function Sensitivity() {
             );
           })}
         </div>
-        <span className="text-xs text-gray-400 mt-1.5">clique para activar/desactivar</span>
+        <span className="text-xs text-gray-400 mt-1.5">selecione para visualizar</span>
       </div>
 
-      {/* One chart panel per active criterion */}
-      {[...activeIds].map((criterionId) => {
+      {/* Single chart panel for the selected criterion */}
+      {(() => {
+        const criterionId = activeCriterionId;
         const criterion = model.valueTree.criteria[criterionId];
         const scenario = computeSensitivity(evaluation, criterionId);
         const currentWeight = (groupWeightOf(criterionId) ?? 0) * 100;
@@ -257,7 +250,7 @@ export default function Sensitivity() {
             )}
           </div>
         );
-      })}
+      })()}
 
       <ScreenNav next="report" nextLabel="Relatório" hint="Gere e exporte o relatório de decisão." />
     </div>

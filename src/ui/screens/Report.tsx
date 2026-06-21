@@ -19,6 +19,25 @@ function judgmentLabel(j: MacbethJudgment): string {
 
 type Doc = jsPDF & { lastAutoTable?: { finalY: number } };
 
+// Verdict glyph for the decision hero — SVG (not emoji) so it inherits the
+// band's accent colour and stays visually consistent with the rest of the UI.
+function VerdictIcon({ type, color }: { type: 'pass' | 'warn' | 'fail'; color: string }) {
+  return (
+    <span
+      className="w-10 h-10 rounded-full grid place-items-center shrink-0"
+      style={{ backgroundColor: color + '22', color }}
+    >
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.4}>
+        {type === 'pass' && <path strokeLinecap="round" strokeLinejoin="round" d="M20 6L9 17l-5-5" />}
+        {type === 'warn' && (
+          <path strokeLinecap="round" strokeLinejoin="round" d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4M12 17h.01" />
+        )}
+        {type === 'fail' && <path strokeLinecap="round" strokeLinejoin="round" d="M18 6L6 18M6 6l12 12" />}
+      </svg>
+    </span>
+  );
+}
+
 export default function Report() {
   const { state } = useApp();
   const evaluation = state.evaluation!;
@@ -53,12 +72,13 @@ export default function Report() {
 
   // Plain-language verdict (icon + one-line rationale) shown in the decision hero.
   const bandViewsR = result ? displayBands(result.decisionScale) : [];
-  function verdictMeta(r: OptionResult, band: DecisionBand | undefined): { icon: string; sub: string } {
+  type VerdictIconType = 'pass' | 'warn' | 'fail';
+  function verdictMeta(r: OptionResult, band: DecisionBand | undefined): { iconType: VerdictIconType; sub: string } {
     if (r.hardRejected) {
       const gate = r.rejectedByGate ? model.valueTree.criteria[r.rejectedByGate]?.label : null;
       const veto = r.vetoedByCriterion ? model.valueTree.criteria[r.vetoedByCriterion]?.label : null;
       return {
-        icon: '❌',
+        iconType: 'fail',
         sub: gate
           ? `Porta «${gate}» não cumprida — eliminado antes da pontuação.`
           : veto
@@ -68,7 +88,7 @@ export default function Report() {
     }
     const idx = bandViewsR.findIndex((v) => v.band.id === band?.id);
     const view = idx >= 0 ? bandViewsR[idx] : null;
-    const icon = idx === 0 ? '✅' : view?.isBase ? '⛔' : '⚠️';
+    const iconType: VerdictIconType = idx === 0 ? 'pass' : view?.isBase ? 'fail' : 'warn';
     const sub =
       band?.action ??
       (idx === 0
@@ -76,7 +96,7 @@ export default function Report() {
         : view?.isBase
         ? 'Não atinge as zonas superiores da política de decisão.'
         : 'Atinge esta zona, mas não a zona superior da política de decisão.');
-    return { icon, sub };
+    return { iconType, sub };
   }
 
   // ── CSV export ─────────────────────────────────────────────────────────────
@@ -454,7 +474,7 @@ export default function Report() {
               const band = decisionBand(r);
               const rejected = r.hardRejected;
               const accent = rejected ? '#dc2626' : band?.color ?? '#6b7280';
-              const { icon, sub } = verdictMeta(r, band);
+              const { iconType, sub } = verdictMeta(r, band);
               const note = evaluation.optionNotes?.[r.optionId];
               return (
                 <div
@@ -462,7 +482,7 @@ export default function Report() {
                   className="flex items-center gap-4 rounded-2xl p-4 border"
                   style={{ borderColor: accent + '66', backgroundColor: accent + '12' }}
                 >
-                  <span className="text-3xl leading-none shrink-0">{icon}</span>
+                  <VerdictIcon type={iconType} color={accent} />
                   <div className="min-w-0 flex-1">
                     <p className="text-lg font-extrabold text-gray-800 truncate">{opt?.label}</p>
                     <p className="text-xs font-semibold" style={{ color: accent }}>

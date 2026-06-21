@@ -1,8 +1,45 @@
+import { useState, useEffect } from 'react';
 import { useApp, type Screen, type Mode } from '../store';
 import { CREATE_SCREENS, APPLY_SCREENS } from '../store';
 import { allGroupsConsistent } from '../../domain/tree';
 import type { EvaluationModel, Evaluation } from '../../domain/types';
 import { v4 as uuidv4 } from 'uuid';
+
+// ── Dark-mode toggle ──────────────────────────────────────────────────────────
+// Persists to localStorage and falls back to the OS preference. Applies/removes
+// the `dark` class on <html>, which drives the overrides in index.css.
+function DarkModeToggle() {
+  const [dark, setDark] = useState<boolean>(() => {
+    const saved = localStorage.getItem('choices-dark');
+    if (saved !== null) return saved === 'true';
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  });
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', dark);
+    localStorage.setItem('choices-dark', String(dark));
+  }, [dark]);
+
+  return (
+    <button
+      onClick={() => setDark((d) => !d)}
+      title={dark ? 'Mudar para modo claro' : 'Mudar para modo escuro'}
+      aria-label={dark ? 'Modo claro' : 'Modo escuro'}
+      className="shrink-0 w-8 h-8 grid place-items-center rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors"
+    >
+      {dark ? (
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <circle cx="12" cy="12" r="4" />
+          <path strokeLinecap="round" d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+        </svg>
+      ) : (
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
+        </svg>
+      )}
+    </button>
+  );
+}
 
 const LABELS: Record<Screen, string> = {
   home: 'Início',
@@ -120,15 +157,18 @@ export default function ModelHeader() {
           </span>
         )}
         {docLabel && <span className="text-sm text-gray-500 truncate max-w-xs">{docLabel}</span>}
-        {mode === 'apply' && evaluation && (
-          <button
-            onClick={editModelCopy}
-            className="ml-auto shrink-0 text-xs px-2.5 py-1 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50"
-            title="Cria uma cópia editável do modelo desta avaliação — não altera o original nem esta avaliação"
-          >
-            Editar modelo (cópia)
-          </button>
-        )}
+        <div className="ml-auto flex items-center gap-2 shrink-0">
+          {mode === 'apply' && evaluation && (
+            <button
+              onClick={editModelCopy}
+              className="shrink-0 text-xs px-2.5 py-1 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50"
+              title="Cria uma cópia editável do modelo desta avaliação — não altera o original nem esta avaliação"
+            >
+              Editar modelo (cópia)
+            </button>
+          )}
+          <DarkModeToggle />
+        </div>
       </div>
       {mode && (
         <>

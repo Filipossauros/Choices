@@ -16,3 +16,114 @@ body {
 ::-webkit-scrollbar-track { @apply bg-gray-100; }
 ::-webkit-scrollbar-thumb { @apply bg-gray-300 rounded; }
 ::-webkit-scrollbar-thumb:hover { @apply bg-gray-400; }
+
+/* ───────────────────────────────────────────────────────────────────────────
+   Dark mode
+   The app's components use light Tailwind utilities throughout. Rather than
+   annotate every element with `dark:` variants, we remap the common surface,
+   border and text utilities under the `.dark` root. Brand accent colours
+   (blue/indigo/emerald/amber/rose used for chips, bars and bands) are left
+   intact so the decision semantics stay legible.
+   ──────────────────────────────────────────────────────────────────────────*/
+.dark {
+  color-scheme: dark;
+}
+
+.dark body {
+  background-color: rgb(15 23 42);   /* slate-900 */
+  color: rgb(226 232 240);           /* slate-200 */
+}
+
+/* Surfaces ----------------------------------------------------------------- */
+.dark .bg-white { background-color: rgb(30 41 59) !important; }       /* slate-800 */
+.dark .bg-gray-50 { background-color: rgb(15 23 42) !important; }     /* slate-900 */
+.dark .bg-slate-50 { background-color: rgb(15 23 42) !important; }
+.dark .bg-gray-100 { background-color: rgb(51 65 85) !important; }    /* slate-700 */
+.dark .bg-gray-200 { background-color: rgb(71 85 105) !important; }   /* slate-600 */
+
+/* Tinted surfaces — keep the hue but drop luminance so accents stay readable */
+.dark .bg-indigo-50 { background-color: rgb(49 46 129 / 0.35) !important; }
+.dark .bg-emerald-50 { background-color: rgb(6 78 59 / 0.35) !important; }
+.dark .bg-green-50 { background-color: rgb(6 78 59 / 0.35) !important; }
+.dark .bg-amber-50 { background-color: rgb(120 53 15 / 0.35) !important; }
+.dark .bg-rose-50 { background-color: rgb(136 19 55 / 0.30) !important; }
+.dark .bg-red-50 { background-color: rgb(127 29 29 / 0.30) !important; }
+.dark .bg-blue-50 { background-color: rgb(30 58 138 / 0.35) !important; }
+.dark .bg-blue-100 { background-color: rgb(30 58 138 / 0.55) !important; }
+.dark .bg-green-100 { background-color: rgb(6 78 59 / 0.55) !important; }
+.dark .bg-emerald-100 { background-color: rgb(6 78 59 / 0.55) !important; }
+.dark .bg-amber-100 { background-color: rgb(120 53 15 / 0.55) !important; }
+.dark .bg-rose-100 { background-color: rgb(136 19 55 / 0.50) !important; }
+.dark .bg-indigo-100 { background-color: rgb(49 46 129 / 0.55) !important; }
+
+/* Gradient welcome / card backgrounds — neutralise the light gradient stops */
+.dark .bg-gradient-to-br,
+.dark .bg-gradient-to-b {
+  --tw-gradient-from: rgb(30 41 59) var(--tw-gradient-from-position) !important;
+  --tw-gradient-via: rgb(30 41 59) var(--tw-gradient-via-position) !important;
+  --tw-gradient-to: rgb(15 23 42) var(--tw-gradient-to-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-via), var(--tw-gradient-to) !important;
+}
+/* The progress bar gradient (blue→green) is intentionally preserved */
+.dark .from-blue-600 {
+  --tw-gradient-from: #2563eb var(--tw-gradient-from-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
+}
+
+/* Borders ------------------------------------------------------------------ */
+.dark .border-gray-200 { border-color: rgb(51 65 85) !important; }   /* slate-700 */
+.dark .border-gray-100 { border-color: rgb(51 65 85) !important; }
+.dark .border-gray-300 { border-color: rgb(71 85 105) !important; }  /* slate-600 */
+.dark .border-slate-200 { border-color: rgb(51 65 85) !important; }
+.dark .divide-gray-100 > * + * { border-color: rgb(51 65 85) !important; }
+.dark .divide-gray-200 > * + * { border-color: rgb(51 65 85) !important; }
+.dark .border-indigo-100 { border-color: rgb(67 56 202 / 0.5) !important; }
+.dark .border-indigo-100\/70 { border-color: rgb(67 56 202 / 0.4) !important; }
+.dark .border-emerald-100 { border-color: rgb(5 150 105 / 0.4) !important; }
+.dark .border-green-200 { border-color: rgb(5 150 105 / 0.45) !important; }
+.dark .border-emerald-200 { border-color: rgb(5 150 105 / 0.45) !important; }
+.dark .border-amber-200 { border-color: rgb(180 83 9 / 0.45) !important; }
+
+/* Text --------------------------------------------------------------------- */
+.dark .text-gray-900 { color: rgb(241 245 249) !important; }   /* slate-100 */
+.dark .text-gray-800 { color: rgb(226 232 240) !important; }   /* slate-200 */
+.dark .text-gray-700 { color: rgb(203 213 225) !important; }   /* slate-300 */
+.dark .text-gray-600 { color: rgb(148 163 184) !important; }   /* slate-400 */
+.dark .text-gray-500 { color: rgb(148 163 184) !important; }   /* slate-400 */
+.dark .text-gray-400 { color: rgb(100 116 139) !important; }   /* slate-500 */
+.dark .text-gray-300 { color: rgb(71 85 105) !important; }     /* slate-600 */
+
+/* Hover states ------------------------------------------------------------- */
+.dark .hover\:bg-gray-50:hover { background-color: rgb(51 65 85) !important; }
+.dark .hover\:bg-gray-100:hover { background-color: rgb(51 65 85) !important; }
+.dark .hover\:bg-gray-200:hover { background-color: rgb(71 85 105) !important; }
+.dark .hover\:text-gray-700:hover { color: rgb(203 213 225) !important; }
+.dark .hover\:text-gray-800:hover { color: rgb(226 232 240) !important; }
+.dark .hover\:text-gray-900:hover { color: rgb(241 245 249) !important; }
+
+/* Form controls ------------------------------------------------------------ */
+.dark input,
+.dark select,
+.dark textarea {
+  background-color: rgb(15 23 42) !important;   /* slate-900 */
+  color: rgb(226 232 240) !important;
+  border-color: rgb(51 65 85) !important;
+}
+.dark input::placeholder,
+.dark textarea::placeholder { color: rgb(100 116 139) !important; }
+
+/* Recharts ----------------------------------------------------------------- */
+.dark .recharts-cartesian-grid line { stroke: rgb(51 65 85) !important; }
+.dark .recharts-text { fill: rgb(148 163 184) !important; }
+.dark .recharts-cartesian-axis-line,
+.dark .recharts-cartesian-axis-tick-line { stroke: rgb(71 85 105) !important; }
+.dark .recharts-tooltip-wrapper .recharts-default-tooltip {
+  background-color: rgb(30 41 59) !important;
+  border-color: rgb(51 65 85) !important;
+  color: rgb(226 232 240) !important;
+}
+
+/* Dark scrollbar ----------------------------------------------------------- */
+.dark ::-webkit-scrollbar-track { background-color: rgb(15 23 42); }
+.dark ::-webkit-scrollbar-thumb { background-color: rgb(51 65 85); }
+.dark ::-webkit-scrollbar-thumb:hover { background-color: rgb(71 85 105); }

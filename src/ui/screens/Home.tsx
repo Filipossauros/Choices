@@ -16,45 +16,75 @@ function BalanceMascot() {
   return (
     <>
       <style>{`
-        @keyframes bm-float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
-        @keyframes bm-blink { 0%,90%,100%{transform:scaleY(1)} 95%{transform:scaleY(0.1)} }
-        @keyframes bm-tilt { 0%,100%{transform:rotate(-3.5deg)} 50%{transform:rotate(3.5deg)} }
-        .bm-body{animation:bm-float 3.6s ease-in-out infinite;display:inline-block}
-        .bm-beam{animation:bm-tilt 4s ease-in-out infinite;transform-origin:80px 50px}
-        .bm-eyes{animation:bm-blink 5s ease-in-out infinite;transform-origin:50% 50%}
+        @keyframes bm-float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+        @keyframes bm-blink { 0%,92%,100%{transform:scaleY(1)} 96%{transform:scaleY(0.1)} }
+        @keyframes bm-tilt { 0%,100%{transform:rotate(-4deg)} 50%{transform:rotate(4deg)} }
+        @keyframes bm-pulse { 0%,100%{opacity:0.35;transform:scale(1)} 50%{opacity:0.6;transform:scale(1.08)} }
+        @keyframes bm-spark { 0%,100%{opacity:0.25;transform:scale(0.85)} 50%{opacity:0.9;transform:scale(1.15)} }
+        .bm-body{animation:bm-float 4s ease-in-out infinite;display:inline-block}
+        .bm-beam{animation:bm-tilt 4.6s ease-in-out infinite;transform-origin:80px 44px}
+        .bm-eyes{animation:bm-blink 5.5s ease-in-out infinite;transform-origin:50% 50%}
+        .bm-glow{animation:bm-pulse 4s ease-in-out infinite;transform-origin:80px 52px}
+        .bm-spark{animation:bm-spark 3s ease-in-out infinite}
       `}</style>
-      <svg className="bm-body" width="112" height="64" viewBox="0 0 160 90" xmlns="http://www.w3.org/2000/svg">
+      <svg className="bm-body" width="124" height="74" viewBox="0 0 160 96" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="bm-head" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#818cf8" />
+            <stop offset="1" stopColor="#6366f1" />
+          </linearGradient>
+          <linearGradient id="bm-beam-grad" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stopColor="#a78bfa" />
+            <stop offset="1" stopColor="#6366f1" />
+          </linearGradient>
+          <radialGradient id="bm-aura" cx="0.5" cy="0.5" r="0.5">
+            <stop offset="0" stopColor="#c4b5fd" stopOpacity="0.55" />
+            <stop offset="1" stopColor="#c4b5fd" stopOpacity="0" />
+          </radialGradient>
+        </defs>
+
+        {/* soft aura */}
+        <circle className="bm-glow" cx="80" cy="50" r="44" fill="url(#bm-aura)" />
+
         {/* tilting beam + pans */}
         <g className="bm-beam">
-          <rect x="34" y="46" width="92" height="7" rx="3.5" fill="#6366f1" />
-          {/* left chain + pan */}
-          <line x1="44" y1="52" x2="44" y2="68" stroke="#a5b4fc" strokeWidth="2.5" strokeLinecap="round" />
-          <path d="M30 68 Q44 80 58 68" fill="#c7d2fe" stroke="#818cf8" strokeWidth="2" />
-          <circle cx="44" cy="62" r="6" fill="#34d399" />
-          <path d="M41 62 l2 2.5 l4 -5" stroke="white" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-          {/* right chain + pan */}
-          <line x1="116" y1="52" x2="116" y2="68" stroke="#a5b4fc" strokeWidth="2.5" strokeLinecap="round" />
-          <path d="M102 68 Q116 80 130 68" fill="#c7d2fe" stroke="#818cf8" strokeWidth="2" />
-          <circle cx="116" cy="62" r="6" fill="#fbbf24" />
+          <rect x="32" y="42" width="96" height="7" rx="3.5" fill="url(#bm-beam-grad)" />
+          <circle cx="80" cy="45.5" r="5" fill="#eef2ff" stroke="#6366f1" strokeWidth="2" />
+          {/* left arm + pan (approve) */}
+          <line x1="44" y1="48" x2="44" y2="64" stroke="#a5b4fc" strokeWidth="2.5" strokeLinecap="round" />
+          <path d="M31 64 Q44 78 57 64 Z" fill="#e0e7ff" stroke="#818cf8" strokeWidth="2" strokeLinejoin="round" />
+          <circle cx="44" cy="58" r="6.5" fill="#34d399" />
+          <path d="M40.6 58 l2.2 2.6 l4.2 -5.2" stroke="white" strokeWidth="2.1" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+          {/* right arm + pan (consider) */}
+          <line x1="116" y1="48" x2="116" y2="64" stroke="#a5b4fc" strokeWidth="2.5" strokeLinecap="round" />
+          <path d="M103 64 Q116 78 129 64 Z" fill="#e0e7ff" stroke="#818cf8" strokeWidth="2" strokeLinejoin="round" />
+          <path d="M116 52.5 l1.5 3.4 l3.7 0.4 l-2.8 2.5 l0.8 3.6 l-3.2 -1.9 l-3.2 1.9 l0.8 -3.6 l-2.8 -2.5 l3.7 -0.4 z" fill="#fbbf24" />
         </g>
-        {/* cute head/pivot */}
-        <circle cx="80" cy="38" r="26" fill="#6366f1" />
-        <ellipse cx="80" cy="28" rx="18" ry="6" fill="#818cf8" opacity="0.55" />
+
+        {/* head / pivot — gradient with rim light */}
+        <circle cx="80" cy="32" r="25" fill="url(#bm-head)" />
+        <circle cx="80" cy="32" r="25" fill="none" stroke="#c7d2fe" strokeOpacity="0.5" strokeWidth="1.5" />
+        <path d="M64 22 Q80 12 96 22" stroke="#c7d2fe" strokeWidth="3" strokeLinecap="round" fill="none" opacity="0.6" />
+        {/* little antenna */}
+        <line x1="80" y1="9" x2="80" y2="3" stroke="#a5b4fc" strokeWidth="2" strokeLinecap="round" />
+        <circle cx="80" cy="2.5" r="2.6" fill="#fbbf24" />
+
         <g className="bm-eyes">
-          <ellipse cx="71" cy="37" rx="6.5" ry="7.5" fill="white" />
-          <ellipse cx="89" cy="37" rx="6.5" ry="7.5" fill="white" />
-          <circle cx="72" cy="38" r="4" fill="#1e1b4b" />
-          <circle cx="90" cy="38" r="4" fill="#1e1b4b" />
-          <circle cx="74" cy="36" r="1.8" fill="white" />
-          <circle cx="92" cy="36" r="1.8" fill="white" />
+          <ellipse cx="71" cy="32" rx="6.2" ry="7.4" fill="white" />
+          <ellipse cx="89" cy="32" rx="6.2" ry="7.4" fill="white" />
+          <circle cx="72.5" cy="33" r="3.6" fill="#1e1b4b" />
+          <circle cx="90.5" cy="33" r="3.6" fill="#1e1b4b" />
+          <circle cx="74" cy="31" r="1.5" fill="white" />
+          <circle cx="92" cy="31" r="1.5" fill="white" />
         </g>
-        <path d="M72 48 Q80 54 88 48" stroke="#1e1b4b" strokeWidth="2.4" fill="none" strokeLinecap="round" />
+        <path d="M73 42 Q80 47.5 87 42" stroke="#1e1b4b" strokeWidth="2.4" fill="none" strokeLinecap="round" />
         {/* rosy cheeks */}
-        <circle cx="63" cy="46" r="3.5" fill="#f9a8d4" opacity="0.6" />
-        <circle cx="97" cy="46" r="3.5" fill="#f9a8d4" opacity="0.6" />
+        <circle cx="63" cy="40" r="3.3" fill="#f9a8d4" opacity="0.55" />
+        <circle cx="97" cy="40" r="3.3" fill="#f9a8d4" opacity="0.55" />
+
         {/* sparkles */}
-        <path d="M22 30 l1.5 4 l4 1.5 l-4 1.5 l-1.5 4 l-1.5 -4 l-4 -1.5 l4 -1.5 z" fill="#fbbf24" opacity="0.8" />
-        <path d="M138 40 l1 2.8 l2.8 1 l-2.8 1 l-1 2.8 l-1 -2.8 l-2.8 -1 l2.8 -1 z" fill="#a5b4fc" opacity="0.8" />
+        <path className="bm-spark" d="M20 26 l1.6 4.2 l4.2 1.6 l-4.2 1.6 l-1.6 4.2 l-1.6 -4.2 l-4.2 -1.6 l4.2 -1.6 z" fill="#fbbf24" opacity="0.85" />
+        <path className="bm-spark" d="M140 34 l1.1 3 l3 1.1 l-3 1.1 l-1.1 3 l-1.1 -3 l-3 -1.1 l3 -1.1 z" fill="#a5b4fc" opacity="0.85" />
       </svg>
     </>
   );

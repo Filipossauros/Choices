@@ -197,24 +197,6 @@ export default function Results() {
         </div>
       </div>
 
-      {/* ── Decision policy (compact strip) ── */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4">
-        <span className="text-xs text-gray-400 font-semibold uppercase tracking-wide">Política de decisão</span>
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-2 mt-2.5">
-          {bandViews.map((v, i) => (
-            <Fragment key={v.band.id}>
-              {i > 0 && <span className="text-gray-300 select-none">·</span>}
-              <span className="inline-flex items-center gap-2">
-                <span className="text-xs font-bold rounded-full px-2.5 py-0.5 text-white" style={{ backgroundColor: v.band.color }}>
-                  {v.band.label}
-                </span>
-                <span className="font-mono text-xs text-gray-500">{bandRangeLabel(v.band, result.decisionScale)}</span>
-              </span>
-            </Fragment>
-          ))}
-        </div>
-      </div>
-
       {/* ── Ranking cards (one row each) ── */}
       <div className="space-y-2.5">
         {sorted.map((r) => {
@@ -249,7 +231,6 @@ export default function Results() {
               </div>
               {rejected ? (
                 <p className="text-xs text-red-600 mt-1.5">
-                  ❌{' '}
                   {r.rejectedByGate
                     ? `Critério de habilitação «${model.valueTree.criteria[r.rejectedByGate]?.label ?? ''}» não cumprido — eliminado antes da pontuação.`
                     : r.vetoedByCriterion
@@ -258,16 +239,141 @@ export default function Results() {
                 </p>
               ) : (
                 <button
-                  onClick={() => setWhyOptionId(isWhy && whyOptionId !== null ? null : r.optionId)}
+                  onClick={() => setWhyOptionId(r.optionId)}
                   className="text-xs text-indigo-600 hover:text-indigo-800 font-medium mt-1.5"
                 >
-                  {isWhy ? '▴ Fechar' : '▾ Porquê? Alavancas de melhoria'}
+                  ▾ Porquê? Alavancas de melhoria
                 </button>
               )}
             </div>
           );
         })}
       </div>
+
+      {/* ── Bar chart ── */}
+      <div className="border border-gray-200 rounded-xl p-4 bg-white">
+        <h3 className="text-sm font-semibold text-gray-700 mb-3">Valor Global V(p) — Modelo Aditivo</h3>
+        <ResponsiveContainer width="100%" height={200}>
+          <BarChart data={chartData} margin={{ top: 4, right: 16, left: 0, bottom: 4 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+            {/* Decision zones as translucent background bands */}
+            {bandViews.map((v) => (
+              <ReferenceArea
+                key={v.band.id}
+                y1={v.isBase ? axisBottom : v.lower}
+                y2={v.upper ?? axisTop}
+                fill={v.band.color}
+                fillOpacity={0.1}
+                stroke="none"
+                ifOverflow="extendDomain"
+              />
+            ))}
+            <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+            <YAxis domain={[axisBottom, axisTop]} tick={{ fontSize: 11 }} />
+            <Tooltip formatter={(v) => [`${v}`, 'V(p)']} />
+            <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+              {chartData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* ── Decision policy (compact strip) ── */}
+      <div className="bg-white rounded-xl border border-gray-200 p-4">
+        <span className="text-xs text-gray-400 font-semibold uppercase tracking-wide">Política de decisão</span>
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-2 mt-2.5">
+          {bandViews.map((v, i) => (
+            <Fragment key={v.band.id}>
+              {i > 0 && <span className="text-gray-300 select-none">·</span>}
+              <span className="inline-flex items-center gap-2">
+                <span className="text-xs font-bold rounded-full px-2.5 py-0.5 text-white" style={{ backgroundColor: v.band.color }}>
+                  {v.band.label}
+                </span>
+                <span className="font-mono text-xs text-gray-500">{bandRangeLabel(v.band, result.decisionScale)}</span>
+              </span>
+            </Fragment>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Per-criterion profile table ── */}
+      {qualCriteria.length > 0 && (
+        <div className="border border-gray-200 rounded-xl p-4 bg-white space-y-3">
+          <h3 className="text-sm font-semibold text-gray-700">Perfil por Critério</h3>
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead>
+                <tr className="bg-gray-50">
+                  <th className="px-3 py-1.5 text-left text-gray-600 font-medium border border-gray-200">
+                    Critério <span className="text-gray-400 font-normal">(peso)</span>
+                  </th>
+                  {sorted.map((r, rank) => (
+                    <th key={r.optionId} className="px-3 py-1.5 text-center text-gray-600 font-medium border border-gray-200">
+                      <span className="text-gray-400 text-xs mr-1">#{rank + 1}</span>
+                      {evaluation.options.find((o) => o.id === r.optionId)?.label ?? r.optionId}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {qualCriteria.map((c) => {
+                  const w = effW.get(c.id);
+                  return (
+                    <tr key={c.id} className="hover:bg-gray-50">
+                      <td className="px-3 py-1.5 border border-gray-200 text-gray-700">
+                        {c.label}
+                        {w != null && <span className="ml-1.5 text-xs text-gray-400">{(w * 100).toFixed(1)}%</span>}
+                      </td>
+                      {sorted.map((r) => {
+                        const score = r.criterionScores[c.id];
+                        const contrib = w != null && score != null ? w * score : null;
+                        return (
+                          <td key={r.optionId} className="px-3 py-1.5 border border-gray-200 text-center font-mono text-sm"
+                            title={contrib != null ? `Contribuição: ${contrib.toFixed(2)}` : undefined}>
+                            {score !== null && score !== undefined ? score.toFixed(1) : '—'}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  );
+                })}
+                <tr className="bg-gray-50 font-semibold">
+                  <td className="px-3 py-1.5 border border-gray-200 text-gray-600 text-xs">V(p) global</td>
+                  {sorted.map((r) => (
+                    <td key={r.optionId} className="px-3 py-1.5 border border-gray-200 text-center font-mono text-sm text-gray-800">
+                      {r.globalValue !== null && r.globalValue !== undefined ? r.globalValue.toFixed(1) : '—'}
+                    </td>
+                  ))}
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* ── Notes ── */}
+      {sorted.some((r) => !r.hardRejected) && (
+        <div className="border border-gray-200 rounded-xl p-4 bg-white space-y-3">
+          <h3 className="text-sm font-semibold text-gray-700">Observações por {subj.one}</h3>
+          <div className="space-y-2">
+            {sorted.filter((r) => !r.hardRejected).map((r) => {
+              const option = evaluation.options.find((o) => o.id === r.optionId);
+              return (
+                <div key={r.optionId} className="flex items-start gap-3">
+                  <span className="text-sm text-gray-600 font-medium w-40 shrink-0 pt-1">{option?.label}</span>
+                  <textarea
+                    value={optionNotes[r.optionId] ?? ''}
+                    onChange={(e) => setNote(r.optionId, e.target.value)}
+                    placeholder="Observações…"
+                    rows={2}
+                    className="flex-1 text-xs text-gray-700 border border-gray-200 rounded-lg px-2 py-1 resize-none focus:outline-none focus:border-blue-300"
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* ── "Why" panel ── */}
       {whyResult && !whyResult.hardRejected && (
@@ -402,113 +508,6 @@ export default function Results() {
               );
             })()
           )}
-        </div>
-      )}
-
-      {/* ── Bar chart ── */}
-      <div className="border border-gray-200 rounded-xl p-4 bg-white">
-        <h3 className="text-sm font-semibold text-gray-700 mb-3">Valor Global V(p) — Modelo Aditivo</h3>
-        <ResponsiveContainer width="100%" height={200}>
-          <BarChart data={chartData} margin={{ top: 4, right: 16, left: 0, bottom: 4 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-            {/* Decision zones as translucent background bands */}
-            {bandViews.map((v) => (
-              <ReferenceArea
-                key={v.band.id}
-                y1={v.isBase ? axisBottom : v.lower}
-                y2={v.upper ?? axisTop}
-                fill={v.band.color}
-                fillOpacity={0.1}
-                stroke="none"
-                ifOverflow="extendDomain"
-              />
-            ))}
-            <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-            <YAxis domain={[axisBottom, axisTop]} tick={{ fontSize: 11 }} />
-            <Tooltip formatter={(v) => [`${v}`, 'V(p)']} />
-            <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-              {chartData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-
-      {/* ── Per-criterion profile table ── */}
-      {qualCriteria.length > 0 && (
-        <div className="border border-gray-200 rounded-xl p-4 bg-white space-y-3">
-          <h3 className="text-sm font-semibold text-gray-700">Perfil por Critério</h3>
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead>
-                <tr className="bg-gray-50">
-                  <th className="px-3 py-1.5 text-left text-gray-600 font-medium border border-gray-200">
-                    Critério <span className="text-gray-400 font-normal">(peso)</span>
-                  </th>
-                  {sorted.map((r, rank) => (
-                    <th key={r.optionId} className="px-3 py-1.5 text-center text-gray-600 font-medium border border-gray-200">
-                      <span className="text-gray-400 text-xs mr-1">#{rank + 1}</span>
-                      {evaluation.options.find((o) => o.id === r.optionId)?.label ?? r.optionId}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {qualCriteria.map((c) => {
-                  const w = effW.get(c.id);
-                  return (
-                    <tr key={c.id} className="hover:bg-gray-50">
-                      <td className="px-3 py-1.5 border border-gray-200 text-gray-700">
-                        {c.label}
-                        {w != null && <span className="ml-1.5 text-xs text-gray-400">{(w * 100).toFixed(1)}%</span>}
-                      </td>
-                      {sorted.map((r) => {
-                        const score = r.criterionScores[c.id];
-                        const contrib = w != null && score != null ? w * score : null;
-                        return (
-                          <td key={r.optionId} className="px-3 py-1.5 border border-gray-200 text-center font-mono text-sm"
-                            title={contrib != null ? `Contribuição: ${contrib.toFixed(2)}` : undefined}>
-                            {score !== null && score !== undefined ? score.toFixed(1) : '—'}
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  );
-                })}
-                <tr className="bg-gray-50 font-semibold">
-                  <td className="px-3 py-1.5 border border-gray-200 text-gray-600 text-xs">V(p) global</td>
-                  {sorted.map((r) => (
-                    <td key={r.optionId} className="px-3 py-1.5 border border-gray-200 text-center font-mono text-sm text-gray-800">
-                      {r.globalValue !== null && r.globalValue !== undefined ? r.globalValue.toFixed(1) : '—'}
-                    </td>
-                  ))}
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* ── Notes ── */}
-      {sorted.some((r) => !r.hardRejected) && (
-        <div className="border border-gray-200 rounded-xl p-4 bg-white space-y-3">
-          <h3 className="text-sm font-semibold text-gray-700">Observações por {subj.one}</h3>
-          <div className="space-y-2">
-            {sorted.filter((r) => !r.hardRejected).map((r) => {
-              const option = evaluation.options.find((o) => o.id === r.optionId);
-              return (
-                <div key={r.optionId} className="flex items-start gap-3">
-                  <span className="text-sm text-gray-600 font-medium w-40 shrink-0 pt-1">{option?.label}</span>
-                  <textarea
-                    value={optionNotes[r.optionId] ?? ''}
-                    onChange={(e) => setNote(r.optionId, e.target.value)}
-                    placeholder="Observações…"
-                    rows={2}
-                    className="flex-1 text-xs text-gray-700 border border-gray-200 rounded-lg px-2 py-1 resize-none focus:outline-none focus:border-blue-300"
-                  />
-                </div>
-              );
-            })}
-          </div>
         </div>
       )}
 
