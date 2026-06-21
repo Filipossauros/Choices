@@ -200,4 +200,50 @@ export const en: Record<string, string> = {
     'Inconsistent scale — the judgments contain cardinal contradictions. Review the matrix above: fix attractiveness-difference pairs that violate the cardinal ordering (e.g. a «Strong» difference over a smaller distance than a «Weak» one).',
   'Régua de valor — níveis posicionados proporcionalmente ao seu valor cardinal':
     'Value ruler — levels positioned proportionally to their cardinal value',
+
+  // ── Weighting ───────────────────────────────────────────────────────────
+  'Tudo-Neutro (ref.)': 'All-Neutral (ref.)',
+  'Pesos dos fatores de topo': 'Top-factor weights',
+  'Pesos dentro de «{{label}}»': 'Weights within «{{label}}»',
+  'único (100%)': 'single (100%)',
+  'por calcular': 'to compute',
+  'Este grupo tem um único critério ponderável — recebe 100% do peso dentro do grupo. Sem comparações a fazer.':
+    'This group has a single weightable criterion — it gets 100% of the weight within the group. No comparisons needed.',
+  'Passo 1 — Ordene os critérios por importância': 'Step 1 — Order the criteria by importance',
+  'Antes de quantificar, ordene os critérios do mais para o menos importante — ou seja, aquele cuja melhoria de Neutro para Bom traria mais valor fica no topo. As perguntas seguintes seguem esta ordem, comparando sempre o critério mais importante com o menos importante, o que torna cada comparação mais natural. (Ordene primeiro; alterar a ordem depois de responder pode baralhar as respostas já dadas.)':
+    'Before quantifying, order the criteria from most to least important — i.e. the one whose improvement from Neutral to Good would bring the most value goes on top. The questions below follow this order, always comparing the most important criterion with the least important, which makes each comparison more natural. (Order first; changing the order after answering may scramble the answers already given.)',
+  '{{n}}º': '{{n}}',
+  'Subir (mais importante)': 'Move up (more important)',
+  'Descer (menos importante)': 'Move down (less important)',
+  'Passo 2 — Compare a importância dos pares': 'Step 2 — Compare the importance of the pairs',
+  'São necessários pelo menos 2 critérios.': 'At least 2 criteria are required.',
+  'Tudo parte do nível Neutro (a referência, valor 0).': 'Everything starts at the Neutral level (the reference, value 0).',
+  'Quão atrativo é levar só': 'How attractive is it to take only',
+  'de Neutro até Bom?': 'from Neutral to Good?',
+  'Só pode levar um critério de Neutro até Bom — os restantes ficam em Neutro.':
+    'You may take only one criterion from Neutral to Good — the rest stay at Neutral.',
+  'Quanto mais atrativo é escolher': 'How much more attractive is it to choose',
+  'do que': 'than',
+  'A calcular pesos…': 'Computing weights…',
+  'Calcular pesos deste grupo': 'Compute this group’s weights',
+  'Pesos derivados (Σ = 1 no grupo)': 'Derived weights (Σ = 1 in the group)',
+  'grupo =': 'group =',
+  'do modelo': 'of the model',
+  'Peso no grupo (local)': 'Weight in group (local)',
+  'Global no modelo': 'Global in model',
+  'Intervalo admissível: [{{lo}}%, {{hi}}%]': 'Admissible range: [{{lo}}%, {{hi}}%]',
+  'Está a ponderar': 'You are weighting',
+  'dentro de «{{label}}»': 'within «{{label}}»',
+  'O peso global = {{p}}% (do grupo) × peso local — é esse que pesa no resultado final.':
+    'The global weight = {{p}}% (of the group) × local weight — that’s what counts in the final result.',
+  'Sem critérios de qualificação. Defina-os na Estruturação.': 'No qualification criteria. Define them in Criteria.',
+  'Ponderação por Oscilação (Swing Weighting)': 'Swing Weighting',
+  'Compare a atratividade de oscilar cada critério de Neutro para Bom. A referência «Tudo-Neutro» é o ponto de partida (valor = 0).':
+    'Compare the attractiveness of swinging each criterion from Neutral to Good. The «All-Neutral» reference is the starting point (value = 0).',
+  'Existem fatores compostos: pondere os filhos dentro de cada grupo. O peso global de cada folha é o produto dos pesos ao longo do caminho até à raiz.':
+    'There are composite factors: weight the children within each group. Each leaf’s global weight is the product of the weights along the path to the root.',
+  'Com escalas e pesos de todos os grupos definidos, construa os perfis de decisão (limiares MACBETH).':
+    'With scales and weights for all groups defined, build the decision profiles (MACBETH thresholds).',
+  'Calcule pesos consistentes em todos os grupos antes de avançar.':
+    'Compute consistent weights in all groups before continuing.',
 };

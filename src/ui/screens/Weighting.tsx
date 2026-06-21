@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useApp } from '../store';
 import type { MacbethJudgment, JudgmentMatrix } from '../../domain/types';
 import { DEFAULT_ASSESSOR_ID, ROOT_ID } from '../../domain/types';
@@ -11,6 +12,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 /** One collapsible weighting panel for a single group of sibling criteria. */
 function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; onToggle: () => void }) {
+  const { t } = useTranslation();
   const { state, dispatch } = useApp();
   const model = state.model!;
   const [deriving, setDeriving] = useState(false);
@@ -105,7 +107,7 @@ function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; on
 
   const matrixItems = [
     ...orderedChildIds.map((id) => ({ id, label: criteria[id]?.label ?? id })),
-    { id: ALL_NEUTRAL, label: 'Tudo-Neutro (ref.)' },
+    { id: ALL_NEUTRAL, label: t('Tudo-Neutro (ref.)') },
   ];
 
   return (
@@ -113,15 +115,15 @@ function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; on
       <button onClick={onToggle} className="w-full flex items-center gap-3 px-4 py-3 bg-gray-50 hover:bg-gray-100 text-left">
         <span className="text-gray-400 text-xs w-3">{open ? '▾' : '▸'}</span>
         <span className="font-medium text-gray-800">
-          {group.parentId === ROOT_ID ? 'Pesos dos fatores de topo' : `Pesos dentro de «${group.label}»`}
+          {group.parentId === ROOT_ID ? t('Pesos dos fatores de topo') : t('Pesos dentro de «{{label}}»', { label: group.label })}
         </span>
         <span className="text-xs text-gray-400 truncate flex-1">{childCrits.map((c) => c.label).join(' · ')}</span>
         {single ? (
-          <span className="text-xs text-gray-400">único (100%)</span>
+          <span className="text-xs text-gray-400">{t('único (100%)')}</span>
         ) : consistent ? (
-          <span className="text-xs font-semibold text-green-600">✓ {weights ? `z = ${weights.consistencyMargin.toFixed(3)}` : 'ok'}</span>
+          <span className="text-xs font-semibold text-green-600">✓ {weights ? `z = ${weights.consistencyMargin.toFixed(3)}` : t('ok')}</span>
         ) : (
-          <span className="text-xs font-semibold text-gray-400">por calcular</span>
+          <span className="text-xs font-semibold text-gray-400">{t('por calcular')}</span>
         )}
       </button>
 
@@ -129,39 +131,35 @@ function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; on
         <div className="p-4 space-y-4 border-t border-gray-100">
           {single ? (
             <p className="text-sm text-gray-500">
-              Este grupo tem um único critério ponderável — recebe 100% do peso dentro do grupo. Sem comparações a fazer.
+              {t('Este grupo tem um único critério ponderável — recebe 100% do peso dentro do grupo. Sem comparações a fazer.')}
             </p>
           ) : (
             <>
               {/* Passo 1 — ranking by importance */}
               <div className="space-y-3">
                 <div>
-                  <p className="text-sm font-semibold text-gray-700">Passo 1 — Ordene os critérios por importância</p>
+                  <p className="text-sm font-semibold text-gray-700">{t('Passo 1 — Ordene os critérios por importância')}</p>
                   <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                    Antes de quantificar, ordene os critérios do <strong>mais</strong> para o <strong>menos</strong> importante —
-                    ou seja, aquele cuja melhoria de <em>Neutro</em> para <em>Bom</em> traria mais valor fica no topo.
-                    As perguntas seguintes seguem esta ordem, comparando sempre o critério mais importante com o menos
-                    importante, o que torna cada comparação mais natural. (Ordene primeiro; alterar a ordem depois de
-                    responder pode baralhar as respostas já dadas.)
+                    {t('Antes de quantificar, ordene os critérios do mais para o menos importante — ou seja, aquele cuja melhoria de Neutro para Bom traria mais valor fica no topo. As perguntas seguintes seguem esta ordem, comparando sempre o critério mais importante com o menos importante, o que torna cada comparação mais natural. (Ordene primeiro; alterar a ordem depois de responder pode baralhar as respostas já dadas.)')}
                   </p>
                 </div>
                 <ol className="space-y-1.5">
                   {orderedChildIds.map((id, i) => (
                     <li key={id} className="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2 bg-white">
-                      <span className="w-5 text-center text-xs font-bold text-blue-700 shrink-0">{i + 1}º</span>
+                      <span className="w-5 text-center text-xs font-bold text-blue-700 shrink-0">{t('{{n}}º', { n: i + 1 })}</span>
                       <span className="flex-1 text-sm text-gray-700 truncate" title={criteria[id]?.label}>{criteria[id]?.label ?? id}</span>
                       <div className="flex flex-col gap-0.5 shrink-0">
                         <button
                           onClick={() => moveCriterion(i, -1)}
                           disabled={i === 0}
                           className="text-gray-400 hover:text-blue-600 disabled:opacity-20 text-xs leading-none"
-                          aria-label="Subir (mais importante)"
+                          aria-label={t('Subir (mais importante)')}
                         >▲</button>
                         <button
                           onClick={() => moveCriterion(i, 1)}
                           disabled={i === orderedChildIds.length - 1}
                           className="text-gray-400 hover:text-blue-600 disabled:opacity-20 text-xs leading-none"
-                          aria-label="Descer (menos importante)"
+                          aria-label={t('Descer (menos importante)')}
                         >▼</button>
                       </div>
                     </li>
@@ -170,7 +168,7 @@ function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; on
               </div>
 
               {/* Passo 2 — pairwise comparisons */}
-              <p className="text-sm font-semibold text-gray-700 pt-2">Passo 2 — Compare a importância dos pares</p>
+              <p className="text-sm font-semibold text-gray-700 pt-2">{t('Passo 2 — Compare a importância dos pares')}</p>
               <GuidedJudgments
                 items={matrixItems}
                 judgments={matrix.judgments}
@@ -181,20 +179,20 @@ function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; on
                   less.id === ALL_NEUTRAL ? (
                     <>
                       <span className="block text-sm font-normal text-gray-500 mb-2">
-                        Tudo parte do nível <em>Neutro</em> (a referência, valor 0).
+                        {t('Tudo parte do nível Neutro (a referência, valor 0).')}
                       </span>
-                      Quão atrativo é levar <strong>só</strong>{' '}
+                      {t('Quão atrativo é levar só')}{' '}
                       <span className="inline-block bg-white border border-blue-400 rounded-lg px-2 py-0.5 font-semibold text-blue-700">{more.label}</span>
-                      {' '}de <em>Neutro</em> até <em>Bom</em>?
+                      {' '}{t('de Neutro até Bom?')}
                     </>
                   ) : (
                     <>
                       <span className="block text-sm font-normal text-gray-500 mb-2">
-                        Só pode levar <strong>um</strong> critério de <em>Neutro</em> até <em>Bom</em> — os restantes ficam em <em>Neutro</em>.
+                        {t('Só pode levar um critério de Neutro até Bom — os restantes ficam em Neutro.')}
                       </span>
-                      Quanto mais atrativo é escolher{' '}
+                      {t('Quanto mais atrativo é escolher')}{' '}
                       <span className="inline-block bg-white border border-blue-400 rounded-lg px-2 py-0.5 font-semibold text-blue-700">{more.label}</span>
-                      {' '}do que{' '}
+                      {' '}{t('do que')}{' '}
                       <span className="inline-block bg-white border border-gray-300 rounded-lg px-2 py-0.5 font-semibold text-gray-700">{less.label}</span>?
                     </>
                   )
@@ -203,7 +201,7 @@ function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; on
 
               <details className="border-t border-gray-100 pt-3 group" open={matrixItems.length <= 4}>
                 <summary className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 cursor-pointer select-none flex items-center gap-1.5 hover:text-gray-700">
-                  <span className="transition-transform group-open:rotate-90">▸</span> Matriz de juízos
+                  <span className="transition-transform group-open:rotate-90">▸</span> {t('Matriz de juízos')}
                 </summary>
                 <JudgmentMatrixEditor items={matrixItems} judgments={matrix.judgments} onChange={updateJudgments} activePairKey={activePairKey ?? undefined} />
               </details>
@@ -213,7 +211,7 @@ function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; on
                 disabled={deriving || Object.keys(matrix.judgments).length === 0}
                 className="px-5 py-2 bg-blue-700 text-white rounded hover:bg-blue-800 disabled:opacity-50"
               >
-                {deriving ? 'A calcular pesos…' : 'Calcular pesos deste grupo'}
+                {deriving ? t('A calcular pesos…') : t('Calcular pesos deste grupo')}
               </button>
 
               {weights && (() => {
@@ -223,11 +221,11 @@ function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; on
                 return (
                   <div className="border border-gray-200 rounded-xl p-4 bg-white space-y-3">
                     <div className="flex items-center justify-between gap-2 flex-wrap">
-                      <h3 className="font-semibold text-gray-800 text-sm">Pesos derivados (Σ = 1 no grupo)</h3>
+                      <h3 className="font-semibold text-gray-800 text-sm">{t('Pesos derivados (Σ = 1 no grupo)')}</h3>
                       <div className="flex items-center gap-2">
                         {showGlobal && (
                           <span className="text-xs text-gray-400">
-                            grupo = <strong className="text-gray-500">{(groupFactor! * 100).toFixed(0)}%</strong> do modelo
+                            {t('grupo =')} <strong className="text-gray-500">{(groupFactor! * 100).toFixed(0)}%</strong> {t('do modelo')}
                           </span>
                         )}
                         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${weights.consistencyMargin > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
@@ -238,9 +236,9 @@ function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; on
                     {showGlobal && (
                       <div className="flex items-center gap-3 text-[10px] uppercase tracking-wide text-gray-400 font-semibold">
                         <span className="w-40 shrink-0" />
-                        <span className="flex-1">Peso no grupo (local)</span>
+                        <span className="flex-1">{t('Peso no grupo (local)')}</span>
                         <span className="w-16 text-right" />
-                        <span className="w-[5.5rem] text-right">Global no modelo</span>
+                        <span className="w-[5.5rem] text-right">{t('Global no modelo')}</span>
                       </div>
                     )}
                     <div className="space-y-2">
@@ -255,7 +253,7 @@ function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; on
                             </div>
                             <span
                               className="w-16 text-right text-sm font-mono font-medium"
-                              title={`Intervalo admissível: [${(w.admissibleRange[0] * 100).toFixed(1)}%, ${(w.admissibleRange[1] * 100).toFixed(1)}%]`}
+                              title={t('Intervalo admissível: [{{lo}}%, {{hi}}%]', { lo: (w.admissibleRange[0] * 100).toFixed(1), hi: (w.admissibleRange[1] * 100).toFixed(1) })}
                             >
                               {(w.weight * 100).toFixed(1)}%
                             </span>
@@ -280,7 +278,7 @@ function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; on
                     </div>
                     {showGlobal && (
                       <p className="text-[11px] text-gray-400 leading-relaxed">
-                        ⚖️ Está a ponderar <strong>dentro de «{group.label}»</strong>. O peso global = {(groupFactor! * 100).toFixed(0)}% (do grupo) × peso local — é esse que pesa no resultado final.
+                        ⚖️ {t('Está a ponderar')} <strong>{t('dentro de «{{label}}»', { label: group.label })}</strong>. {t('O peso global = {{p}}% (do grupo) × peso local — é esse que pesa no resultado final.', { p: (groupFactor! * 100).toFixed(0) })}
                       </p>
                     )}
                   </div>
@@ -295,6 +293,7 @@ function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; on
 }
 
 export default function Weighting() {
+  const { t } = useTranslation();
   const { state } = useApp();
   const model = state.model!;
 
@@ -313,7 +312,7 @@ export default function Weighting() {
   if (groups.length === 0) {
     return (
       <div className="max-w-2xl mx-auto py-10 px-4 text-center text-gray-400">
-        <p>Sem critérios de qualificação. Defina-os na Estruturação.</p>
+        <p>{t('Sem critérios de qualificação. Defina-os na Estruturação.')}</p>
       </div>
     );
   }
@@ -324,15 +323,13 @@ export default function Weighting() {
   return (
     <div className="max-w-4xl mx-auto py-6 px-4 space-y-6">
       <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-800 space-y-1">
-        <p className="font-medium">Ponderação por Oscilação (Swing Weighting)</p>
+        <p className="font-medium">{t('Ponderação por Oscilação (Swing Weighting)')}</p>
         <p>
-          Compare a atratividade de oscilar cada critério de <em>Neutro</em> para <em>Bom</em>.
-          A referência «Tudo-Neutro» é o ponto de partida (valor = 0).
+          {t('Compare a atratividade de oscilar cada critério de Neutro para Bom. A referência «Tudo-Neutro» é o ponto de partida (valor = 0).')}
         </p>
         {multiGroup && (
           <p className="text-xs text-blue-600">
-            Existem fatores compostos: pondere os filhos <strong>dentro de cada grupo</strong>. O peso global de
-            cada folha é o produto dos pesos ao longo do caminho até à raiz.
+            {t('Existem fatores compostos: pondere os filhos dentro de cada grupo. O peso global de cada folha é o produto dos pesos ao longo do caminho até à raiz.')}
           </p>
         )}
       </div>
