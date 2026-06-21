@@ -436,4 +436,64 @@ export const en: Record<string, string> = {
   '{{pair}} trocam posição': '{{pair}} swap positions',
   'A ordenação é robusta a qualquer variação do peso de «{{label}}».':
     'The ranking is robust to any variation of the weight of «{{label}}».',
+
+  // ── Report ──────────────────────────────────────────────────────────────
+  'Porta «{{gate}}» não cumprida — eliminado antes da pontuação.':
+    'Gate «{{gate}}» not met — eliminated before scoring.',
+  'Veto em «{{veto}}».': 'Veto on «{{veto}}».',
+  'Cumpre os critérios e atinge a zona mais elevada da política de decisão.':
+    'Meets the criteria and reaches the highest zone of the decision policy.',
+  'Não atinge as zonas superiores da política de decisão.': 'Does not reach the upper zones of the decision policy.',
+  'Atinge esta zona, mas não a zona superior da política de decisão.':
+    'Reaches this zone, but not the upper zone of the decision policy.',
+  'Relatório de Decisão': 'Decision Report',
+  'Gerado localmente': 'Generated locally',
+  'Veredito · MACBETH': 'Verdict · MACBETH',
+  Exportar: 'Export',
+  'Relatório completo': 'Full report',
+  'Resultados tabulares': 'Tabular results',
+  'JSON Decisão': 'JSON Decision',
+  'Spec IA': 'AI Spec',
+  'Metodologia & trilho de auditoria': 'Methodology & audit trail',
+  'Metodologia — Método MACBETH': 'Methodology — MACBETH method',
+  '(Bana e Costa & Vansnick, 1994). Utiliza juízos qualitativos de diferença de atratividade — de Nula a Extrema — entre pares de alternativas para construir escalas cardinais de valor por programação linear.':
+    '(Bana e Costa & Vansnick, 1994). It uses qualitative attractiveness-difference judgments — from None to Extreme — between pairs of alternatives to build cardinal value scales by linear programming.',
+  'O modelo de agregação é aditivo:': 'The aggregation model is additive:',
+  'ancorado em Neutro = 0 e Bom = 100. A habilitação corre a montante — qualquer porta falhada reprova a {{one}} antes da agregação. O valor global é classificado pela escala de decisão configurada.':
+    'anchored at Neutral = 0 and Good = 100. Eligibility runs upstream — any failed gate rejects the {{one}} before aggregation. The global value is classified by the configured decision scale.',
+  'Trilho de Auditoria': 'Audit trail',
+  'peso = {{w}}%': 'weight = {{w}}%',
+  'Ver juízos ({{n}} entradas)': 'View judgments ({{n}} entries)',
+  // PDF
+  'Gerado localmente em: {{date}}': 'Generated locally on: {{date}}',
+  Decisão: 'Decision',
+  'Escala de decisão aplicada:': 'Decision scale applied:',
+  Observações: 'Notes',
+  'Porta: {{label}}': 'Gate: {{label}}',
+  'Veto: {{label}}': 'Veto: {{label}}',
+  '(Nenhum resultado calculado)': '(No result computed)',
+  Metodologia: 'Methodology',
+  'Este relatório utiliza o Método MACBETH (Measuring Attractiveness by a Categorical Based Evaluation Technique, Bana e Costa & Vansnick, 1994). O método utiliza juízos qualitativos de diferença de atratividade — de Nula a Extrema — entre pares de alternativas para construir escalas cardinais de valor por programação linear. O modelo de agregação é aditivo: V(p) = Σᵢ kᵢ · vᵢ(p), ancorado em Neutro = 0 e Bom = 100. A habilitação corre a montante — qualquer porta falhada reprova a {{one}} antes da agregação multicritério.':
+    'This report uses the MACBETH method (Measuring Attractiveness by a Categorical Based Evaluation Technique, Bana e Costa & Vansnick, 1994). The method uses qualitative attractiveness-difference judgments — from None to Extreme — between pairs of alternatives to build cardinal value scales by linear programming. The aggregation model is additive: V(p) = Σᵢ kᵢ · vᵢ(p), anchored at Neutral = 0 and Good = 100. Eligibility runs upstream — any failed gate rejects the {{one}} before multicriteria aggregation.',
+  'Escala de Decisão': 'Decision Scale',
+  'Zona / ação': 'Zone / action',
+  'Intervalo V(p)': 'V(p) interval',
+  Limiar: 'Threshold',
+  Fundamentação: 'Justification',
+  Manual: 'Manual',
+  'Zona base (aplica-se a tudo o que não atinge as zonas acima)':
+    'Base zone (applies to everything that doesn’t reach the zones above)',
+  'Definido manualmente': 'Set manually',
+  'Os limiares "Fundamentado" derivam de uma alternativa-limiar de referência (o pior caso ainda incluído na zona), cujo V(p) é calculado pelo modelo — rastreável e não arbitrário. "Manual" indica um valor inserido à mão.':
+    'The "Grounded" thresholds derive from a reference threshold alternative (the worst case still included in the zone), whose V(p) is computed by the model — traceable and not arbitrary. "Manual" indicates a hand-entered value.',
+  Descrição: 'Description',
+  'Níveis (melhor → pior)': 'Levels (best → worst)',
+  Peso: 'Weight',
+  Nível: 'Level',
+  Valor: 'Value',
+  'Intervalo admissível': 'Admissible range',
+  Par: 'Pair',
+  Juízo: 'Judgment',
+  'Choices · MACBETH · {{label}} · Página {{i}}/{{n}} · Gerado localmente':
+    'Choices · MACBETH · {{label}} · Page {{i}}/{{n}} · Generated locally',
 };

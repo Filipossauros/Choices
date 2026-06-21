@@ -1,4 +1,5 @@
 import { Fragment } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useApp } from '../store';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -62,6 +63,7 @@ function VerdictIcon({ type, color }: { type: 'pass' | 'warn' | 'fail'; color: s
 }
 
 export default function Report() {
+  const { t } = useTranslation();
   const { state } = useApp();
   const evaluation = state.evaluation!;
   const model = evaluation.model;
@@ -86,7 +88,7 @@ export default function Report() {
   }
 
   function decisionLabel(r: OptionResult): string {
-    if (r.hardRejected) return 'Reprovado';
+    if (r.hardRejected) return t('Reprovado');
     return r.bandId ? bandMap.get(r.bandId)?.label ?? '—' : '—';
   }
   function decisionBand(r: OptionResult): DecisionBand | undefined {
@@ -103,10 +105,10 @@ export default function Report() {
       return {
         iconType: 'fail',
         sub: gate
-          ? `Porta «${gate}» não cumprida — eliminado antes da pontuação.`
+          ? t('Porta «{{gate}}» não cumprida — eliminado antes da pontuação.', { gate })
           : veto
-          ? `Veto em «${veto}».`
-          : 'Eliminado antes da pontuação.',
+          ? t('Veto em «{{veto}}».', { veto })
+          : t('Eliminado antes da pontuação.'),
       };
     }
     const idx = bandViewsR.findIndex((v) => v.band.id === band?.id);
@@ -115,10 +117,10 @@ export default function Report() {
     const sub =
       band?.action ??
       (idx === 0
-        ? 'Cumpre os critérios e atinge a zona mais elevada da política de decisão.'
+        ? t('Cumpre os critérios e atinge a zona mais elevada da política de decisão.')
         : view?.isBase
-        ? 'Não atinge as zonas superiores da política de decisão.'
-        : 'Atinge esta zona, mas não a zona superior da política de decisão.');
+        ? t('Não atinge as zonas superiores da política de decisão.')
+        : t('Atinge esta zona, mas não a zona superior da política de decisão.'));
     return { iconType, sub };
   }
 
@@ -127,11 +129,11 @@ export default function Report() {
     if (!result) return;
     const qualCrit = Object.values(model.valueTree.criteria).filter((c) => c.type === 'qualification');
     const sorted = [...result.optionResults].sort((a, b) => (b.globalValue ?? -Infinity) - (a.globalValue ?? -Infinity));
-    const headers = ['#', subj.One, 'V(p)', 'Decisão', ...qualCrit.map((c) => c.label)];
+    const headers = ['#', t(subj.One), 'V(p)', t('Decisão'), ...qualCrit.map((c) => c.label)];
     const rows = sorted.map((r, i) => {
       const opt = evaluation.options.find((o) => o.id === r.optionId);
       const band = r.bandId ? bandMap.get(r.bandId) : undefined;
-      const decision = r.hardRejected ? 'Reprovado' : (band?.label ?? '—');
+      const decision = r.hardRejected ? t('Reprovado') : (band?.label ?? '—');
       const score = r.globalValue !== null ? r.globalValue.toFixed(1) : '—';
       const critScores = qualCrit.map((c) => {
         const s = r.criterionScores[c.id];
@@ -238,21 +240,21 @@ export default function Report() {
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(16);
-    doc.text('Relatório de Decisão', pageW / 2, y, { align: 'center' });
+    doc.text(t('Relatório de Decisão'), pageW / 2, y, { align: 'center' });
     y += 7;
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(10);
     doc.text(evaluation.label, pageW / 2, y, { align: 'center' });
     y += 5;
-    doc.text(`Gerado localmente em: ${new Date().toLocaleString('pt-PT')}`, pageW / 2, y, { align: 'center' });
+    doc.text(t('Gerado localmente em: {{date}}', { date: new Date().toLocaleString() }), pageW / 2, y, { align: 'center' });
     y += 10;
 
-    sectionTitle(1, 'Decisão');
+    sectionTitle(1, t('Decisão'));
     if (result) {
       const scaleBands = sortBands(result.decisionScale);
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(9);
-      doc.text('Escala de decisão aplicada:', 14, y);
+      doc.text(t('Escala de decisão aplicada:'), 14, y);
       y += 4;
       doc.setFont('helvetica', 'bold');
       scaleBands.forEach((b) => {
@@ -265,11 +267,11 @@ export default function Report() {
       const optionNotes = evaluation.optionNotes ?? {};
       autoTable(doc, {
         startY: y,
-        head: [['#', subj.One, 'V(p)', 'Decisão', 'Observações']],
+        head: [['#', t(subj.One), 'V(p)', t('Decisão'), t('Observações')]],
         body: sorted.map((r, i) => {
           const opt = evaluation.options.find((o) => o.id === r.optionId);
-          const gateNote = r.rejectedByGate ? `Porta: ${model.valueTree.criteria[r.rejectedByGate]?.label}` : '';
-          const vetoNote = r.vetoedByCriterion ? `Veto: ${model.valueTree.criteria[r.vetoedByCriterion]?.label}` : '';
+          const gateNote = r.rejectedByGate ? t('Porta: {{label}}', { label: model.valueTree.criteria[r.rejectedByGate]?.label }) : '';
+          const vetoNote = r.vetoedByCriterion ? t('Veto: {{label}}', { label: model.valueTree.criteria[r.vetoedByCriterion]?.label }) : '';
           const userNote = optionNotes[r.optionId] ?? '';
           const obs = [gateNote, vetoNote, userNote].filter(Boolean).join(' | ');
           return [String(i + 1), opt?.label ?? r.optionId, r.globalValue !== null ? r.globalValue.toFixed(1) : '—', decisionLabel(r), obs];
@@ -287,12 +289,12 @@ export default function Report() {
         checkPage(30);
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(10);
-        doc.text('Perfil por Critério', 14, y);
+        doc.text(t('Perfil por Critério'), 14, y);
         y += 4;
         const optLabels = sorted.map((r) => evaluation.options.find((o) => o.id === r.optionId)?.label ?? r.optionId);
         autoTable(doc, {
           startY: y,
-          head: [['Critério', ...optLabels]],
+          head: [[t('Critério'), ...optLabels]],
           body: qualCriteria.map((c) => {
             if (c.type !== 'qualification') return [];
             return [c.label, ...sorted.map((r) => {
@@ -310,33 +312,33 @@ export default function Report() {
     } else {
       doc.setFont('helvetica', 'italic');
       doc.setFontSize(9);
-      doc.text('(Nenhum resultado calculado)', 14, y);
+      doc.text(t('(Nenhum resultado calculado)'), 14, y);
       y += 8;
     }
 
-    sectionTitle(2, 'Metodologia');
+    sectionTitle(2, t('Metodologia'));
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
-    const methodText = `Este relatório utiliza o Método MACBETH (Measuring Attractiveness by a Categorical Based Evaluation Technique, Bana e Costa & Vansnick, 1994). O método utiliza juízos qualitativos de diferença de atratividade — de Nula a Extrema — entre pares de alternativas para construir escalas cardinais de valor por programação linear. O modelo de agregação é aditivo: V(p) = Σᵢ kᵢ · vᵢ(p), ancorado em Neutro = 0 e Bom = 100. A habilitação corre a montante — qualquer porta falhada reprova a ${subj.one} antes da agregação multicritério.`;
+    const methodText = t('Este relatório utiliza o Método MACBETH (Measuring Attractiveness by a Categorical Based Evaluation Technique, Bana e Costa & Vansnick, 1994). O método utiliza juízos qualitativos de diferença de atratividade — de Nula a Extrema — entre pares de alternativas para construir escalas cardinais de valor por programação linear. O modelo de agregação é aditivo: V(p) = Σᵢ kᵢ · vᵢ(p), ancorado em Neutro = 0 e Bom = 100. A habilitação corre a montante — qualquer porta falhada reprova a {{one}} antes da agregação multicritério.', { one: t(subj.one) });
     const mLines = doc.splitTextToSize(sx(methodText), pageW - 28);
     checkPage(mLines.length * 4.5 + 8);
     doc.text(mLines, 14, y);
     y += mLines.length * 4.5 + 6;
 
-    sectionTitle(3, 'Escala de Decisão');
+    sectionTitle(3, t('Escala de Decisão'));
     const scale3 = result?.decisionScale ?? resolveBands(model);
     autoTable(doc, {
       startY: y,
-      head: [['Zona / ação', 'Intervalo V(p)', 'Limiar', 'Fundamentação']],
+      head: [[t('Zona / ação'), t('Intervalo V(p)'), t('Limiar'), t('Fundamentação')]],
       body: displayBands(scale3).map((v) => {
         const b = v.band;
         const zone = b.action ? `${b.label} — ${b.action}` : b.label;
-        const src = v.isBase ? '—' : b.referenceProfile ? 'Fundamentado' : 'Manual';
+        const src = v.isBase ? '—' : b.referenceProfile ? t('Fundamentado') : t('Manual');
         const just = v.isBase
-          ? 'Zona base (aplica-se a tudo o que não atinge as zonas acima)'
+          ? t('Zona base (aplica-se a tudo o que não atinge as zonas acima)')
           : b.referenceProfile
-          ? `Alternativa-limiar — ${refProfileText(b)}`
-          : 'Definido manualmente';
+          ? t('Alternativa-limiar — {{ref}}', { ref: refProfileText(b) })
+          : t('Definido manualmente');
         return [zone, bandRangeLabel(b, scale3), src, just];
       }),
       styles: { fontSize: 8 },
@@ -351,7 +353,7 @@ export default function Report() {
     doc.setTextColor(110);
     doc.text(
       doc.splitTextToSize(
-        sx('Os limiares "Fundamentado" derivam de uma alternativa-limiar de referência (o pior caso ainda incluído na zona), cujo V(p) é calculado pelo modelo — rastreável e não arbitrário. "Manual" indica um valor inserido à mão.'),
+        sx(t('Os limiares "Fundamentado" derivam de uma alternativa-limiar de referência (o pior caso ainda incluído na zona), cujo V(p) é calculado pelo modelo — rastreável e não arbitrário. "Manual" indica um valor inserido à mão.')),
         pageW - 28,
       ),
       14,
@@ -360,14 +362,14 @@ export default function Report() {
     doc.setTextColor(0);
     y += 10;
 
-    sectionTitle(4, 'Critérios');
+    sectionTitle(4, t('Critérios'));
     const gateCrit = Object.values(model.valueTree.criteria).filter((c) => c.type === 'gate');
     const qualCrit = Object.values(model.valueTree.criteria).filter((c) => c.type === 'qualification');
 
     if (gateCrit.length > 0) {
       autoTable(doc, {
         startY: y,
-        head: [['Porta (habilitação)', 'Descrição']],
+        head: [[t('Porta (habilitação)'), t('Descrição')]],
         body: gateCrit.map((c) => [c.label, c.description ?? '']),
         styles: { fontSize: 8 },
         headStyles: { fillColor: [249, 115, 22] },
@@ -379,7 +381,7 @@ export default function Report() {
     if (qualCrit.length > 0) {
       autoTable(doc, {
         startY: y,
-        head: [['Critério', 'Níveis (melhor → pior)', 'Neutro', 'Bom', 'Peso']],
+        head: [[t('Critério'), t('Níveis (melhor → pior)'), t('Neutro'), t('Bom'), t('Peso')]],
         body: qualCrit.map((c) => {
           if (c.type !== 'qualification') return [];
           const w = effW.get(c.id);
@@ -399,7 +401,7 @@ export default function Report() {
       y += 6;
     }
 
-    sectionTitle(5, 'Trilho de Auditoria');
+    sectionTitle(5, t('Trilho de Auditoria'));
     for (const c of qualCrit) {
       if (c.type !== 'qualification') continue;
       const scale = model.derivedScales.find((s) => s.criterionId === c.id);
@@ -415,7 +417,7 @@ export default function Report() {
       if (scale) {
         autoTable(doc, {
           startY: y,
-          head: [['Nível', 'Valor', 'Intervalo admissível']],
+          head: [[t('Nível'), t('Valor'), t('Intervalo admissível')]],
           body: [...scale.values]
             .sort((a, b) => b.value - a.value)
             .map((sv) => {
@@ -433,12 +435,12 @@ export default function Report() {
       if (matrix && Object.keys(matrix.judgments).length > 0) {
         autoTable(doc, {
           startY: y,
-          head: [['Par', 'Juízo']],
+          head: [[t('Par'), t('Juízo')]],
           body: Object.entries(matrix.judgments).map(([key, j]) => {
             const [idA, idB] = key.split('__');
             const lA = c.descriptor.levels.find((l) => l.id === idA)?.label ?? idA;
             const lB = c.descriptor.levels.find((l) => l.id === idB)?.label ?? idB;
-            return [`${lA} vs ${lB}`, judgmentLabel(j)];
+            return [`${lA} vs ${lB}`, t(judgmentLabel(j))];
           }),
           styles: { fontSize: 7 },
           headStyles: { fillColor: [148, 163, 184] },
@@ -455,7 +457,7 @@ export default function Report() {
       doc.setFont('helvetica', 'italic');
       doc.setFontSize(7);
       doc.setTextColor(150);
-      doc.text(`Choices · MACBETH · ${evaluation.label} · Página ${i}/${pageCount} · Gerado localmente`, pageW / 2, pageH - 8, { align: 'center' });
+      doc.text(t('Choices · MACBETH · {{label}} · Página {{i}}/{{n}} · Gerado localmente', { label: evaluation.label, i, n: pageCount }), pageW / 2, pageH - 8, { align: 'center' });
       doc.setTextColor(0);
     }
     doc.save(`choices-relatorio-${evaluation.id.slice(0, 8)}.pdf`);
@@ -467,14 +469,14 @@ export default function Report() {
       {/* Header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h2 className="text-xl font-semibold text-gray-800">Relatório de Decisão</h2>
+          <h2 className="text-xl font-semibold text-gray-800">{t('Relatório de Decisão')}</h2>
           <p className="text-sm text-gray-500 mt-0.5">{evaluation.label}</p>
         </div>
         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-green-50 border border-green-200 text-green-700 text-xs font-medium">
           <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
           </svg>
-          Gerado localmente
+          {t('Gerado localmente')}
         </span>
       </div>
 
@@ -482,7 +484,7 @@ export default function Report() {
       {result && (
         <section className="space-y-2.5">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs text-gray-400 font-semibold uppercase tracking-wide">Veredito · MACBETH</span>
+            <span className="text-xs text-gray-400 font-semibold uppercase tracking-wide">{t('Veredito · MACBETH')}</span>
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1 ml-auto">
               {bandViewsR.map((v, i) => (
                 <Fragment key={v.band.id}>
@@ -516,7 +518,7 @@ export default function Report() {
                   <div className="min-w-0 flex-1">
                     <p className="text-lg font-extrabold text-gray-800 truncate">{opt?.label}</p>
                     <p className="text-xs font-semibold" style={{ color: accent }}>
-                      {rejected ? 'Reprovado' : band?.label ?? '—'}
+                      {rejected ? t('Reprovado') : band?.label ?? '—'}
                     </p>
                     <p className="text-xs text-gray-500 mt-0.5">{sub}</p>
                     {note && <p className="text-xs text-gray-400 italic mt-0.5">{note}</p>}
@@ -532,7 +534,7 @@ export default function Report() {
 
       {/* Export buttons — 2×2 grid */}
       <div>
-      <span className="text-xs text-gray-400 font-semibold uppercase tracking-wide block mb-2">Exportar</span>
+      <span className="text-xs text-gray-400 font-semibold uppercase tracking-wide block mb-2">{t('Exportar')}</span>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <button
           onClick={exportPDF}
@@ -542,7 +544,7 @@ export default function Report() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
           <span className="text-xs font-semibold">PDF</span>
-          <span className="text-[10px] opacity-80">Relatório completo</span>
+          <span className="text-[10px] opacity-80">{t('Relatório completo')}</span>
         </button>
 
         <button
@@ -554,7 +556,7 @@ export default function Report() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
           </svg>
           <span className="text-xs font-semibold">CSV</span>
-          <span className="text-[10px] opacity-80">Resultados tabulares</span>
+          <span className="text-[10px] opacity-80">{t('Resultados tabulares')}</span>
         </button>
 
         <button
@@ -564,7 +566,7 @@ export default function Report() {
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
-          <span className="text-xs font-semibold">JSON Decisão</span>
+          <span className="text-xs font-semibold">{t('JSON Decisão')}</span>
           <span className="text-[10px] opacity-80">choices/decision@1</span>
         </button>
 
@@ -576,7 +578,7 @@ export default function Report() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
           </svg>
-          <span className="text-xs font-semibold">Spec IA</span>
+          <span className="text-xs font-semibold">{t('Spec IA')}</span>
           <span className="text-[10px] opacity-80">choices/model-spec@1</span>
         </button>
       </div>
@@ -585,24 +587,24 @@ export default function Report() {
       {/* Metodologia + Trilho — collapsed by default; decision stays the focus */}
       <details className="border border-gray-200 rounded-xl bg-white">
         <summary className="px-5 py-3 cursor-pointer text-sm font-semibold text-gray-700 hover:text-gray-900 select-none">
-          Metodologia &amp; trilho de auditoria
+          {t('Metodologia & trilho de auditoria')}
         </summary>
         <div className="px-5 pb-5 space-y-5">
 
       {/* Metodologia */}
       <section className="space-y-2">
-        <h3 className="font-semibold text-gray-800 text-sm">Metodologia — Método MACBETH</h3>
+        <h3 className="font-semibold text-gray-800 text-sm">{t('Metodologia — Método MACBETH')}</h3>
         <p className="text-sm text-gray-600 leading-relaxed">
-          <em>Measuring Attractiveness by a Categorical Based Evaluation Technique</em> (Bana e Costa &amp; Vansnick, 1994). Utiliza juízos qualitativos de diferença de atratividade — de <em>Nula</em> a <em>Extrema</em> — entre pares de alternativas para construir escalas cardinais de valor por programação linear.
+          <em>Measuring Attractiveness by a Categorical Based Evaluation Technique</em> {t('(Bana e Costa & Vansnick, 1994). Utiliza juízos qualitativos de diferença de atratividade — de Nula a Extrema — entre pares de alternativas para construir escalas cardinais de valor por programação linear.')}
         </p>
         <p className="text-sm text-gray-600 leading-relaxed">
-          O modelo de agregação é aditivo: <strong>V(p) = Σᵢ kᵢ · vᵢ(p)</strong>, ancorado em Neutro = 0 e Bom = 100. A habilitação corre a montante — qualquer porta falhada reprova a {subj.one} antes da agregação. O valor global é classificado pela escala de decisão configurada.
+          {t('O modelo de agregação é aditivo:')} <strong>V(p) = Σᵢ kᵢ · vᵢ(p)</strong>, {t('ancorado em Neutro = 0 e Bom = 100. A habilitação corre a montante — qualquer porta falhada reprova a {{one}} antes da agregação. O valor global é classificado pela escala de decisão configurada.', { one: t(subj.one) })}
         </p>
       </section>
 
       {/* Trilho de Auditoria */}
       <section className="space-y-4 border-t border-gray-100 pt-4">
-        <h3 className="font-semibold text-gray-800 text-sm">Trilho de Auditoria</h3>
+        <h3 className="font-semibold text-gray-800 text-sm">{t('Trilho de Auditoria')}</h3>
         {qualCriteria.map((c) => {
           if (c.type !== 'qualification') return null;
           const scale = model.derivedScales.find((s) => s.criterionId === c.id);
@@ -614,7 +616,7 @@ export default function Report() {
                 <h4 className="font-medium text-gray-700">{c.label}</h4>
                 <div className="flex gap-2 text-xs">
                   {scale && <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full">z = {scale.consistencyMargin.toFixed(4)}</span>}
-                  {w != null && <span className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full">peso = {(w * 100).toFixed(1)}%</span>}
+                  {w != null && <span className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full">{t('peso = {{w}}%', { w: (w * 100).toFixed(1) })}</span>}
                 </div>
               </div>
               {scale && (
@@ -632,13 +634,13 @@ export default function Report() {
               )}
               {matrix && Object.keys(matrix.judgments).length > 0 && (
                 <details className="text-xs text-gray-500">
-                  <summary className="cursor-pointer hover:text-gray-700">Ver juízos ({Object.keys(matrix.judgments).length} entradas)</summary>
+                  <summary className="cursor-pointer hover:text-gray-700">{t('Ver juízos ({{n}} entradas)', { n: Object.keys(matrix.judgments).length })}</summary>
                   <div className="mt-1 grid grid-cols-2 gap-1 sm:grid-cols-3">
                     {Object.entries(matrix.judgments).map(([key, j]) => {
                       const [idA, idB] = key.split('__');
                       const lA = c.descriptor.levels.find((l) => l.id === idA)?.label ?? idA;
                       const lB = c.descriptor.levels.find((l) => l.id === idB)?.label ?? idB;
-                      return <span key={key}>{lA} vs {lB}: <strong>{judgmentLabel(j)}</strong></span>;
+                      return <span key={key}>{lA} vs {lB}: <strong>{t(judgmentLabel(j))}</strong></span>;
                     })}
                   </div>
                 </details>
