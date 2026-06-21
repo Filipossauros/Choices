@@ -191,21 +191,31 @@ export default function ModelHeader() {
         </div>
       </div>
       {mode && (
-        <>
-          <nav className="px-4 flex gap-1 overflow-x-auto items-center">
-            {screens.map((screen, i) => {
-              const status = statuses[i];
-              const active = currentScreen === screen;
-              const dotCls = active
-                ? 'bg-blue-600 text-white ring-4 ring-blue-100'
-                : status === 'done'
-                ? 'bg-green-500 text-white'
-                : status === 'partial'
-                ? 'bg-amber-400 text-white'
-                : 'bg-gray-200 text-gray-500';
-              return (
-                <div key={screen} className="flex items-center shrink-0">
-                  {i > 0 && <span className="w-5 h-px bg-gray-200 mx-0.5" aria-hidden="true" />}
+        <nav className="px-4 flex gap-1 overflow-x-auto items-stretch">
+          {screens.map((screen, i) => {
+            const status = statuses[i];
+            const active = currentScreen === screen;
+            const done = i < activeIndex || status === 'done';
+            const dotCls = active
+              ? 'bg-blue-600 text-white ring-4 ring-blue-100'
+              : status === 'done'
+              ? 'bg-green-500 text-white'
+              : status === 'partial'
+              ? 'bg-amber-400 text-white'
+              : 'bg-gray-200 text-gray-500';
+            // Underline tracks the step it sits under — guaranteeing alignment
+            // (a single full-width bar can't line up with left-packed nav items).
+            const barCls = active
+              ? 'bg-blue-500'
+              : status === 'done'
+              ? 'bg-green-500'
+              : status === 'partial'
+              ? 'bg-amber-400'
+              : 'bg-gray-200';
+            return (
+              <div key={screen} className="flex items-stretch shrink-0">
+                {i > 0 && <span className={`self-center w-5 h-px mx-0.5 ${done ? 'bg-green-300' : 'bg-gray-200'}`} aria-hidden="true" />}
+                <div className="flex flex-col">
                   <button
                     onClick={() => dispatch({ type: 'SET_SCREEN', screen })}
                     className={`px-2.5 py-2 text-sm rounded-lg transition-colors flex items-center gap-2 ${
@@ -217,27 +227,12 @@ export default function ModelHeader() {
                     </span>
                     {t(LABELS[screen])}
                   </button>
+                  <span className={`h-[3px] rounded-full mx-1 mb-1 transition-colors duration-500 ${barCls}`} aria-hidden="true" />
                 </div>
-              );
-            })}
-          </nav>
-          {/* Segmented progress — one segment per step, coloured to match its
-              dot so the bar mirrors the real per-step state (not a misleading
-              left-aligned fill). */}
-          <div className="h-[3px] bg-gray-100 flex gap-px">
-            {statuses.map((status, i) => {
-              const segCls =
-                i === activeIndex
-                  ? 'bg-blue-500'
-                  : status === 'done'
-                  ? 'bg-green-500'
-                  : status === 'partial'
-                  ? 'bg-amber-400'
-                  : 'bg-transparent';
-              return <div key={screens[i]} className={`flex-1 h-full transition-colors duration-500 ${segCls}`} />;
-            })}
-          </div>
-        </>
+              </div>
+            );
+          })}
+        </nav>
       )}
     </header>
   );
