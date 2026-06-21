@@ -1,9 +1,28 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useApp, type Screen, type Mode } from '../store';
 import { CREATE_SCREENS, APPLY_SCREENS } from '../store';
 import { allGroupsConsistent } from '../../domain/tree';
 import type { EvaluationModel, Evaluation } from '../../domain/types';
+import { setLang, type Lang } from '../../i18n';
 import { v4 as uuidv4 } from 'uuid';
+
+// ── Language toggle (PT ⇄ EN) ─────────────────────────────────────────────────
+function LanguageToggle() {
+  const { t, i18n } = useTranslation();
+  const cur = (i18n.language?.startsWith('en') ? 'en' : 'pt') as Lang;
+  const next: Lang = cur === 'pt' ? 'en' : 'pt';
+  return (
+    <button
+      onClick={() => setLang(next)}
+      title={next === 'en' ? t('Mudar para inglês') : t('Mudar para português')}
+      aria-label={t('Idioma')}
+      className="shrink-0 h-8 px-2 grid place-items-center rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors text-xs font-bold tracking-wide"
+    >
+      {cur.toUpperCase()}
+    </button>
+  );
+}
 
 // ── Dark-mode toggle ──────────────────────────────────────────────────────────
 // Persists to localStorage and falls back to the OS preference. Applies/removes
@@ -110,6 +129,7 @@ function applyStatus(evaluation: Evaluation, screen: Screen): CompletionStatus {
 }
 
 export default function ModelHeader() {
+  const { t } = useTranslation();
   const { state, dispatch } = useApp();
   const { currentScreen, mode, model, evaluation } = state;
 
@@ -152,7 +172,7 @@ export default function ModelHeader() {
         </button>
         {mode && (
           <span className="text-[11px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 shrink-0">
-            {modeLabel[mode]}
+            {t(modeLabel[mode])}
           </span>
         )}
         {docLabel && <span className="text-sm text-gray-500 truncate max-w-xs">{docLabel}</span>}
@@ -161,11 +181,12 @@ export default function ModelHeader() {
             <button
               onClick={editModelCopy}
               className="shrink-0 text-xs px-2.5 py-1 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50"
-              title="Cria uma cópia editável do modelo desta avaliação — não altera o original nem esta avaliação"
+              title={t('Cria uma cópia editável do modelo desta avaliação — não altera o original nem esta avaliação')}
             >
-              Editar modelo (cópia)
+              {t('Editar modelo (cópia)')}
             </button>
           )}
+          <LanguageToggle />
           <DarkModeToggle />
         </div>
       </div>
@@ -194,7 +215,7 @@ export default function ModelHeader() {
                     <span className={`w-[18px] h-[18px] rounded-full shrink-0 grid place-items-center text-[10px] font-bold transition-all ${dotCls}`} aria-hidden="true">
                       {status === 'done' && !active ? '✓' : i + 1}
                     </span>
-                    {LABELS[screen]}
+                    {t(LABELS[screen])}
                   </button>
                 </div>
               );

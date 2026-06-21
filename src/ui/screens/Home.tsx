@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useApp } from '../store';
 import { repository } from '../../repository';
 import type { DocMeta } from '../../repository';
@@ -280,6 +281,7 @@ type View = 'menu' | 'method' | 'manifest';
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function Home() {
+  const { t } = useTranslation();
   const { dispatch } = useApp();
   const [view, setView] = useState<View>('menu');
   const [models, setModels] = useState<DocMeta[]>([]);
@@ -307,7 +309,7 @@ export default function Home() {
     if (model) dispatch({ type: 'EDIT_MODEL', model });
   }
   async function deleteModel(id: string) {
-    if (!confirm('Eliminar este modelo?')) return;
+    if (!confirm(t('Eliminar este modelo?'))) return;
     await repository.deleteModel(id);
     refresh();
   }
@@ -320,7 +322,7 @@ export default function Home() {
     if (evaluation) dispatch({ type: 'OPEN_EVALUATION', evaluation });
   }
   async function deleteEvaluation(id: string) {
-    if (!confirm('Eliminar esta análise?')) return;
+    if (!confirm(t('Eliminar esta análise?'))) return;
     await repository.deleteEvaluation(id);
     refresh();
   }
@@ -345,7 +347,7 @@ export default function Home() {
         else dispatch({ type: 'START_EVALUATION', model: doc });
       }
     } catch (err) {
-      alert('Erro ao importar: ' + String(err));
+      alert(t('Erro ao importar: ') + String(err));
     } finally {
       setImporting(false);
       e.target.value = '';
@@ -366,9 +368,9 @@ export default function Home() {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(99,102,241,0.12),transparent_60%)]" />
         <div className="relative flex flex-col items-center text-center px-6 py-10">
           <BalanceMascot />
-          <h1 className="text-3xl font-extrabold tracking-tight text-gray-900 mt-3">O que vais decidir hoje?</h1>
+          <h1 className="text-3xl font-extrabold tracking-tight text-gray-900 mt-3">{t('O que vais decidir hoje?')}</h1>
           <p className="text-gray-500 text-sm mt-2 max-w-md">
-            Avaliação multicritério, estruturada e defensável — para qualquer alternativa ou cenário.
+            {t('Avaliação multicritério, estruturada e defensável — para qualquer alternativa ou cenário.')}
           </p>
         </div>
       </div>
@@ -377,29 +379,29 @@ export default function Home() {
       <div className="grid sm:grid-cols-2 gap-4 mb-8">
         <div className="rounded-2xl border-2 border-indigo-100 bg-gradient-to-b from-indigo-50 to-white p-5 flex flex-col">
           <div className="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-600 grid place-items-center mb-2"><IconPencil className="w-5 h-5" /></div>
-          <h2 className="font-bold text-indigo-900 text-base mb-1">Criar modelo de avaliação</h2>
+          <h2 className="font-bold text-indigo-900 text-base mb-1">{t('Criar modelo de avaliação')}</h2>
           <p className="text-sm text-indigo-700/70 mb-4 flex-1">
-            Definir critérios, escalas de valor, pesos e perfis de decisão.
+            {t('Definir critérios, escalas de valor, pesos e perfis de decisão.')}
           </p>
           <div>
             <button onClick={newModel} className="px-3 py-1.5 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium">
-              + Novo modelo
+              {t('+ Novo modelo')}
             </button>
           </div>
         </div>
 
         <div className="rounded-2xl border-2 border-emerald-100 bg-gradient-to-b from-emerald-50 to-white p-5 flex flex-col">
           <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 grid place-items-center mb-2"><IconClipboard className="w-5 h-5" /></div>
-          <h2 className="font-bold text-emerald-900 text-base mb-1">Avaliar alternativas</h2>
+          <h2 className="font-bold text-emerald-900 text-base mb-1">{t('Avaliar alternativas')}</h2>
           <p className="text-sm text-emerald-700/70 mb-4 flex-1">
-            Aplicar um modelo a um conjunto concreto de alternativas e obter resultados.
+            {t('Aplicar um modelo a um conjunto concreto de alternativas e obter resultados.')}
           </p>
           <div className="space-y-2">
             {models.length === 0 ? (
-              <span className="text-xs text-gray-400 italic">Cria um modelo primeiro.</span>
+              <span className="text-xs text-gray-400 italic">{t('Cria um modelo primeiro.')}</span>
             ) : !pickModel ? (
               <button onClick={() => setPickModel(true)} className="px-3 py-1.5 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-medium">
-                + Nova avaliação
+                {t('+ Nova avaliação')}
               </button>
             ) : (
               <select
@@ -408,7 +410,7 @@ export default function Home() {
                 onChange={(e) => { if (e.target.value) applyModel(e.target.value); }}
                 className="w-full border border-emerald-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:ring-1 focus:ring-emerald-400"
               >
-                <option value="" disabled>Escolher modelo a avaliar…</option>
+                <option value="" disabled>{t('Escolher modelo a avaliar…')}</option>
                 {models.map((m) => (
                   <option key={m.id} value={m.id}>{m.label}</option>
                 ))}
@@ -425,22 +427,22 @@ export default function Home() {
           {/* Models */}
           <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
             <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-              <h3 className="font-semibold text-gray-800 text-sm">Modelos disponíveis</h3>
+              <h3 className="font-semibold text-gray-800 text-sm">{t('Modelos disponíveis')}</h3>
               <div className="flex items-center gap-3">
                 {models.length > 3 && (
                   <button onClick={() => setShowAllModels(!showAllModels)} className="text-xs text-indigo-600 hover:underline">
-                    {showAllModels ? 'Mostrar menos' : `Ver todos (${models.length})`}
+                    {showAllModels ? t('Mostrar menos') : t('Ver todos ({{n}})', { n: models.length })}
                   </button>
                 )}
                 <label className={`text-xs text-indigo-600 hover:text-indigo-800 font-medium cursor-pointer inline-flex items-center gap-1 ${importing ? 'opacity-50 pointer-events-none' : ''}`}>
-                  {importing ? 'A importar…' : <><IconImport className="w-3.5 h-3.5" /> Importar JSON</>}
+                  {importing ? t('A importar…') : <><IconImport className="w-3.5 h-3.5" /> {t('Importar JSON')}</>}
                   <input type="file" accept=".json" className="hidden" onChange={(e) => handleImport(e, 'create')} />
                 </label>
               </div>
             </div>
             {recentModels.length === 0 ? (
               <p className="px-4 py-5 text-sm text-gray-400 italic">
-                Ainda sem modelos. Cria um do zero, importa um JSON ou usa um modelo-base à direita.
+                {t('Ainda sem modelos. Cria um do zero, importa um JSON ou usa um modelo-base à direita.')}
               </p>
             ) : (
               <ul className="divide-y divide-gray-100">
@@ -450,8 +452,8 @@ export default function Home() {
                       <p className="font-medium text-gray-800 text-sm truncate">{m.label}</p>
                       <StatusPill updatedAt={m.updatedAt} />
                     </div>
-                    <button onClick={() => editModel(m.id)} className="text-xs text-indigo-600 hover:text-indigo-800 font-medium">Editar</button>
-                    <button onClick={() => applyModel(m.id)} className="text-xs text-emerald-600 hover:text-emerald-800 font-medium">Avaliar</button>
+                    <button onClick={() => editModel(m.id)} className="text-xs text-indigo-600 hover:text-indigo-800 font-medium">{t('Editar')}</button>
+                    <button onClick={() => applyModel(m.id)} className="text-xs text-emerald-600 hover:text-emerald-800 font-medium">{t('Avaliar')}</button>
                     <button onClick={() => deleteModel(m.id)} className="text-gray-300 hover:text-red-400 text-xs">✕</button>
                   </li>
                 ))}
@@ -462,22 +464,22 @@ export default function Home() {
           {/* Evaluations */}
           <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
             <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-              <h3 className="font-semibold text-gray-800 text-sm">Avaliações recentes</h3>
+              <h3 className="font-semibold text-gray-800 text-sm">{t('Avaliações recentes')}</h3>
               <div className="flex items-center gap-3">
                 {evaluations.length > 2 && (
                   <button onClick={() => setShowAllEvals(!showAllEvals)} className="text-xs text-indigo-600 hover:underline">
-                    {showAllEvals ? 'Mostrar menos' : `Ver todas (${evaluations.length})`}
+                    {showAllEvals ? t('Mostrar menos') : t('Ver todas ({{n}})', { n: evaluations.length })}
                   </button>
                 )}
                 <label className={`text-xs text-indigo-600 hover:text-indigo-800 font-medium cursor-pointer inline-flex items-center gap-1 ${importing ? 'opacity-50 pointer-events-none' : ''}`}>
-                  {importing ? 'A importar…' : <><IconImport className="w-3.5 h-3.5" /> Importar JSON</>}
+                  {importing ? t('A importar…') : <><IconImport className="w-3.5 h-3.5" /> {t('Importar JSON')}</>}
                   <input type="file" accept=".json" className="hidden" onChange={(e) => handleImport(e, 'apply')} />
                 </label>
               </div>
             </div>
             {recentEvals.length === 0 ? (
               <p className="px-4 py-5 text-sm text-gray-400 italic">
-                Sem avaliações em curso. Inicia uma nova avaliação acima ou importa um JSON de uma avaliação anterior.
+                {t('Sem avaliações em curso. Inicia uma nova avaliação acima ou importa um JSON de uma avaliação anterior.')}
               </p>
             ) : (
               <ul className="divide-y divide-gray-100">
@@ -487,7 +489,7 @@ export default function Home() {
                       <p className="font-medium text-gray-800 text-sm truncate">{e.label}</p>
                       <StatusPill updatedAt={e.updatedAt} />
                     </div>
-                    <button onClick={() => resumeEvaluation(e.id)} className="text-xs text-indigo-600 hover:text-indigo-800 font-medium">Abrir</button>
+                    <button onClick={() => resumeEvaluation(e.id)} className="text-xs text-indigo-600 hover:text-indigo-800 font-medium">{t('Abrir')}</button>
                     <button onClick={() => deleteEvaluation(e.id)} className="text-gray-300 hover:text-red-400 text-xs">✕</button>
                   </li>
                 ))}
@@ -499,19 +501,19 @@ export default function Home() {
         {/* ── Sidebar: templates + links ── */}
         <div className="space-y-4">
           <div className="bg-white border border-gray-200 rounded-2xl p-4">
-            <h3 className="font-semibold text-gray-800 text-sm mb-1">Modelos-base</h3>
-            <p className="text-xs text-gray-400 mb-3">Arranca de um exemplo completo e adapta.</p>
+            <h3 className="font-semibold text-gray-800 text-sm mb-1">{t('Modelos-base')}</h3>
+            <p className="text-xs text-gray-400 mb-3">{t('Arranca de um exemplo completo e adapta.')}</p>
             <div className="space-y-2">
-              {TEMPLATES.map((t) => (
+              {TEMPLATES.map((tpl) => (
                 <button
-                  key={t.key}
-                  onClick={() => fromTemplate(t.factory)}
+                  key={tpl.key}
+                  onClick={() => fromTemplate(tpl.factory)}
                   className="w-full text-left p-3 rounded-xl border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50 transition-colors group"
                 >
                   <div className="font-medium text-gray-800 text-sm group-hover:text-indigo-700 flex items-center gap-2">
-                    <t.Icon className="w-4 h-4 text-indigo-500" /> {t.label}
+                    <tpl.Icon className="w-4 h-4 text-indigo-500" /> {t(tpl.label)}
                   </div>
-                  <div className="text-xs text-gray-400 mt-0.5 pl-6">{t.meta}</div>
+                  <div className="text-xs text-gray-400 mt-0.5 pl-6">{t(tpl.meta)}</div>
                 </button>
               ))}
             </div>
@@ -519,10 +521,10 @@ export default function Home() {
 
           <div className="bg-white border border-gray-200 rounded-2xl p-4 space-y-2">
             <button onClick={() => setView('method')} className="w-full text-left text-sm text-gray-500 hover:text-gray-800 transition-colors py-1">
-              📘 Como funciona o método MACBETH
+              📘 {t('Como funciona o método MACBETH')}
             </button>
             <button onClick={() => setView('manifest')} className="w-full text-left text-sm text-gray-500 hover:text-gray-800 transition-colors py-1">
-              🧩 Manifesto de capacidades (para IA)
+              🧩 {t('Manifesto de capacidades (para IA)')}
             </button>
           </div>
         </div>
