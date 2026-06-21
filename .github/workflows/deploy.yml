@@ -3,7 +3,7 @@ name: Deploy to GitHub Pages
 # GitHub Pages for this repo serves from the `gh-pages` branch
 # (Settings → Pages → Source: "Deploy from a branch"). This workflow
 # builds the app and publishes the contents of dist/ to that branch,
-# so the live site at https://filipossauros.github.io/Macbeth/ stays
+# so the live site at https://filipossauros.github.io/Choices/ stays
 # in sync on every push.
 
 on:
