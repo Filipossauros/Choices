@@ -16,75 +16,90 @@ function BalanceMascot() {
   return (
     <>
       <style>{`
-        @keyframes bm-float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
-        @keyframes bm-blink { 0%,92%,100%{transform:scaleY(1)} 96%{transform:scaleY(0.1)} }
-        @keyframes bm-tilt { 0%,100%{transform:rotate(-4deg)} 50%{transform:rotate(4deg)} }
-        @keyframes bm-pulse { 0%,100%{opacity:0.35;transform:scale(1)} 50%{opacity:0.6;transform:scale(1.08)} }
-        @keyframes bm-spark { 0%,100%{opacity:0.25;transform:scale(0.85)} 50%{opacity:0.9;transform:scale(1.15)} }
-        .bm-body{animation:bm-float 4s ease-in-out infinite;display:inline-block}
-        .bm-beam{animation:bm-tilt 4.6s ease-in-out infinite;transform-origin:80px 44px}
-        .bm-eyes{animation:bm-blink 5.5s ease-in-out infinite;transform-origin:50% 50%}
-        .bm-glow{animation:bm-pulse 4s ease-in-out infinite;transform-origin:80px 52px}
-        .bm-spark{animation:bm-spark 3s ease-in-out infinite}
+        @keyframes fx-float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+        @keyframes fx-ears { 0%,100%{transform:rotate(0)} 25%{transform:rotate(-3deg)} 60%{transform:rotate(2deg)} }
+        @keyframes fx-tail { 0%,100%{transform:rotate(-6deg)} 50%{transform:rotate(8deg)} }
+        @keyframes fx-pulse { 0%,100%{opacity:0.35;transform:scale(1)} 50%{opacity:0.6;transform:scale(1.08)} }
+        @keyframes fx-spark { 0%,100%{opacity:0.25;transform:scale(0.85)} 50%{opacity:0.95;transform:scale(1.15)} }
+        @keyframes fx-glint { 0%,100%{opacity:0.2} 50%{opacity:0.9} }
+        .fx-body{animation:fx-float 4s ease-in-out infinite;display:inline-block}
+        .fx-ears{animation:fx-ears 5s ease-in-out infinite;transform-origin:80px 26px}
+        .fx-tail{animation:fx-tail 4.4s ease-in-out infinite;transform-origin:52px 76px}
+        .fx-glow{animation:fx-pulse 4s ease-in-out infinite;transform-origin:80px 58px}
+        .fx-spark{animation:fx-spark 3s ease-in-out infinite}
+        .fx-glint{animation:fx-glint 3.5s ease-in-out infinite}
       `}</style>
-      <svg className="bm-body" width="124" height="74" viewBox="0 0 160 96" xmlns="http://www.w3.org/2000/svg">
+      <svg className="fx-body" width="132" height="100" viewBox="0 0 160 120" xmlns="http://www.w3.org/2000/svg">
         <defs>
-          <linearGradient id="bm-head" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="#818cf8" />
-            <stop offset="1" stopColor="#6366f1" />
+          <linearGradient id="fx-fur" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#fb923c" />
+            <stop offset="1" stopColor="#ea580c" />
           </linearGradient>
-          <linearGradient id="bm-beam-grad" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0" stopColor="#a78bfa" />
-            <stop offset="1" stopColor="#6366f1" />
+          <linearGradient id="fx-glass" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stopColor="#312e81" />
+            <stop offset="0.5" stopColor="#1e293b" />
+            <stop offset="1" stopColor="#0f172a" />
           </linearGradient>
-          <radialGradient id="bm-aura" cx="0.5" cy="0.5" r="0.5">
-            <stop offset="0" stopColor="#c4b5fd" stopOpacity="0.55" />
+          <radialGradient id="fx-aura" cx="0.5" cy="0.5" r="0.5">
+            <stop offset="0" stopColor="#c4b5fd" stopOpacity="0.6" />
             <stop offset="1" stopColor="#c4b5fd" stopOpacity="0" />
           </radialGradient>
         </defs>
 
-        {/* soft aura */}
-        <circle className="bm-glow" cx="80" cy="50" r="44" fill="url(#bm-aura)" />
+        {/* soft brand aura */}
+        <circle className="fx-glow" cx="80" cy="58" r="48" fill="url(#fx-aura)" />
 
-        {/* tilting beam + pans */}
-        <g className="bm-beam">
-          <rect x="32" y="42" width="96" height="7" rx="3.5" fill="url(#bm-beam-grad)" />
-          <circle cx="80" cy="45.5" r="5" fill="#eef2ff" stroke="#6366f1" strokeWidth="2" />
-          {/* left arm + pan (approve) */}
-          <line x1="44" y1="48" x2="44" y2="64" stroke="#a5b4fc" strokeWidth="2.5" strokeLinecap="round" />
-          <path d="M31 64 Q44 78 57 64 Z" fill="#e0e7ff" stroke="#818cf8" strokeWidth="2" strokeLinejoin="round" />
-          <circle cx="44" cy="58" r="6.5" fill="#34d399" />
-          <path d="M40.6 58 l2.2 2.6 l4.2 -5.2" stroke="white" strokeWidth="2.1" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-          {/* right arm + pan (consider) */}
-          <line x1="116" y1="48" x2="116" y2="64" stroke="#a5b4fc" strokeWidth="2.5" strokeLinecap="round" />
-          <path d="M103 64 Q116 78 129 64 Z" fill="#e0e7ff" stroke="#818cf8" strokeWidth="2" strokeLinejoin="round" />
-          <path d="M116 52.5 l1.5 3.4 l3.7 0.4 l-2.8 2.5 l0.8 3.6 l-3.2 -1.9 l-3.2 1.9 l0.8 -3.6 l-2.8 -2.5 l3.7 -0.4 z" fill="#fbbf24" />
+        {/* fluffy swishing tail (behind) */}
+        <g className="fx-tail">
+          <path d="M56 84 C 22 96, 4 70, 16 46 C 17 60, 31 67, 46 66 C 35 74, 33 86, 56 84 Z" fill="url(#fx-fur)" />
+          <path d="M16 46 C 11 56, 12 65, 19 70 C 14 60, 22 55, 30 57 C 25 51, 20 47, 16 46 Z" fill="#fff7ed" />
         </g>
 
-        {/* head / pivot — gradient with rim light */}
-        <circle cx="80" cy="32" r="25" fill="url(#bm-head)" />
-        <circle cx="80" cy="32" r="25" fill="none" stroke="#c7d2fe" strokeOpacity="0.5" strokeWidth="1.5" />
-        <path d="M64 22 Q80 12 96 22" stroke="#c7d2fe" strokeWidth="3" strokeLinecap="round" fill="none" opacity="0.6" />
-        {/* little antenna */}
-        <line x1="80" y1="9" x2="80" y2="3" stroke="#a5b4fc" strokeWidth="2" strokeLinecap="round" />
-        <circle cx="80" cy="2.5" r="2.6" fill="#fbbf24" />
-
-        <g className="bm-eyes">
-          <ellipse cx="71" cy="32" rx="6.2" ry="7.4" fill="white" />
-          <ellipse cx="89" cy="32" rx="6.2" ry="7.4" fill="white" />
-          <circle cx="72.5" cy="33" r="3.6" fill="#1e1b4b" />
-          <circle cx="90.5" cy="33" r="3.6" fill="#1e1b4b" />
-          <circle cx="74" cy="31" r="1.5" fill="white" />
-          <circle cx="92" cy="31" r="1.5" fill="white" />
+        {/* ears */}
+        <g className="fx-ears">
+          <path d="M54 32 L41 3 L73 23 Z" fill="url(#fx-fur)" />
+          <path d="M55 28 L48 11 L67 22 Z" fill="#7c2d12" />
+          <path d="M106 32 L119 3 L87 23 Z" fill="url(#fx-fur)" />
+          <path d="M105 28 L112 11 L93 22 Z" fill="#7c2d12" />
         </g>
-        <path d="M73 42 Q80 47.5 87 42" stroke="#1e1b4b" strokeWidth="2.4" fill="none" strokeLinecap="round" />
-        {/* rosy cheeks */}
-        <circle cx="63" cy="40" r="3.3" fill="#f9a8d4" opacity="0.55" />
-        <circle cx="97" cy="40" r="3.3" fill="#f9a8d4" opacity="0.55" />
+
+        {/* cheek fur tufts */}
+        <path d="M46 50 L29 52 L47 60 Z" fill="url(#fx-fur)" />
+        <path d="M114 50 L131 52 L113 60 Z" fill="url(#fx-fur)" />
+
+        {/* head */}
+        <path
+          d="M80 16 C 56 16, 44 32, 44 48 C 44 66, 60 88, 80 94 C 100 88, 116 66, 116 48 C 116 32, 104 16, 80 16 Z"
+          fill="url(#fx-fur)"
+        />
+        {/* top rim light */}
+        <path d="M62 24 Q80 16 98 24" stroke="#fed7aa" strokeWidth="3" strokeLinecap="round" fill="none" opacity="0.7" />
+
+        {/* white muzzle / cheeks */}
+        <path d="M60 56 C 63 78, 75 88, 80 90 C 85 88, 97 78, 100 56 C 92 62, 68 62, 60 56 Z" fill="#fff7ed" />
+
+        {/* cool sunglasses */}
+        <g>
+          <line x1="73" y1="44" x2="87" y2="44" stroke="#0f172a" strokeWidth="3.5" strokeLinecap="round" />
+          <line x1="52" y1="42" x2="44" y2="40" stroke="#0f172a" strokeWidth="3" strokeLinecap="round" />
+          <line x1="108" y1="42" x2="116" y2="40" stroke="#0f172a" strokeWidth="3" strokeLinecap="round" />
+          <rect x="52" y="37" width="24" height="15" rx="7" fill="url(#fx-glass)" stroke="#0f172a" strokeWidth="1.5" />
+          <rect x="84" y="37" width="24" height="15" rx="7" fill="url(#fx-glass)" stroke="#0f172a" strokeWidth="1.5" />
+          {/* lens glints */}
+          <path className="fx-glint" d="M56 40 l6 0 l-9 9 l-1 -4 z" fill="#a5b4fc" opacity="0.7" />
+          <path className="fx-glint" d="M88 40 l6 0 l-9 9 l-1 -4 z" fill="#a5b4fc" opacity="0.7" />
+        </g>
+
+        {/* nose + cool smirk */}
+        <path d="M74 67 Q80 63 86 67 Q84 74 80 75 Q76 74 74 67 Z" fill="#1f2937" />
+        <circle cx="77" cy="68.5" r="1.3" fill="#4b5563" />
+        <path d="M80 75 Q80 81 86 80" stroke="#1f2937" strokeWidth="2.2" fill="none" strokeLinecap="round" />
+        {/* tiny fang */}
+        <path d="M80 80 l2 4 l2 -4 z" fill="#ffffff" />
 
         {/* sparkles */}
-        <path className="bm-spark" d="M20 26 l1.6 4.2 l4.2 1.6 l-4.2 1.6 l-1.6 4.2 l-1.6 -4.2 l-4.2 -1.6 l4.2 -1.6 z" fill="#fbbf24" opacity="0.85" />
-        <path className="bm-spark" d="M140 34 l1.1 3 l3 1.1 l-3 1.1 l-1.1 3 l-1.1 -3 l-3 -1.1 l3 -1.1 z" fill="#a5b4fc" opacity="0.85" />
+        <path className="fx-spark" d="M22 34 l1.6 4.2 l4.2 1.6 l-4.2 1.6 l-1.6 4.2 l-1.6 -4.2 l-4.2 -1.6 l4.2 -1.6 z" fill="#fbbf24" opacity="0.85" />
+        <path className="fx-spark" d="M140 44 l1.1 3 l3 1.1 l-3 1.1 l-1.1 3 l-1.1 -3 l-3 -1.1 l3 -1.1 z" fill="#a5b4fc" opacity="0.85" />
       </svg>
     </>
   );
