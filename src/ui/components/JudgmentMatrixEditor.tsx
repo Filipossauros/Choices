@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { MacbethJudgment, MacbethCategory, ConsistencyReport } from '../../domain/types';
 import { checkConsistency, type JudgmentEntry } from '../../engine/consistency';
 import ConsistencyBadge from './ConsistencyBadge';
@@ -35,6 +36,7 @@ interface Props {
 }
 
 export default function JudgmentMatrixEditor({ items, judgments, onChange, readOnly, activePairKey }: Props) {
+  const { t } = useTranslation();
   const [report, setReport] = useState<ConsistencyReport | null>(null);
   const [checking, setChecking] = useState(false);
 
@@ -95,12 +97,12 @@ export default function JudgmentMatrixEditor({ items, judgments, onChange, readO
   }
 
   function displayJudgment(j: MacbethJudgment): string {
-    if (j.kind === 'exact') return CATEGORIES[j.category].word;
-    return `${CATEGORIES[j.lo].word}–${CATEGORIES[j.hi].word}`;
+    if (j.kind === 'exact') return t(CATEGORIES[j.category].word);
+    return `${t(CATEGORIES[j.lo].word)}–${t(CATEGORIES[j.hi].word)}`;
   }
 
   if (items.length < 2) {
-    return <p className="text-sm text-gray-400 italic">São necessários pelo menos 2 elementos.</p>;
+    return <p className="text-sm text-gray-400 italic">{t('São necessários pelo menos 2 elementos.')}</p>;
   }
 
   // Stable 1-based number for each element, so the matrix headers can stay compact
@@ -111,8 +113,7 @@ export default function JudgmentMatrixEditor({ items, judgments, onChange, readO
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <p className="text-xs text-gray-500">
-          Preencha a diferença de atratividade entre cada par (linha mais atrativa que coluna).
-          Para juízos intervalares, ajuste o limite superior.
+          {t('Preencha a diferença de atratividade entre cada par (linha mais atrativa que coluna). Para juízos intervalares, ajuste o limite superior.')}
         </p>
         <ConsistencyBadge report={report} loading={checking} />
       </div>
@@ -175,7 +176,7 @@ export default function JudgmentMatrixEditor({ items, judgments, onChange, readO
                       }`}
                       title={
                         isConflict
-                          ? `Diferença inconsistente: ${labelOf(rowItem.id)} vs ${labelOf(colItem.id)}`
+                          ? t('Diferença inconsistente: {{a}} vs {{b}}', { a: labelOf(rowItem.id), b: labelOf(colItem.id) })
                           : undefined
                       }
                     >
@@ -210,7 +211,7 @@ export default function JudgmentMatrixEditor({ items, judgments, onChange, readO
                           >
                             <option value="">—</option>
                             {CATEGORIES.map((c) => (
-                              <option key={c.value} value={c.value}>{c.word}</option>
+                              <option key={c.value} value={c.value}>{t(c.word)}</option>
                             ))}
                           </select>
 
@@ -230,7 +231,7 @@ export default function JudgmentMatrixEditor({ items, judgments, onChange, readO
                               aria-label={`Juízo hi: ${rowItem.label} vs ${colItem.label}`}
                             >
                               {CATEGORIES.filter((c) => c.value >= lo).map((c) => (
-                                <option key={c.value} value={c.value}>{c.word}</option>
+                                <option key={c.value} value={c.value}>{t(c.word)}</option>
                               ))}
                             </select>
                           )}
@@ -249,10 +250,10 @@ export default function JudgmentMatrixEditor({ items, judgments, onChange, readO
       <div className="flex flex-wrap gap-2 text-xs text-gray-500">
         {CATEGORIES.map((c) => (
           <span key={c.value}>
-            <strong>{c.short}</strong> = {c.word}
+            <strong>{c.short}</strong> = {t(c.word)}
           </span>
         ))}
-        <span className="text-gray-400">· O segundo campo define o limite superior de um juízo intervalar (ex.: Moderada–Forte).</span>
+        <span className="text-gray-400">· {t('O segundo campo define o limite superior de um juízo intervalar (ex.: Moderada–Forte).')}</span>
       </div>
 
       {/* Inconsistency explanation & corrections */}
@@ -261,28 +262,28 @@ export default function JudgmentMatrixEditor({ items, judgments, onChange, readO
           {report.inconsistentPairs.length > 0 ? (
             <>
               <p className="text-sm font-medium text-red-700">
-                Diferenças de atratividade inconsistentes (realçadas a vermelho na matriz):
+                {t('Diferenças de atratividade inconsistentes (realçadas a vermelho na matriz):')}
               </p>
               {report.inconsistentPairs.map((pair, i) => {
                 const current = displayJudgment(pair.currentJudgment);
                 const suggested =
                   pair.suggestedJudgment.kind === 'exact'
-                    ? CATEGORIES[pair.suggestedJudgment.category]?.word
-                    : `${CATEGORIES[pair.suggestedJudgment.lo]?.word}–${CATEGORIES[pair.suggestedJudgment.hi]?.word}`;
+                    ? t(CATEGORIES[pair.suggestedJudgment.category]?.word)
+                    : `${t(CATEGORIES[pair.suggestedJudgment.lo]?.word)}–${t(CATEGORIES[pair.suggestedJudgment.hi]?.word)}`;
                 return (
                   <div key={i} className="flex items-center gap-3 text-sm flex-wrap">
                     <span className="text-gray-700">
                       <strong>{numberOf.get(pair.idA)}. {labelOf(pair.idA)}</strong> vs{' '}
                       <strong>{numberOf.get(pair.idB)}. {labelOf(pair.idB)}</strong>:{' '}
-                      atual <em className="text-red-700 not-italic font-semibold">{current}</em>{' '}
-                      → sugerido <em className="text-green-700 not-italic font-semibold">{suggested}</em>
+                      {t('atual')} <em className="text-red-700 not-italic font-semibold">{current}</em>{' '}
+                      → {t('sugerido')} <em className="text-green-700 not-italic font-semibold">{suggested}</em>
                     </span>
                     {!readOnly && (
                       <button
                         onClick={() => applyCorrection(pair)}
                         className="px-2 py-0.5 text-xs bg-red-600 text-white rounded hover:bg-red-700"
                       >
-                        Aplicar
+                        {t('Aplicar')}
                       </button>
                     )}
                   </div>
@@ -291,9 +292,7 @@ export default function JudgmentMatrixEditor({ items, judgments, onChange, readO
             </>
           ) : (
             <p className="text-sm text-red-700">
-              A matriz é inconsistente, mas o conflito resulta da combinação de vários juízos
-              (um ciclo) e não de um único par isolável. Reveja as diferenças de atratividade —
-              sobretudo as que envolvem categorias muito próximas entre si ou muito afastadas.
+              {t('A matriz é inconsistente, mas o conflito resulta da combinação de vários juízos (um ciclo) e não de um único par isolável. Reveja as diferenças de atratividade — sobretudo as que envolvem categorias muito próximas entre si ou muito afastadas.')}
             </p>
           )}
         </div>

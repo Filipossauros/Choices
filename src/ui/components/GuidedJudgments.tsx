@@ -1,4 +1,5 @@
 import { useState, useEffect, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { MacbethJudgment, MacbethCategory } from '../../domain/types';
 
 /**
@@ -45,6 +46,7 @@ interface Props {
 }
 
 export default function GuidedJudgments({ items, judgments, onChange, renderQuestion, emptyHint, onActivePairChange }: Props) {
+  const { t } = useTranslation();
   const [pairIdx, setPairIdx] = useState(0);
 
   // Upper-triangle pairs, same order/keys as JudgmentMatrixEditor.
@@ -74,7 +76,7 @@ export default function GuidedJudgments({ items, judgments, onChange, renderQues
   }, [safeIdx, total]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (total === 0) {
-    return <p className="text-sm text-gray-400 italic">{emptyHint ?? 'São necessários pelo menos 2 elementos.'}</p>;
+    return <p className="text-sm text-gray-400 italic">{emptyHint ? t(emptyHint) : t('São necessários pelo menos 2 elementos.')}</p>;
   }
 
   const { idA, idB } = pairs[safeIdx];
@@ -103,8 +105,8 @@ export default function GuidedJudgments({ items, judgments, onChange, renderQues
       {/* Progress */}
       <div className="space-y-1">
         <div className="flex items-center justify-between text-xs text-gray-500">
-          <span>Pergunta {safeIdx + 1} de {total}</span>
-          <span>{answered}/{total} respondidas</span>
+          <span>{t('Pergunta {{n}} de {{total}}', { n: safeIdx + 1, total })}</span>
+          <span>{t('{{a}}/{{total}} respondidas', { a: answered, total })}</span>
         </div>
         <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
           <div className="h-full bg-blue-500 rounded-full transition-all" style={{ width: `${(answered / total) * 100}%` }} />
@@ -139,7 +141,7 @@ export default function GuidedJudgments({ items, judgments, onChange, renderQues
 
       {/* Question card */}
       <div className="border border-blue-200 rounded-2xl bg-blue-50 p-5 space-y-4">
-        <p className="text-xs text-blue-600 font-semibold uppercase tracking-wider">Diferença de atratividade</p>
+        <p className="text-xs text-blue-600 font-semibold uppercase tracking-wider">{t('Diferença de atratividade')}</p>
         <div className="text-base font-medium text-gray-800 leading-snug">
           {renderQuestion(moreItem, lessItem)}
         </div>
@@ -152,13 +154,13 @@ export default function GuidedJudgments({ items, judgments, onChange, renderQues
               <button
                 key={cat.value}
                 onClick={() => pick(cat.value)}
-                title={cat.hint}
+                title={t(cat.hint)}
                 className={`flex flex-col items-center gap-0.5 px-3 py-2.5 border rounded-xl text-xs font-semibold transition-all ${cat.bg} ${cat.text} ${
                   active ? 'ring-2 ring-blue-500 ring-offset-1 scale-105 shadow-sm' : ''
                 }`}
               >
                 <span className="text-[10px] font-normal opacity-60">C{cat.value}</span>
-                {cat.label}
+                {t(cat.label)}
               </button>
             );
           })}
@@ -166,7 +168,7 @@ export default function GuidedJudgments({ items, judgments, onChange, renderQues
 
         {currentJ && (
           <p className="text-xs text-blue-700 font-medium">
-            ✓ Resposta registada: <strong>{GUIDE_CATS.find((c) => c.value === currentCat)?.label}</strong>
+            {t('✓ Resposta registada:')} <strong>{t(GUIDE_CATS.find((c) => c.value === currentCat)?.label ?? '')}</strong>
           </p>
         )}
       </div>
@@ -178,30 +180,29 @@ export default function GuidedJudgments({ items, judgments, onChange, renderQues
           disabled={safeIdx === 0}
           className="px-4 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-40 text-gray-600"
         >
-          ← Anterior
+          {t('← Anterior')}
         </button>
         <button
           onClick={() => setPairIdx(Math.min(total - 1, safeIdx + 1))}
           disabled={safeIdx === total - 1}
           className="px-4 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-40 text-gray-600"
         >
-          Próxima →
+          {t('Próxima →')}
         </button>
       </div>
 
       {/* MACBETH reference */}
       <details className="text-xs text-gray-500">
-        <summary className="cursor-pointer hover:text-gray-700 font-medium">Referência MACBETH — categorias C0–C6</summary>
+        <summary className="cursor-pointer hover:text-gray-700 font-medium">{t('Referência MACBETH — categorias C0–C6')}</summary>
         <div className="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-1">
           {GUIDE_CATS.map((c) => (
             <span key={c.value} className="px-2 py-1 bg-gray-50 border border-gray-100 rounded-lg">
-              <strong>C{c.value}</strong> — {c.label}
+              <strong>C{c.value}</strong> — {t(c.label)}
             </span>
           ))}
         </div>
         <p className="mt-2 text-gray-400 leading-relaxed">
-          As categorias são ordinais: a diferença C4 (Forte) deve ser maior que C3 (Moderada), e assim por diante.
-          A verificação de consistência confirma que a ordenação cardinal das respostas não contém contradições.
+          {t('As categorias são ordinais: a diferença C4 (Forte) deve ser maior que C3 (Moderada), e assim por diante. A verificação de consistência confirma que a ordenação cardinal das respostas não contém contradições.')}
         </p>
       </details>
     </div>

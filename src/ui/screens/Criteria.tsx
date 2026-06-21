@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useApp } from '../store';
 import { repository } from '../../repository';
 import type {
@@ -32,8 +33,9 @@ function LevelEditor({
   vetoLevelId?: string;
   onChange: (levels: PerformanceLevel[], neutralIndex: number, goodIndex: number, vetoLevelId?: string) => void;
 }) {
+  const { t } = useTranslation();
   function addLevel() {
-    onChange([...levels, { id: uuidv4(), label: 'Novo nível' }], neutralIndex, goodIndex, vetoLevelId);
+    onChange([...levels, { id: uuidv4(), label: t('Novo nível') }], neutralIndex, goodIndex, vetoLevelId);
   }
   function removeLevel(i: number) {
     const next = levels.filter((_, j) => j !== i);
@@ -54,7 +56,7 @@ function LevelEditor({
 
   return (
     <div className="space-y-2">
-      <p className="text-xs text-gray-400 italic">Ordenados do mais para o menos atrativo (↑ = melhor)</p>
+      <p className="text-xs text-gray-400 italic">{t('Ordenados do mais para o menos atrativo (↑ = melhor)')}</p>
       {levels.map((level, i) => (
         <div key={level.id} className="flex flex-wrap items-center gap-x-2 gap-y-1.5 border-b border-gray-100 pb-2 last:border-0 last:pb-0 sm:border-0 sm:pb-0">
           <div className="flex flex-col gap-0.5">
@@ -65,28 +67,28 @@ function LevelEditor({
             value={level.label}
             onChange={(e) => updateLabel(i, e.target.value)}
             className="flex-1 min-w-[7rem] border border-gray-200 rounded px-2 py-1 text-sm"
-            placeholder="Descrição do nível"
+            placeholder={t('Descrição do nível')}
           />
           {/* On mobile these anchors wrap to their own line under the input */}
           <div className="flex items-center gap-3 basis-full sm:basis-auto pl-7 sm:pl-0">
             <label className="flex items-center gap-1 text-xs text-blue-600 cursor-pointer">
               <input type="radio" name={`neutral-${levels[0]?.id}`} checked={neutralIndex === i} onChange={() => onChange(levels, i, goodIndex, vetoLevelId)} />
-              Neutro
+              {t('Neutro')}
             </label>
             <label className="flex items-center gap-1 text-xs text-green-600 cursor-pointer">
               <input type="radio" name={`good-${levels[0]?.id}`} checked={goodIndex === i} onChange={() => onChange(levels, neutralIndex, i, vetoLevelId)} />
-              Bom
+              {t('Bom')}
             </label>
-            <label className="flex items-center gap-1 text-xs text-orange-600 cursor-pointer" title="Veto: reprova abaixo deste nível">
+            <label className="flex items-center gap-1 text-xs text-orange-600 cursor-pointer" title={t('Veto: reprova abaixo deste nível')}>
               <input type="checkbox" checked={vetoLevelId === level.id} onChange={(e) => onChange(levels, neutralIndex, goodIndex, e.target.checked ? level.id : undefined)} />
-              Veto
+              {t('Veto')}
             </label>
-            <button onClick={() => removeLevel(i)} className="text-red-400 hover:text-red-600 text-sm px-1 ml-auto sm:ml-0" aria-label="Remover nível">✕</button>
+            <button onClick={() => removeLevel(i)} className="text-red-400 hover:text-red-600 text-sm px-1 ml-auto sm:ml-0" aria-label={t('Remover nível')}>✕</button>
           </div>
         </div>
       ))}
       <button onClick={addLevel} className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1">
-        + Adicionar nível
+        {t('+ Adicionar nível')}
       </button>
     </div>
   );
@@ -102,6 +104,7 @@ function CriterionForm({
   onSave: (c: Criterion) => void;
   onCancel: () => void;
 }) {
+  const { t } = useTranslation();
   const [label, setLabel] = useState(initial?.label ?? '');
   const [description, setDescription] = useState(initial?.description ?? '');
   const [type, setType] = useState<CritType>(initial?.type ?? 'qualification');
@@ -116,14 +119,14 @@ function CriterionForm({
   const [continuous, setContinuous] = useState<boolean>(initQ?.continuous ?? false);
 
   function handleSave() {
-    if (!label.trim()) return alert('Introduza um nome para o critério.');
+    if (!label.trim()) return alert(t('Introduza um nome para o critério.'));
     const id = initial?.id ?? uuidv4();
     if (type === 'gate') {
       onSave({ id, label: label.trim(), description, type: 'gate' } as GateCriterion);
     } else if (type === 'composite') {
       onSave({ id, label: label.trim(), description, type: 'composite' } as CompositeCriterion);
     } else {
-      if (levels.length < 2) return alert('São necessários pelo menos 2 níveis.');
+      if (levels.length < 2) return alert(t('São necessários pelo menos 2 níveis.'));
       onSave({
         id,
         label: label.trim(),
@@ -143,45 +146,44 @@ function CriterionForm({
     <div className="border border-gray-200 rounded-xl p-4 bg-white space-y-4">
       <div className="grid grid-cols-2 gap-3">
         <div className="col-span-2">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Nome</label>
-          <input value={label} onChange={(e) => setLabel(e.target.value)} className="w-full border border-gray-200 rounded px-3 py-2 text-sm" placeholder="Ex.: Segurança, Latência, Custo…" autoFocus />
+          <label className="block text-sm font-medium text-gray-700 mb-1">{t('Nome')}</label>
+          <input value={label} onChange={(e) => setLabel(e.target.value)} className="w-full border border-gray-200 rounded px-3 py-2 text-sm" placeholder={t('Ex.: Segurança, Latência, Custo…')} autoFocus />
         </div>
         <div className="col-span-2">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Descrição (opcional)</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">{t('Descrição (opcional)')}</label>
           <input value={description} onChange={(e) => setDescription(e.target.value)} className="w-full border border-gray-200 rounded px-3 py-2 text-sm" />
         </div>
         <div className="col-span-2">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">{t('Tipo')}</label>
           <div className="flex flex-wrap gap-4">
             <label className={`flex items-center gap-2 ${lockedComposite ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}>
               <input type="radio" checked={type === 'composite'} disabled={lockedComposite && type !== 'composite'} onChange={() => setType('composite')} />
-              <span className="text-sm flex items-center gap-1.5"><IconComposite className="w-4 h-4 text-emerald-600" /> Fator composto (decompõe em subcritérios)</span>
+              <span className="text-sm flex items-center gap-1.5"><IconComposite className="w-4 h-4 text-emerald-600" /> {t('Fator composto (decompõe em subcritérios)')}</span>
             </label>
             <label className={`flex items-center gap-2 ${lockedComposite ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}>
               <input type="radio" checked={type === 'qualification'} disabled={lockedComposite} onChange={() => setType('qualification')} />
-              <span className="text-sm flex items-center gap-1.5"><IconQualification className="w-4 h-4 text-indigo-600" /> Qualificação (escala graduada)</span>
+              <span className="text-sm flex items-center gap-1.5"><IconQualification className="w-4 h-4 text-indigo-600" /> {t('Qualificação (escala graduada)')}</span>
             </label>
             <label className={`flex items-center gap-2 ${lockedComposite ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}>
               <input type="radio" checked={type === 'gate'} disabled={lockedComposite} onChange={() => setType('gate')} />
-              <span className="text-sm flex items-center gap-1.5"><IconGate className="w-4 h-4 text-orange-600" /> Porta (habilitação binária)</span>
+              <span className="text-sm flex items-center gap-1.5"><IconGate className="w-4 h-4 text-orange-600" /> {t('Porta (habilitação binária)')}</span>
             </label>
           </div>
           {lockedComposite && (
-            <p className="text-xs text-gray-400 mt-1">Este fator tem subcritérios. Remova-os para mudar o tipo.</p>
+            <p className="text-xs text-gray-400 mt-1">{t('Este fator tem subcritérios. Remova-os para mudar o tipo.')}</p>
           )}
         </div>
       </div>
 
       {type === 'composite' && (
         <p className="text-sm text-gray-500 bg-emerald-50 border border-emerald-100 rounded-lg px-3 py-2">
-          Um fator composto agrega os seus subcritérios por ponderação. Depois de o guardar, use «+ subcritério»
-          para o decompor. A sua pontuação é calculada a partir dos filhos.
+          {t('Um fator composto agrega os seus subcritérios por ponderação. Depois de o guardar, use «+ subcritério» para o decompor. A sua pontuação é calculada a partir dos filhos.')}
         </p>
       )}
 
       {type === 'qualification' && (
         <div className="space-y-3">
-          <p className="text-sm font-medium text-gray-700">Descritor de Desempenho</p>
+          <p className="text-sm font-medium text-gray-700">{t('Descritor de Desempenho')}</p>
           <LevelEditor
             levels={levels}
             neutralIndex={neutralIndex}
@@ -196,14 +198,14 @@ function CriterionForm({
           />
           <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
             <input type="checkbox" checked={continuous} onChange={(e) => setContinuous(e.target.checked)} />
-            Permitir desempenho contínuo (posição entre níveis, lida da curva suave)
+            {t('Permitir desempenho contínuo (posição entre níveis, lida da curva suave)')}
           </label>
         </div>
       )}
 
       <div className="flex gap-2 pt-2">
-        <button onClick={handleSave} className="px-4 py-2 bg-blue-700 text-white text-sm rounded hover:bg-blue-800">Guardar critério</button>
-        <button onClick={onCancel} className="px-4 py-2 border border-gray-300 text-sm rounded hover:bg-gray-50">Cancelar</button>
+        <button onClick={handleSave} className="px-4 py-2 bg-blue-700 text-white text-sm rounded hover:bg-blue-800">{t('Guardar critério')}</button>
+        <button onClick={onCancel} className="px-4 py-2 border border-gray-300 text-sm rounded hover:bg-gray-50">{t('Cancelar')}</button>
       </div>
     </div>
   );
@@ -221,6 +223,7 @@ const TYPE_TAG: Record<CritType, { label: string; cls: string }> = {
 };
 
 export default function Criteria() {
+  const { t } = useTranslation();
   const { state, dispatch } = useApp();
   const model = state.model!;
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -254,7 +257,7 @@ export default function Criteria() {
   function deleteCriterion(id: string) {
     const node = findNode(model.valueTree, id);
     const hasChildren = node && node.children.length > 0;
-    if (!confirm(hasChildren ? 'Eliminar este fator e todos os seus subcritérios?' : 'Eliminar este critério?')) return;
+    if (!confirm(hasChildren ? t('Eliminar este fator e todos os seus subcritérios?') : t('Eliminar este critério?'))) return;
     const tree = removeNode(model.valueTree, id);
     // Drop now-orphaned scales / matrices / sub-weights for removed criteria.
     const liveIds = new Set(Object.keys(tree.criteria));
@@ -312,7 +315,7 @@ export default function Criteria() {
           }`}
         >
           {isComposite ? (
-            <button onClick={() => toggleCollapse(c.id)} className="text-gray-400 hover:text-gray-700 text-xs mt-1 w-3" aria-label={isOpen ? 'Colapsar' : 'Expandir'}>
+            <button onClick={() => toggleCollapse(c.id)} className="text-gray-400 hover:text-gray-700 text-xs mt-1 w-3" aria-label={isOpen ? t('Colapsar') : t('Expandir')}>
               {isOpen ? '▾' : '▸'}
             </button>
           ) : (
@@ -323,27 +326,31 @@ export default function Criteria() {
           </span>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${tag.cls}`}>{tag.label}</span>
+              <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${tag.cls}`}>{t(tag.label)}</span>
               <p className="font-medium text-gray-800 truncate">{c.label}</p>
             </div>
             {c.description && <p className="text-xs text-gray-500 mt-0.5">{c.description}</p>}
             {c.type === 'qualification' && (
               <p className="text-xs text-gray-400 mt-0.5">
-                {c.descriptor.levels.length} níveis · Neutro: «{c.descriptor.levels[c.descriptor.neutralIndex]?.label}» · Bom: «{c.descriptor.levels[c.descriptor.goodIndex]?.label}»
-                {c.continuous && ' · contínuo'}
-                {c.vetoLevelId && ` · Veto: «${c.descriptor.levels.find((l) => l.id === c.vetoLevelId)?.label}»`}
+                {t('{{n}} níveis · Neutro: «{{neutral}}» · Bom: «{{good}}»', {
+                  n: c.descriptor.levels.length,
+                  neutral: c.descriptor.levels[c.descriptor.neutralIndex]?.label,
+                  good: c.descriptor.levels[c.descriptor.goodIndex]?.label,
+                })}
+                {c.continuous && t(' · contínuo')}
+                {c.vetoLevelId && t(' · Veto: «{{veto}}»', { veto: c.descriptor.levels.find((l) => l.id === c.vetoLevelId)?.label })}
               </p>
             )}
             {isComposite && (
-              <p className="text-xs text-emerald-700/70 mt-0.5">{node.children.length} subcritério(s)</p>
+              <p className="text-xs text-emerald-700/70 mt-0.5">{t('{{n}} subcritério(s)', { n: node.children.length })}</p>
             )}
           </div>
           <div className="flex gap-1 shrink-0 basis-full sm:basis-auto justify-end pl-10 sm:pl-0">
             {isComposite && (
-              <button onClick={() => { setAddingUnder(c.id); setCollapsed((p) => { const n = new Set(p); n.delete(c.id); return n; }); }} className="px-2 py-1 text-xs text-emerald-700 border border-emerald-200 rounded hover:bg-emerald-50">+ subcritério</button>
+              <button onClick={() => { setAddingUnder(c.id); setCollapsed((p) => { const n = new Set(p); n.delete(c.id); return n; }); }} className="px-2 py-1 text-xs text-emerald-700 border border-emerald-200 rounded hover:bg-emerald-50">{t('+ subcritério')}</button>
             )}
-            <button onClick={() => setEditingId(c.id)} className="px-2 py-1 text-xs border border-gray-200 rounded hover:bg-gray-50">Editar</button>
-            <button onClick={() => deleteCriterion(c.id)} className="px-2 py-1 text-xs text-red-500 border border-red-200 rounded hover:bg-red-50">Eliminar</button>
+            <button onClick={() => setEditingId(c.id)} className="px-2 py-1 text-xs border border-gray-200 rounded hover:bg-gray-50">{t('Editar')}</button>
+            <button onClick={() => deleteCriterion(c.id)} className="px-2 py-1 text-xs text-red-500 border border-red-200 rounded hover:bg-red-50">{t('Eliminar')}</button>
           </div>
         </div>
 
@@ -357,7 +364,7 @@ export default function Criteria() {
               <CriterionForm onSave={(nc) => saveNewCriterion(c.id, nc)} onCancel={() => setAddingUnder(null)} />
             ) : (
               <button onClick={() => setAddingUnder(c.id)} className="w-full py-2 border-2 border-dashed border-emerald-200 rounded-lg text-xs text-emerald-600 hover:border-emerald-300 hover:bg-emerald-50/50 transition-colors">
-                + subcritério em «{c.label}»
+                {t('+ subcritério em «{{label}}»', { label: c.label })}
               </button>
             )}
           </div>
@@ -372,7 +379,7 @@ export default function Criteria() {
     <div className="max-w-3xl mx-auto py-6 px-4 space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 space-y-1">
-          <label className="block text-xs text-gray-500 font-medium">Designação do modelo</label>
+          <label className="block text-xs text-gray-500 font-medium">{t('Designação do modelo')}</label>
           <input
             value={modelLabel}
             onChange={(e) => setModelLabel(e.target.value)}
@@ -381,21 +388,21 @@ export default function Criteria() {
           />
         </div>
         <button onClick={exportModel} className="px-3 py-1.5 mt-4 text-sm border border-gray-300 rounded hover:bg-gray-50 shrink-0">
-          Exportar modelo
+          {t('Exportar modelo')}
         </button>
       </div>
 
       <div className="space-y-2">
         <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
-          Árvore de critérios
+          {t('Árvore de critérios')}
           <span className="ml-2 text-gray-400 font-normal normal-case">
-            {factorCount > 0 ? `${factorCount} fator(es) · ` : ''}{totalLeaves} folha(s)
+            {factorCount > 0 ? t('{{n}} fator(es) · ', { n: factorCount }) : ''}{t('{{n}} folha(s)', { n: totalLeaves })}
           </span>
         </h2>
 
         {rootChildren.length === 0 && (
           <p className="text-sm text-gray-400 italic py-4 text-center">
-            Ainda sem critérios. Adicione um fator composto, um critério de qualificação ou uma porta.
+            {t('Ainda sem critérios. Adicione um fator composto, um critério de qualificação ou uma porta.')}
           </p>
         )}
 
@@ -405,7 +412,7 @@ export default function Criteria() {
           <CriterionForm onSave={(c) => saveNewCriterion(ROOT_ID, c)} onCancel={() => setAddingUnder(null)} />
         ) : (
           <button onClick={() => setAddingUnder(ROOT_ID)} className="w-full py-3 border-2 border-dashed border-gray-200 rounded-lg text-sm text-gray-500 hover:border-blue-300 hover:text-blue-600 transition-colors">
-            + Adicionar critério ou fator
+            {t('+ Adicionar critério ou fator')}
           </button>
         )}
       </div>
