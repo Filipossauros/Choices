@@ -366,4 +366,50 @@ export const en: Record<string, string> = {
   'Registe as propostas e o seu desempenho antes de agregar.':
     'Register the proposals and their performance before aggregating.',
   'Adicione pelo menos uma {{subject}} para continuar.': 'Add at least one {{subject}} to continue.',
+
+  // ── Results ─────────────────────────────────────────────────────────────
+  posições: 'positions',
+  propostas: 'proposals',
+  Posição: 'Position',
+  Posições: 'Positions',
+  Propostas: 'Proposals',
+  'Complete a ponderação (todos os grupos) no modelo para calcular resultados.':
+    'Complete the weighting (all groups) in the model to compute results.',
+  'Adicione {{many}} no separador «Análise e avaliação».': 'Add {{many}} in the «Analysis & evaluation» tab.',
+  'A calcular resultados…': 'Computing results…',
+  'A recalcular…': 'Recomputing…',
+  Recalcular: 'Recompute',
+  'Critério de habilitação «{{gate}}» não cumprido — eliminado antes da pontuação.':
+    'Eligibility criterion «{{gate}}» not met — eliminated before scoring.',
+  'Veto: «{{crit}}».': 'Veto: «{{crit}}».',
+  'Eliminado antes da pontuação.': 'Eliminated before scoring.',
+  'Porquê? Alavancas de melhoria': 'Why? Levers for improvement',
+  'Valor Global V(p) — Modelo Aditivo': 'Global Value V(p) — Additive Model',
+  'Política de decisão': 'Decision policy',
+  'Perfil por Critério': 'Per-criterion profile',
+  '(peso)': '(weight)',
+  'Contribuição: {{c}}': 'Contribution: {{c}}',
+  'V(p) global': 'V(p) global',
+  'Observações por {{one}}': 'Notes per {{one}}',
+  'Observações…': 'Notes…',
+  'Porquê — contribuições por fator ·': 'Why — contributions by factor ·',
+  'Puxaram para cima:': 'Pulled up:',
+  'Contribuição para V(p) = peso efetivo × valor (acima de Neutro)':
+    'Contribution to V(p) = effective weight × value (above Neutral)',
+  'Mais a ganhar:': 'Most to gain:',
+  'Valor ainda por ganhar até «Bom» = peso efetivo × (100 − valor)':
+    'Value still to gain up to «Good» = effective weight × (100 − value)',
+  '(fator)': '(factor)',
+  'Barras proporcionais ao valor v(p) de cada critério (0–100). Peso ef. = peso efetivo (produto dos pesos no caminho até à raiz).':
+    'Bars proportional to each criterion’s value v(p) (0–100). Eff. weight = effective weight (product of weights on the path to the root).',
+  'Já está no perfil mais alto da escala de decisão.': 'Already in the highest profile of the decision scale.',
+  'Todos os critérios já estão no nível máximo — só alterar pesos ou escalas mudaria o perfil «{{band}}».':
+    'All criteria are already at the top level — only changing weights or scales would change the «{{band}}» profile.',
+  'Para subir a «{{band}}» (≥ {{target}}):': 'To rise to «{{band}}» (≥ {{target}}):',
+  melhorar: 'improve',
+  'de «{{from}}» → «{{to}}» soma': 'from «{{from}}» → «{{to}}» adds',
+  ' — fecha a lacuna.': ' — closes the gap.',
+  ' — faltam ainda {{gap}} (combine vários critérios).': ' — still {{gap}} short (combine several criteria).',
+  'Alavanca mais eficiente: maior ganho de V(p) por melhoria de um nível.':
+    'Most efficient lever: largest V(p) gain per one-level improvement.',
 };

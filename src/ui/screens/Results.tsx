@@ -1,4 +1,5 @@
 import { useMemo, useEffect, useState, Fragment } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useApp } from '../store';
 import { aggregate } from '../../engine/aggregation';
 import { displayBands, bandRangeLabel } from '../../domain/decision';
@@ -27,6 +28,7 @@ function exportEvaluation(evaluation: ReturnType<typeof useApp>['state']['evalua
 }
 
 export default function Results() {
+  const { t } = useTranslation();
   const { state, dispatch } = useApp();
   const evaluation = state.evaluation!;
   const model = evaluation.model;
@@ -69,21 +71,21 @@ export default function Results() {
   if (!weightsReady) {
     return (
       <div className="max-w-2xl mx-auto py-16 px-4 text-center">
-        <p className="text-gray-500">Complete a ponderação (todos os grupos) no modelo para calcular resultados.</p>
+        <p className="text-gray-500">{t('Complete a ponderação (todos os grupos) no modelo para calcular resultados.')}</p>
       </div>
     );
   }
   if (evaluation.options.length === 0) {
     return (
       <div className="max-w-2xl mx-auto py-16 px-4 text-center">
-        <p className="text-gray-500">Adicione {subj.many} no separador «Análise e avaliação».</p>
+        <p className="text-gray-500">{t('Adicione {{many}} no separador «Análise e avaliação».', { many: t(subj.many) })}</p>
       </div>
     );
   }
   if (!result) {
     return (
       <div className="max-w-2xl mx-auto py-16 px-4 text-center">
-        <p className="text-gray-400 text-sm">A calcular resultados…</p>
+        <p className="text-gray-400 text-sm">{t('A calcular resultados…')}</p>
       </div>
     );
   }
@@ -176,9 +178,9 @@ export default function Results() {
       {/* ── Header ── */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-3">
-          <h2 className="text-xl font-semibold text-gray-800">Resultados</h2>
+          <h2 className="text-xl font-semibold text-gray-800">{t('Resultados')}</h2>
           {isStale && (
-            <span className="text-xs text-amber-600 font-medium">⚠ A recalcular…</span>
+            <span className="text-xs text-amber-600 font-medium">⚠ {t('A recalcular…')}</span>
           )}
         </div>
         <div className="flex gap-2">
@@ -186,7 +188,7 @@ export default function Results() {
             onClick={() => dispatch({ type: 'UPDATE_EVALUATION', patch: { aggregationResult: aggregate(evaluation) } })}
             className="px-3 py-1.5 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200"
           >
-            ↺ Recalcular
+            ↺ {t('Recalcular')}
           </button>
           <button
             onClick={() => exportEvaluation(evaluation)}
@@ -226,23 +228,23 @@ export default function Results() {
                   className="text-xs font-bold rounded-lg px-2.5 py-1 shrink-0 whitespace-nowrap"
                   style={{ backgroundColor: accent + '22', color: accent }}
                 >
-                  {rejected ? 'Reprovado' : band?.label ?? '—'}
+                  {rejected ? t('Reprovado') : band?.label ?? '—'}
                 </span>
               </div>
               {rejected ? (
                 <p className="text-xs text-red-600 mt-1.5">
                   {r.rejectedByGate
-                    ? `Critério de habilitação «${model.valueTree.criteria[r.rejectedByGate]?.label ?? ''}» não cumprido — eliminado antes da pontuação.`
+                    ? t('Critério de habilitação «{{gate}}» não cumprido — eliminado antes da pontuação.', { gate: model.valueTree.criteria[r.rejectedByGate]?.label ?? '' })
                     : r.vetoedByCriterion
-                    ? `Veto: «${model.valueTree.criteria[r.vetoedByCriterion]?.label ?? ''}».`
-                    : 'Eliminado antes da pontuação.'}
+                    ? t('Veto: «{{crit}}».', { crit: model.valueTree.criteria[r.vetoedByCriterion]?.label ?? '' })
+                    : t('Eliminado antes da pontuação.')}
                 </p>
               ) : (
                 <button
                   onClick={() => setWhyOptionId(r.optionId)}
                   className="text-xs text-indigo-600 hover:text-indigo-800 font-medium mt-1.5"
                 >
-                  ▾ Porquê? Alavancas de melhoria
+                  ▾ {t('Porquê? Alavancas de melhoria')}
                 </button>
               )}
             </div>
@@ -252,7 +254,7 @@ export default function Results() {
 
       {/* ── Bar chart ── */}
       <div className="border border-gray-200 rounded-xl p-4 bg-white">
-        <h3 className="text-sm font-semibold text-gray-700 mb-3">Valor Global V(p) — Modelo Aditivo</h3>
+        <h3 className="text-sm font-semibold text-gray-700 mb-3">{t('Valor Global V(p) — Modelo Aditivo')}</h3>
         <ResponsiveContainer width="100%" height={200}>
           <BarChart data={chartData} margin={{ top: 4, right: 16, left: 0, bottom: 4 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -280,7 +282,7 @@ export default function Results() {
 
       {/* ── Decision policy (compact strip) ── */}
       <div className="bg-white rounded-xl border border-gray-200 p-4">
-        <span className="text-xs text-gray-400 font-semibold uppercase tracking-wide">Política de decisão</span>
+        <span className="text-xs text-gray-400 font-semibold uppercase tracking-wide">{t('Política de decisão')}</span>
         <div className="flex flex-wrap items-center gap-x-2 gap-y-2 mt-2.5">
           {bandViews.map((v, i) => (
             <Fragment key={v.band.id}>
@@ -299,13 +301,13 @@ export default function Results() {
       {/* ── Per-criterion profile table ── */}
       {qualCriteria.length > 0 && (
         <div className="border border-gray-200 rounded-xl p-4 bg-white space-y-3">
-          <h3 className="text-sm font-semibold text-gray-700">Perfil por Critério</h3>
+          <h3 className="text-sm font-semibold text-gray-700">{t('Perfil por Critério')}</h3>
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
               <thead>
                 <tr className="bg-gray-50">
                   <th className="px-3 py-1.5 text-left text-gray-600 font-medium border border-gray-200">
-                    Critério <span className="text-gray-400 font-normal">(peso)</span>
+                    {t('Critério')} <span className="text-gray-400 font-normal">{t('(peso)')}</span>
                   </th>
                   {sorted.map((r, rank) => (
                     <th key={r.optionId} className="px-3 py-1.5 text-center text-gray-600 font-medium border border-gray-200">
@@ -329,7 +331,7 @@ export default function Results() {
                         const contrib = w != null && score != null ? w * score : null;
                         return (
                           <td key={r.optionId} className="px-3 py-1.5 border border-gray-200 text-center font-mono text-sm"
-                            title={contrib != null ? `Contribuição: ${contrib.toFixed(2)}` : undefined}>
+                            title={contrib != null ? t('Contribuição: {{c}}', { c: contrib.toFixed(2) }) : undefined}>
                             {score !== null && score !== undefined ? score.toFixed(1) : '—'}
                           </td>
                         );
@@ -338,7 +340,7 @@ export default function Results() {
                   );
                 })}
                 <tr className="bg-gray-50 font-semibold">
-                  <td className="px-3 py-1.5 border border-gray-200 text-gray-600 text-xs">V(p) global</td>
+                  <td className="px-3 py-1.5 border border-gray-200 text-gray-600 text-xs">{t('V(p) global')}</td>
                   {sorted.map((r) => (
                     <td key={r.optionId} className="px-3 py-1.5 border border-gray-200 text-center font-mono text-sm text-gray-800">
                       {r.globalValue !== null && r.globalValue !== undefined ? r.globalValue.toFixed(1) : '—'}
@@ -354,7 +356,7 @@ export default function Results() {
       {/* ── Notes ── */}
       {sorted.some((r) => !r.hardRejected) && (
         <div className="border border-gray-200 rounded-xl p-4 bg-white space-y-3">
-          <h3 className="text-sm font-semibold text-gray-700">Observações por {subj.one}</h3>
+          <h3 className="text-sm font-semibold text-gray-700">{t('Observações por {{one}}', { one: t(subj.one) })}</h3>
           <div className="space-y-2">
             {sorted.filter((r) => !r.hardRejected).map((r) => {
               const option = evaluation.options.find((o) => o.id === r.optionId);
@@ -364,7 +366,7 @@ export default function Results() {
                   <textarea
                     value={optionNotes[r.optionId] ?? ''}
                     onChange={(e) => setNote(r.optionId, e.target.value)}
-                    placeholder="Observações…"
+                    placeholder={t('Observações…')}
                     rows={2}
                     className="flex-1 text-xs text-gray-700 border border-gray-200 rounded-lg px-2 py-1 resize-none focus:outline-none focus:border-blue-300"
                   />
@@ -379,7 +381,7 @@ export default function Results() {
       {whyResult && !whyResult.hardRejected && (
         <div className="bg-white rounded-xl border border-indigo-100 p-5 space-y-4">
           <h3 className="font-semibold text-gray-800 text-sm">
-            Porquê — contribuições por fator ·{' '}
+            {t('Porquê — contribuições por fator ·')}{' '}
             <span className="text-indigo-600">
               {evaluation.options.find((o) => o.id === activeWhyId)?.label}
             </span>
@@ -390,10 +392,10 @@ export default function Results() {
             <div className="space-y-1.5">
               {explain.strengths.length > 0 && (
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-xs text-gray-500 shrink-0">Puxaram para cima:</span>
+                  <span className="text-xs text-gray-500 shrink-0">{t('Puxaram para cima:')}</span>
                   {explain.strengths.map((s) => (
                     <span key={s.id} className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700"
-                      title="Contribuição para V(p) = peso efetivo × valor (acima de Neutro)">
+                      title={t('Contribuição para V(p) = peso efetivo × valor (acima de Neutro)')}>
                       ▲ {s.label} +{s.contrib.toFixed(0)}
                     </span>
                   ))}
@@ -401,10 +403,10 @@ export default function Results() {
               )}
               {explain.weaknesses.length > 0 && (
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-xs text-gray-500 shrink-0">Mais a ganhar:</span>
+                  <span className="text-xs text-gray-500 shrink-0">{t('Mais a ganhar:')}</span>
                   {explain.weaknesses.map((s) => (
                     <span key={s.id} className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700"
-                      title="Valor ainda por ganhar até «Bom» = peso efetivo × (100 − valor)">
+                      title={t('Valor ainda por ganhar até «Bom» = peso efetivo × (100 − valor)')}>
                       ▼ {s.label} −{s.shortfall.toFixed(0)}
                     </span>
                   ))}
@@ -434,7 +436,7 @@ export default function Results() {
                   <div className="flex items-center gap-3">
                     <div className="w-36 shrink-0">
                       <span className="text-sm font-medium text-gray-700">{crit.label}</span>
-                      {isComposite && <span className="ml-1 text-xs text-gray-400">(fator)</span>}
+                      {isComposite && <span className="ml-1 text-xs text-gray-400">{t('(fator)')}</span>}
                     </div>
                     <div className="flex-1 h-3 rounded-full bg-gray-100 overflow-hidden">
                       <div
@@ -478,17 +480,17 @@ export default function Results() {
               );
             })}
           </div>
-          <p className="text-xs text-gray-400">Barras proporcionais ao valor v(p) de cada critério (0–100). Peso ef. = peso efetivo (produto dos pesos no caminho até à raiz).</p>
+          <p className="text-xs text-gray-400">{t('Barras proporcionais ao valor v(p) de cada critério (0–100). Peso ef. = peso efetivo (produto dos pesos no caminho até à raiz).')}</p>
 
           {/* Lever — what to change to reach the next decision band */}
           {explain && (
             !explain.nextBand ? (
               <div className="rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2.5 text-xs text-emerald-800">
-                🏆 Já está no perfil mais alto da escala de decisão.
+                🏆 {t('Já está no perfil mais alto da escala de decisão.')}
               </div>
             ) : explain.levers.length === 0 ? (
               <div className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2.5 text-xs text-amber-800">
-                Todos os critérios já estão no nível máximo — só alterar pesos ou escalas mudaria o perfil «{explain.nextBand.band.label}».
+                {t('Todos os critérios já estão no nível máximo — só alterar pesos ou escalas mudaria o perfil «{{band}}».', { band: explain.nextBand.band.label })}
               </div>
             ) : (() => {
               const best = explain.levers[0];
@@ -497,13 +499,13 @@ export default function Results() {
               const reaches = newGlobal >= target;
               return (
                 <div className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2.5 text-xs text-amber-900 leading-relaxed">
-                  🎯 <strong>Para subir a «{explain.nextBand.band.label}» (≥ {target.toFixed(1)}):</strong>{' '}
-                  melhorar <strong>{best.label}</strong> de «{best.from}» → «{best.to}» soma{' '}
+                  🎯 <strong>{t('Para subir a «{{band}}» (≥ {{target}}):', { band: explain.nextBand.band.label, target: target.toFixed(1) })}</strong>{' '}
+                  {t('melhorar')} <strong>{best.label}</strong> {t('de «{{from}}» → «{{to}}» soma', { from: best.from, to: best.to })}{' '}
                   <strong>+{best.delta.toFixed(1)}</strong> → {newGlobal.toFixed(1)}
                   {reaches
-                    ? ' — fecha a lacuna.'
-                    : ` — faltam ainda ${(target - newGlobal).toFixed(1)} (combine vários critérios).`}
-                  <span className="block text-amber-700/70 mt-0.5">Alavanca mais eficiente: maior ganho de V(p) por melhoria de um nível.</span>
+                    ? t(' — fecha a lacuna.')
+                    : t(' — faltam ainda {{gap}} (combine vários critérios).', { gap: (target - newGlobal).toFixed(1) })}
+                  <span className="block text-amber-700/70 mt-0.5">{t('Alavanca mais eficiente: maior ganho de V(p) por melhoria de um nível.')}</span>
                 </div>
               );
             })()
