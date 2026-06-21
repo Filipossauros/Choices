@@ -18,89 +18,100 @@ function BalanceMascot() {
     <>
       <style>{`
         @keyframes fx-float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
-        @keyframes fx-ears { 0%,100%{transform:rotate(0)} 25%{transform:rotate(-4deg)} 60%{transform:rotate(3deg)} }
-        @keyframes fx-tail { 0%,100%{transform:rotate(-7deg)} 50%{transform:rotate(7deg)} }
-        @keyframes fx-pulse { 0%,100%{opacity:0.35;transform:scale(1)} 50%{opacity:0.6;transform:scale(1.08)} }
-        @keyframes fx-spark { 0%,100%{opacity:0.25;transform:scale(0.85)} 50%{opacity:0.95;transform:scale(1.15)} }
-        @keyframes fx-blink { 0%,91%,100%{transform:scaleY(1)} 95%{transform:scaleY(0.1)} }
-        .fx-body{animation:fx-float 4s ease-in-out infinite;display:inline-block}
-        .fx-ears{animation:fx-ears 5s ease-in-out infinite;transform-origin:80px 34px}
-        .fx-tail{animation:fx-tail 4.4s ease-in-out infinite;transform-origin:104px 116px}
-        .fx-glow{animation:fx-pulse 4s ease-in-out infinite;transform-origin:80px 84px}
-        .fx-spark{animation:fx-spark 3s ease-in-out infinite}
-        .fx-eyes{animation:fx-blink 5.5s ease-in-out infinite;transform-origin:80px 52px}
+        @keyframes fx-ears  { 0%,100%{transform:rotate(0)} 25%{transform:rotate(-3deg)} 65%{transform:rotate(3deg)} }
+        @keyframes fx-tail  { 0%,100%{transform:rotate(-6deg)} 50%{transform:rotate(7deg)} }
+        @keyframes fx-pulse { 0%,100%{opacity:0.3;transform:scale(1)} 50%{opacity:0.55;transform:scale(1.08)} }
+        @keyframes fx-spark { 0%,100%{opacity:0.2;transform:scale(0.8)} 50%{opacity:1;transform:scale(1.2)} }
+        @keyframes fx-blink { 0%,90%,100%{transform:scaleY(1)} 95%{transform:scaleY(0.08)} }
+        .fx-body { animation:fx-float 4s ease-in-out infinite; display:inline-block }
+        .fx-ears { animation:fx-ears  5s ease-in-out infinite; transform-origin:80px 36px }
+        .fx-tail { animation:fx-tail  4.4s ease-in-out infinite; transform-origin:104px 108px }
+        .fx-glow { animation:fx-pulse 4s ease-in-out infinite; transform-origin:80px 88px }
+        .fx-spark{ animation:fx-spark 3s ease-in-out infinite }
+        .fx-eyes { animation:fx-blink 5.5s ease-in-out infinite; transform-origin:80px 63px }
       `}</style>
-      <svg className="fx-body" width="128" height="120" viewBox="0 0 160 150" xmlns="http://www.w3.org/2000/svg">
+      <svg className="fx-body" width="128" height="134" viewBox="0 0 160 168" overflow="visible" xmlns="http://www.w3.org/2000/svg">
         <defs>
-          <linearGradient id="fx-fur" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="#fdba74" />
-            <stop offset="1" stopColor="#f97316" />
-          </linearGradient>
           <radialGradient id="fx-aura" cx="0.5" cy="0.5" r="0.5">
-            <stop offset="0" stopColor="#c4b5fd" stopOpacity="0.6" />
+            <stop offset="0" stopColor="#c4b5fd" stopOpacity="0.55" />
             <stop offset="1" stopColor="#c4b5fd" stopOpacity="0" />
           </radialGradient>
         </defs>
 
-        {/* soft brand aura */}
-        <circle className="fx-glow" cx="80" cy="84" r="60" fill="url(#fx-aura)" />
+        {/* soft aura */}
+        <circle className="fx-glow" cx="80" cy="88" r="64" fill="url(#fx-aura)" />
 
-        {/* fluffy curled tail (simple, behind the body) */}
+        {/* ── Tail (lateral right, low-poly facets) ── */}
         <g className="fx-tail">
-          <path d="M104 122 C 138 120, 150 92, 138 68 C 136 84, 122 94, 108 96 C 122 104, 128 118, 104 122 Z" fill="url(#fx-fur)" />
-          <path d="M138 68 C 144 78, 144 88, 137 94 C 142 83, 133 79, 126 81 C 131 74, 134 70, 138 68 Z" fill="#fff7ed" />
+          <polygon points="104,108 146,132 130,156 90,148 95,126" fill="#E8763A" />
+          <polygon points="130,156 146,132 150,152 133,165" fill="#F4A55A" />
+          <polygon points="130,156 90,148 108,158" fill="#C04818" />
+          <polygon points="133,165 150,152 142,168 126,166" fill="#FFF8F4" />
         </g>
 
-        {/* ── simple geometric body (rounded capsule) ── */}
-        <rect x="50" y="86" width="60" height="50" rx="26" fill="url(#fx-fur)" />
-        {/* white belly */}
-        <ellipse cx="80" cy="116" rx="17" ry="20" fill="#fff7ed" />
-        {/* little feet */}
-        <ellipse cx="67" cy="134" rx="9" ry="6.5" fill="#f97316" />
-        <ellipse cx="93" cy="134" rx="9" ry="6.5" fill="#f97316" />
-        {/* tiny front paws */}
-        <ellipse cx="58" cy="112" rx="7" ry="9" fill="url(#fx-fur)" />
-        <ellipse cx="102" cy="112" rx="7" ry="9" fill="url(#fx-fur)" />
+        {/* ── Body (sitting, origami facets) ── */}
+        <polygon points="60,88 100,88 110,140 50,140" fill="#E8763A" />
+        <polygon points="60,88 50,140 44,114" fill="#F4A55A" />
+        <polygon points="100,88 110,140 116,113" fill="#C04818" />
+        {/* belly */}
+        <polygon points="68,92 92,92 97,136 63,136" fill="#FFF5EC" />
+        <polygon points="68,92 92,92 80,100" fill="#FFEEDD" opacity="0.45" />
 
-        {/* ears (rounded, behind head) */}
+        {/* paws */}
+        <ellipse cx="63" cy="144" rx="14" ry="7" fill="#E8763A" />
+        <ellipse cx="97" cy="144" rx="14" ry="7" fill="#E8763A" />
+        <ellipse cx="63" cy="144" rx="9"  ry="4.5" fill="#C04818" opacity="0.45" />
+        <ellipse cx="97" cy="144" rx="9"  ry="4.5" fill="#C04818" opacity="0.45" />
+
+        {/* ── Ears (angular origami, behind head) ── */}
         <g className="fx-ears">
-          <path d="M52 36 C 44 14, 50 6, 60 16 C 67 23, 70 30, 71 36 Z" fill="url(#fx-fur)" />
-          <path d="M57 33 C 52 19, 55 14, 60 19 C 64 23, 66 29, 66 33 Z" fill="#fb7185" />
-          <path d="M108 36 C 116 14, 110 6, 100 16 C 93 23, 90 30, 89 36 Z" fill="url(#fx-fur)" />
-          <path d="M103 33 C 108 19, 105 14, 100 19 C 96 23, 94 29, 94 33 Z" fill="#fb7185" />
+          <polygon points="54,70 40,28 72,54" fill="#E8763A" />
+          <polygon points="54,70 44,32 68,54" fill="#B83A10" />
+          <polygon points="106,70 120,28 88,54" fill="#E8763A" />
+          <polygon points="106,70 116,32 92,54" fill="#B83A10" />
+          <polygon points="48,66 48,34 66,52" fill="#FFBBA0" opacity="0.6" />
+          <polygon points="112,66 112,34 94,52" fill="#FFBBA0" opacity="0.6" />
         </g>
 
-        {/* round cute head */}
-        <circle cx="80" cy="52" r="35" fill="url(#fx-fur)" />
-        {/* top rim light + little cowlick */}
-        <path d="M60 30 Q80 20 100 30" stroke="#fff1e0" strokeWidth="3" strokeLinecap="round" fill="none" opacity="0.6" />
-        <path d="M77 20 C 75 11, 85 11, 83 20 Z" fill="url(#fx-fur)" />
+        {/* ── Head (low-poly faceted) ── */}
+        <polygon points="54,70 80,34 106,70 80,80" fill="#F4A55A" />
+        <polygon points="54,70 80,80 66,74" fill="#E8763A" />
+        <polygon points="106,70 80,80 94,74" fill="#C04818" />
 
-        {/* big fluffy white muzzle / cheeks */}
-        <path d="M54 56 C 52 80, 70 92, 80 92 C 90 92, 108 80, 106 56 C 96 64, 64 64, 54 56 Z" fill="#fff7ed" />
+        {/* muzzle */}
+        <polygon points="66,78 94,78 80,94" fill="#FFF5EC" />
+        <polygon points="66,78 94,78 80,84" fill="#FFEEDD" opacity="0.5" />
+        <ellipse cx="80" cy="78.5" rx="4.5" ry="2.8" fill="#3A1808" />
+        <path d="M76,85 Q80,90 84,85" stroke="#C04818" strokeWidth="1.2" fill="none" strokeLinecap="round" />
 
-        {/* big cute eyes (blink) */}
+        {/* ── Eyes (big round, triple highlight) ── */}
         <g className="fx-eyes">
-          <ellipse cx="66" cy="52" rx="7.5" ry="9" fill="#1f2937" />
-          <ellipse cx="94" cy="52" rx="7.5" ry="9" fill="#1f2937" />
-          <circle cx="68.5" cy="49" r="2.6" fill="#ffffff" />
-          <circle cx="96.5" cy="49" r="2.6" fill="#ffffff" />
-          <circle cx="64" cy="55" r="1.4" fill="#ffffff" opacity="0.8" />
-          <circle cx="92" cy="55" r="1.4" fill="#ffffff" opacity="0.8" />
+          <circle cx="64" cy="62" r="9.5" fill="white" />
+          <circle cx="96" cy="62" r="9.5" fill="white" />
+          <circle cx="64" cy="63" r="7.5" fill="#1E0E04" />
+          <circle cx="96" cy="63" r="7.5" fill="#1E0E04" />
+          <circle cx="64" cy="63" r="6"   fill="#7A3808" opacity="0.35" />
+          <circle cx="96" cy="63" r="6"   fill="#7A3808" opacity="0.35" />
+          <circle cx="64" cy="63" r="4.5" fill="#080402" />
+          <circle cx="96" cy="63" r="4.5" fill="#080402" />
+          {/* main highlight */}
+          <ellipse cx="66.5" cy="59"  rx="3"   ry="2.5" fill="white" />
+          <ellipse cx="98.5" cy="59"  rx="3"   ry="2.5" fill="white" />
+          {/* secondary highlight */}
+          <circle cx="61.5" cy="66.5" r="1.5" fill="white" opacity="0.6" />
+          <circle cx="93.5" cy="66.5" r="1.5" fill="white" opacity="0.6" />
+          {/* tiny sparkle */}
+          <circle cx="59"   cy="59"   r="1"   fill="white" opacity="0.75" />
+          <circle cx="91"   cy="59"   r="1"   fill="white" opacity="0.75" />
         </g>
 
-        {/* rosy blush cheeks */}
-        <circle cx="58" cy="64" r="5.5" fill="#fb7185" opacity="0.45" />
-        <circle cx="102" cy="64" r="5.5" fill="#fb7185" opacity="0.45" />
-
-        {/* little nose + :3 mouth */}
-        <path d="M76 64 Q80 61 84 64 Q82 69 80 69.5 Q78 69 76 64 Z" fill="#3f3f46" />
-        <path d="M80 69.5 Q76 74 72 71" stroke="#3f3f46" strokeWidth="2" fill="none" strokeLinecap="round" />
-        <path d="M80 69.5 Q84 74 88 71" stroke="#3f3f46" strokeWidth="2" fill="none" strokeLinecap="round" />
+        {/* blush */}
+        <ellipse cx="51"  cy="74" rx="7" ry="4" fill="#FF9988" opacity="0.3" />
+        <ellipse cx="109" cy="74" rx="7" ry="4" fill="#FF9988" opacity="0.3" />
 
         {/* sparkles */}
-        <path className="fx-spark" d="M24 40 l1.6 4.2 l4.2 1.6 l-4.2 1.6 l-1.6 4.2 l-1.6 -4.2 l-4.2 -1.6 l4.2 -1.6 z" fill="#fbbf24" opacity="0.85" />
-        <path className="fx-spark" d="M138 52 l1.1 3 l3 1.1 l-3 1.1 l-1.1 3 l-1.1 -3 l-3 -1.1 l3 -1.1 z" fill="#a5b4fc" opacity="0.85" />
+        <path className="fx-spark" d="M20 36 l1.6 4.2 l4.2 1.6 l-4.2 1.6 l-1.6 4.2 l-1.6-4.2 l-4.2-1.6 l4.2-1.6 z" fill="#fbbf24" opacity="0.85" />
+        <path className="fx-spark" d="M143 48 l1.1 3 l3 1.1 l-3 1.1 l-1.1 3 l-1.1-3 l-3-1.1 l3-1.1 z" fill="#a5b4fc" opacity="0.85" style={{ animationDelay: '1.5s' }} />
       </svg>
     </>
   );
