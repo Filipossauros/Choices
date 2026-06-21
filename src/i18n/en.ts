@@ -496,4 +496,122 @@ export const en: Record<string, string> = {
   Juízo: 'Judgment',
   'Choices · MACBETH · {{label}} · Página {{i}}/{{n}} · Gerado localmente':
     'Choices · MACBETH · {{label}} · Page {{i}}/{{n}} · Generated locally',
+
+  // ── Method page ─────────────────────────────────────────────────────────
+  '← Voltar ao início': '← Back to home',
+  'O método MACBETH': 'The MACBETH method',
+  'Ideia central': 'Core idea',
+  'Em vez de pedir números diretamente (difíceis de justificar), o MACBETH pede juízos qualitativos de diferença de atratividade entre pares de alternativas — de Nula (C0) a Extrema (C6). A partir desses juízos, deriva-se por programação linear uma escala cardinal de valor que os respeita, verificando ao mesmo tempo a sua consistência.':
+    'Instead of asking for numbers directly (hard to justify), MACBETH asks for qualitative attractiveness-difference judgments between pairs of alternatives — from None (C0) to Extreme (C6). From these judgments, a cardinal value scale that respects them is derived by linear programming, while its consistency is checked at the same time.',
+  'Os quatro passos da construção': 'The four construction steps',
+  'Critérios. Estruturar a árvore de critérios — fatores compostos que se decompõem em subcritérios, critérios de qualificação (escala graduada) e portas eliminatórias.':
+    'Criteria. Structure the criteria tree — composite factors that decompose into sub-criteria, qualification criteria (graded scale) and eliminatory gates.',
+  'Escalas. Para cada critério-folha, comparar a atratividade entre níveis e derivar a escala cardinal, ancorada em Neutro = 0 e Bom = 100.':
+    'Scales. For each leaf criterion, compare the attractiveness between levels and derive the cardinal scale, anchored at Neutral = 0 and Good = 100.',
+  'Ponderação. Em cada grupo de irmãos, ponderar por oscilação (swing) os critérios entre si. Os pesos de cada grupo somam 1.':
+    'Weighting. Within each sibling group, weight the criteria against each other by swing weighting. Each group’s weights sum to 1.',
+  'Perfis de decisão. Definir zonas de decisão (limiares) sobre o valor global, idealmente derivadas de perfis de referência.':
+    'Decision profiles. Define decision zones (thresholds) over the global value, ideally derived from reference profiles.',
+  'Agregação aditiva e hierárquica': 'Additive, hierarchical aggregation',
+  'O valor global de uma alternativa é a média ponderada dos seus critérios:':
+    'The global value of an alternative is the weighted average of its criteria:',
+  'Com critérios hierárquicos, cada fator composto V[F] é, por sua vez, a média ponderada dos seus filhos. O peso efetivo (global) de uma folha é o produto dos pesos ao longo do caminho até à raiz. As portas correm a montante: uma falha reprova a proposta antes da agregação.':
+    'With hierarchical criteria, each composite factor V[F] is itself the weighted average of its children. A leaf’s effective (global) weight is the product of the weights along the path to the root. Gates run upstream: a failure rejects the proposal before aggregation.',
+  'Exemplo 1 — Avaliação de arquiteturas de SI': 'Example 1 — IS architecture evaluation',
+  'Avaliar propostas de arquitetura por fatores estruturados. Cada fator agrega subcritérios próprios:':
+    'Evaluate architecture proposals by structured factors. Each factor aggregates its own sub-criteria:',
+  'root — Avaliação de arquitetura': 'root — Architecture evaluation',
+  '├── Segurança (fator)': '├── Security (factor)',
+  '│   ├── Autenticação (qualificação)': '│   ├── Authentication (qualification)',
+  '│   ├── Cifra de dados (qualificação)': '│   ├── Data encryption (qualification)',
+  '│   └── Conformidade RGPD (porta — eliminatória)': '│   └── GDPR compliance (gate — eliminatory)',
+  '├── Interoperabilidade (fator)': '├── Interoperability (factor)',
+  '└── Escolhas tecnológicas (fator)': '└── Technology choices (factor)',
+  '     ├── Maturidade': '     ├── Maturity',
+  '     └── Suporte da comunidade': '     └── Community support',
+  'Perfis de decisão:': 'Decision profiles:',
+  Aprovado: 'Approved',
+  'Com reservas': 'With reservations',
+  Rejeitado: 'Rejected',
+  'Exemplo 2 — Monitorização e risco de plataforma': 'Example 2 — Platform monitoring and risk',
+  'Compor um HealthStatus a partir de métricas técnicas e um fator Risco que o pondera com criticidade, duração e responsabilidade. O risco resultante mapeia para uma ação.':
+    'Compose a HealthStatus from technical metrics and a Risk factor that weights it against criticality, duration and responsibility. The resulting risk maps to an action.',
+  'root — Risco': 'root — Risk',
+  '├── HealthStatus (fator)': '├── HealthStatus (factor)',
+  '│   ├── Latência (qualificação · contínuo)': '│   ├── Latency (qualification · continuous)',
+  '│   ├── Taxa de erros (qualificação · contínuo)': '│   ├── Error rate (qualification · continuous)',
+  '│   └── Saturação (qualificação · contínuo)': '│   └── Saturation (qualification · continuous)',
+  '├── Criticidade (qualificação)': '├── Criticality (qualification)',
+  '├── Duração (qualificação)': '├── Duration (qualification)',
+  '└── Responsabilidade (qualificação)': '└── Responsibility (qualification)',
+  'Nenhuma ação': 'No action',
+  Advertência: 'Warning',
+  'Sanção/coima': 'Sanction/fine',
+  Consistência: 'Consistency',
+  'Cada matriz de juízos é validada por uma margem de consistência z: se z > 0, os juízos são compatíveis e a escala (ou os pesos) é derivável; caso contrário, a aplicação sinaliza as contradições para revisão.':
+    'Each judgment matrix is validated by a consistency margin z: if z > 0, the judgments are compatible and the scale (or the weights) can be derived; otherwise, the app flags the contradictions for review.',
+
+  // ── Manifest page (labels + manifest data) ──────────────────────────────
+  'Manifesto de capacidades': 'Capabilities manifest',
+  'Exportar manifesto (JSON · IA)': 'Export manifest (JSON · AI)',
+  Método: 'Method',
+  Entidades: 'Entities',
+  Fluxos: 'Flows',
+  'Tipos de critério': 'Criterion types',
+  Capacidades: 'Capabilities',
+  Exportações: 'Exports',
+  'Exemplos de uso': 'Use examples',
+  'Aplicação web local-first para construir modelos de decisão multicritério pelo método MACBETH e aplicá-los para avaliar e classificar alternativas, com critérios hierárquicos (fatores e subfatores).':
+    'Local-first web app to build multicriteria decision models with the MACBETH method and apply them to evaluate and rank alternatives, with hierarchical criteria (factors and sub-factors).',
+  'Measuring Attractiveness by a Categorical Based Evaluation Technique. Usa juízos qualitativos de diferença de atratividade (Nula→Extrema) entre pares para derivar escalas cardinais de valor e pesos por programação linear.':
+    'Measuring Attractiveness by a Categorical Based Evaluation Technique. Uses qualitative attractiveness-difference judgments (None→Extreme) between pairs to derive cardinal value scales and weights by linear programming.',
+  'Modelo reutilizável: árvore de critérios, escalas de valor, pesos por grupo e perfis de decisão. Não depende de propostas concretas.':
+    'Reusable model: criteria tree, value scales, per-group weights and decision profiles. Independent of concrete proposals.',
+  'Aplicação de um modelo a propostas concretas; embute um snapshot do modelo, os desempenhos e o resultado agregado.':
+    'Application of a model to concrete proposals; embeds a snapshot of the model, the performances and the aggregated result.',
+  'Estruturar a árvore de critérios, derivar escalas cardinais, ponderar cada grupo e definir os limiares de decisão.':
+    'Structure the criteria tree, derive cardinal scales, weight each group and define the decision thresholds.',
+  'Registar propostas, classificar o seu desempenho, agregar para obter V(p), analisar robustez e exportar relatório.':
+    'Register proposals, rate their performance, aggregate to get V(p), analyse robustness and export a report.',
+  'Fator interno que agrega os seus subcritérios por ponderação (multinível).':
+    'Internal factor that aggregates its sub-criteria by weighting (multilevel).',
+  'Folha com descritor de níveis ordenados; produz um valor cardinal vᵢ(p) ∈ [0,100].':
+    'Leaf with an ordered-levels descriptor; produces a cardinal value vᵢ(p) ∈ [0,100].',
+  'Porta binária eliminatória (cumpre/não cumpre); uma falha reprova a proposta antes da agregação.':
+    'Eliminatory binary gate (pass/fail); a failure rejects the proposal before aggregation.',
+  'Critérios hierárquicos com fatores e subfatores e agregação aditiva multinível.':
+    'Hierarchical criteria with factors and sub-factors and multilevel additive aggregation.',
+  'Derivação de escalas cardinais de valor por MACBETH com verificação de consistência (LP) e sugestões de correção.':
+    'Derivation of cardinal value scales by MACBETH with consistency checking (LP) and correction suggestions.',
+  'Ponderação por oscilação (swing weighting) independente por cada grupo de irmãos.':
+    'Swing weighting, independent for each sibling group.',
+  'Perfis de decisão com limiares derivados de perfis de referência (impacto global).':
+    'Decision profiles with thresholds derived from reference profiles (global impact).',
+  'Desempenhos discretos ou contínuos (curva monótona-cúbica PCHIP).':
+    'Discrete or continuous performances (monotone-cubic PCHIP curve).',
+  'Habilitação por portas e veto por critério.': 'Eligibility via gates and per-criterion veto.',
+  'Resultados explicáveis: painel «Porquê» com contribuições por fator, pontos fortes/fracos e alavancas de melhoria para subir de perfil de decisão.':
+    'Explainable results: a «Why» panel with per-factor contributions, strengths/weaknesses and levers for improvement to rise to a higher decision profile.',
+  'Análise de sensibilidade dos pesos (um critério de cada vez) com deteção e localização das mudanças de ordenação.':
+    'Weight sensitivity analysis (one criterion at a time) with detection and location of ranking changes.',
+  'Exportação de modelo, avaliação, decisão, especificação para IA (JSON), relatório (PDF) e resultados (CSV).':
+    'Export of model, evaluation, decision, AI specification (JSON), report (PDF) and results (CSV).',
+  'Persistência local (IndexedDB) e importação/exportação JSON.':
+    'Local persistence (IndexedDB) and JSON import/export.',
+  'Interface local-first em PT-PT, domínio-agnóstica, com modo claro e escuro (dark mode).':
+    'Local-first, domain-agnostic interface in PT-PT, with light and dark mode.',
+  'Modelo completo, reimportável.': 'Complete, re-importable model.',
+  'Avaliação completa (modelo + propostas + resultados).': 'Complete evaluation (model + proposals + results).',
+  'Especificação legível por IA do modelo (fórmulas, pesos, escalas, diagnósticos).':
+    'AI-readable specification of the model (formulas, weights, scales, diagnostics).',
+  'Relatório de decisão em PDF.': 'Decision report in PDF.',
+  'Avaliar propostas de arquitetura por fatores como segurança, interoperabilidade, escalabilidade e justificação tecnológica.':
+    'Evaluate architecture proposals by factors such as security, interoperability, scalability and technological justification.',
+  'root → {Segurança→{Autenticação, Cifra, RGPD(porta)}, Interoperabilidade, Escolhas tecnológicas}; perfis: Aprovado/Com reservas/Rejeitado.':
+    'root → {Security→{Authentication, Encryption, GDPR(gate)}, Interoperability, Technology choices}; profiles: Approved/With reservations/Rejected.',
+  'Monitorização e risco de plataforma': 'Platform monitoring and risk',
+  'Compor um fator HealthStatus a partir de métricas técnicas e um fator Risco que o pondera com criticidade, duração e responsabilidade.':
+    'Compose a HealthStatus factor from technical metrics and a Risk factor that weights it against criticality, duration and responsibility.',
+  'root(Risco) → {HealthStatus→{Latência, Taxa de erros, Saturação}, Criticidade, Duração, Responsabilidade}; perfis: Nenhuma ação/Advertência/Sanção.':
+    'root(Risk) → {HealthStatus→{Latency, Error rate, Saturation}, Criticality, Duration, Responsibility}; profiles: No action/Warning/Sanction.',
 };
