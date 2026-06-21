@@ -56,7 +56,7 @@ function LevelEditor({
     <div className="space-y-2">
       <p className="text-xs text-gray-400 italic">Ordenados do mais para o menos atrativo (↑ = melhor)</p>
       {levels.map((level, i) => (
-        <div key={level.id} className="flex items-center gap-2">
+        <div key={level.id} className="flex flex-wrap items-center gap-x-2 gap-y-1.5 border-b border-gray-100 pb-2 last:border-0 last:pb-0 sm:border-0 sm:pb-0">
           <div className="flex flex-col gap-0.5">
             <button onClick={() => move(i, -1)} disabled={i === 0} className="text-gray-300 hover:text-gray-600 disabled:opacity-20 text-xs leading-none">▲</button>
             <button onClick={() => move(i, 1)} disabled={i === levels.length - 1} className="text-gray-300 hover:text-gray-600 disabled:opacity-20 text-xs leading-none">▼</button>
@@ -64,22 +64,25 @@ function LevelEditor({
           <input
             value={level.label}
             onChange={(e) => updateLabel(i, e.target.value)}
-            className="flex-1 border border-gray-200 rounded px-2 py-1 text-sm"
+            className="flex-1 min-w-[7rem] border border-gray-200 rounded px-2 py-1 text-sm"
             placeholder="Descrição do nível"
           />
-          <label className="flex items-center gap-1 text-xs text-blue-600 cursor-pointer">
-            <input type="radio" name={`neutral-${levels[0]?.id}`} checked={neutralIndex === i} onChange={() => onChange(levels, i, goodIndex, vetoLevelId)} />
-            Neutro
-          </label>
-          <label className="flex items-center gap-1 text-xs text-green-600 cursor-pointer">
-            <input type="radio" name={`good-${levels[0]?.id}`} checked={goodIndex === i} onChange={() => onChange(levels, neutralIndex, i, vetoLevelId)} />
-            Bom
-          </label>
-          <label className="flex items-center gap-1 text-xs text-orange-600 cursor-pointer" title="Veto: reprova abaixo deste nível">
-            <input type="checkbox" checked={vetoLevelId === level.id} onChange={(e) => onChange(levels, neutralIndex, goodIndex, e.target.checked ? level.id : undefined)} />
-            Veto
-          </label>
-          <button onClick={() => removeLevel(i)} className="text-red-400 hover:text-red-600 text-sm px-1" aria-label="Remover nível">✕</button>
+          {/* On mobile these anchors wrap to their own line under the input */}
+          <div className="flex items-center gap-3 basis-full sm:basis-auto pl-7 sm:pl-0">
+            <label className="flex items-center gap-1 text-xs text-blue-600 cursor-pointer">
+              <input type="radio" name={`neutral-${levels[0]?.id}`} checked={neutralIndex === i} onChange={() => onChange(levels, i, goodIndex, vetoLevelId)} />
+              Neutro
+            </label>
+            <label className="flex items-center gap-1 text-xs text-green-600 cursor-pointer">
+              <input type="radio" name={`good-${levels[0]?.id}`} checked={goodIndex === i} onChange={() => onChange(levels, neutralIndex, i, vetoLevelId)} />
+              Bom
+            </label>
+            <label className="flex items-center gap-1 text-xs text-orange-600 cursor-pointer" title="Veto: reprova abaixo deste nível">
+              <input type="checkbox" checked={vetoLevelId === level.id} onChange={(e) => onChange(levels, neutralIndex, goodIndex, e.target.checked ? level.id : undefined)} />
+              Veto
+            </label>
+            <button onClick={() => removeLevel(i)} className="text-red-400 hover:text-red-600 text-sm px-1 ml-auto sm:ml-0" aria-label="Remover nível">✕</button>
+          </div>
         </div>
       ))}
       <button onClick={addLevel} className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1">
@@ -304,7 +307,7 @@ export default function Criteria() {
     return (
       <li key={c.id} className="space-y-2">
         <div
-          className={`flex items-start gap-3 p-3 border rounded-lg hover:border-gray-300 ${
+          className={`flex items-start gap-3 flex-wrap p-3 border rounded-lg hover:border-gray-300 ${
             isComposite ? 'bg-emerald-50/60 border-emerald-200' : 'bg-white border-gray-200'
           }`}
         >
@@ -335,7 +338,7 @@ export default function Criteria() {
               <p className="text-xs text-emerald-700/70 mt-0.5">{node.children.length} subcritério(s)</p>
             )}
           </div>
-          <div className="flex gap-1 shrink-0">
+          <div className="flex gap-1 shrink-0 basis-full sm:basis-auto justify-end pl-10 sm:pl-0">
             {isComposite && (
               <button onClick={() => { setAddingUnder(c.id); setCollapsed((p) => { const n = new Set(p); n.delete(c.id); return n; }); }} className="px-2 py-1 text-xs text-emerald-700 border border-emerald-200 rounded hover:bg-emerald-50">+ subcritério</button>
             )}
