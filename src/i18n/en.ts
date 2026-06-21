@@ -294,4 +294,44 @@ export const en: Record<string, string> = {
   'Veja a síntese do modelo (fórmula, pesos) e exporte para JSON / IA.':
     'See the model summary (formula, weights) and export to JSON / AI.',
   'Defina pelo menos uma zona de decisão.': 'Define at least one decision zone.',
+
+  // ── Model summary ───────────────────────────────────────────────────────
+  'Resumo do modelo': 'Model summary',
+  'Síntese completa do critério: estrutura, fórmula de agregação e fatores de ponderação. Exporte como JSON para alimentar agentes de IA (ex.: correr diagnósticos sobre o modelo).':
+    'Complete synthesis of the model: structure, aggregation formula and weighting factors. Export as JSON to feed AI agents (e.g. run diagnostics on the model).',
+  'Exportar especificação (JSON · IA)': 'Export specification (JSON · AI)',
+  'Exportar modelo (JSON)': 'Export model (JSON)',
+  '{{n}} critério(s) de qualificação': '{{n}} qualification criteria',
+  '{{n}} fator(es) composto(s)': '{{n}} composite factor(s)',
+  'Escalas derivadas': 'Scales derived',
+  'Pesos completos': 'Weights complete',
+  'Fórmula de agregação': 'Aggregation formula',
+  'Expansão por grupo': 'Expansion by group',
+  'Tabela global de critérios': 'Global criteria table',
+  Critério: 'Criterion',
+  'Grupo (pai)': 'Group (parent)',
+  'Níveis (Bom→Neutro)': 'Levels (Good→Neutral)',
+  'Peso efetivo': 'Effective weight',
+  '— (topo)': '— (top)',
+  'veto: «{{v}}»': 'veto: «{{v}}»',
+  '· contínuo': '· continuous',
+  '∑ filhos': '∑ children',
+  'Fatores de ponderação (por grupo)': 'Weighting factors (by group)',
+  fundamentado: 'grounded',
+  'Alternativa-limiar — {{ref}}': 'Threshold alternative — {{ref}}',
+  'Modelo completo. Aplique-o para registar propostas e obter resultados.':
+    'Model complete. Apply it to register proposals and get results.',
+  'Conclua escalas e ponderação consistentes antes de aplicar.':
+    'Complete consistent scales and weighting before applying.',
+  'Aplicar este modelo →': 'Apply this model →',
+  fator: 'factor',
+  'qualif.': 'qual.',
+  porta: 'gate',
+  'Modelo aditivo ponderado sobre uma árvore de critérios.': 'Weighted additive model over a criteria tree.',
+  'Cada fator composto V[F] é a média ponderada dos seus filhos; o peso de cada grupo soma 1.':
+    'Each composite factor V[F] is the weighted average of its children; each group’s weights sum to 1.',
+  'O peso efetivo (global) de uma folha é o produto dos pesos ao longo do caminho até à raiz.':
+    'A leaf’s effective (global) weight is the product of the weights along the path to the root.',
+  'Âncoras: vᵢ(Neutro) = 0, vᵢ(Bom) = 100. Portas (gate) são eliminatórias e não entram em V(p).':
+    'Anchors: vᵢ(Neutral) = 0, vᵢ(Good) = 100. Gates are eliminatory and don’t enter V(p).',
 };

@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useApp } from '../store';
 import { repository } from '../../repository';
 import { buildModelSpec, downloadJson } from '../../domain/modelSpec';
@@ -7,6 +8,7 @@ import { displayBands, bandRangeLabel } from '../../domain/decision';
 import { resolveBands } from '../../engine/aggregation';
 
 export default function ModelSummary() {
+  const { t } = useTranslation();
   const { state, dispatch } = useApp();
   const model = state.model!;
 
@@ -36,39 +38,38 @@ export default function ModelSummary() {
     <div className="max-w-4xl mx-auto py-6 px-4 space-y-6">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="space-y-1">
-          <h2 className="text-lg font-semibold text-gray-800">Resumo do modelo</h2>
+          <h2 className="text-lg font-semibold text-gray-800">{t('Resumo do modelo')}</h2>
           <p className="text-sm text-gray-500 max-w-xl">
-            Síntese completa do critério: estrutura, fórmula de agregação e fatores de ponderação.
-            Exporte como JSON para alimentar agentes de IA (ex.: correr diagnósticos sobre o modelo).
+            {t('Síntese completa do critério: estrutura, fórmula de agregação e fatores de ponderação. Exporte como JSON para alimentar agentes de IA (ex.: correr diagnósticos sobre o modelo).')}
           </p>
         </div>
         <div className="flex flex-col gap-2 shrink-0">
           <button onClick={exportSpecJson} className="px-4 py-2 text-sm font-medium rounded-lg bg-indigo-600 text-white hover:bg-indigo-700">
-            ↓ Exportar especificação (JSON · IA)
+            ↓ {t('Exportar especificação (JSON · IA)')}
           </button>
           <button onClick={exportModelJson} className="px-4 py-2 text-sm rounded-lg border border-gray-300 hover:bg-gray-50">
-            ↓ Exportar modelo (JSON)
+            ↓ {t('Exportar modelo (JSON)')}
           </button>
         </div>
       </div>
 
       {/* Readiness diagnostics */}
       <div className="flex flex-wrap gap-2 text-xs">
-        <Chip ok={spec.diagnostics.leafCount > 0} label={`${spec.diagnostics.leafCount} critério(s) de qualificação`} />
-        <Chip ok={spec.diagnostics.factorCount >= 0} label={`${spec.diagnostics.factorCount} fator(es) composto(s)`} neutral />
-        <Chip ok={spec.diagnostics.scalesDerived} label="Escalas derivadas" />
-        <Chip ok={spec.diagnostics.weightsComplete} label="Pesos completos" />
+        <Chip ok={spec.diagnostics.leafCount > 0} label={t('{{n}} critério(s) de qualificação', { n: spec.diagnostics.leafCount })} />
+        <Chip ok={spec.diagnostics.factorCount >= 0} label={t('{{n}} fator(es) composto(s)', { n: spec.diagnostics.factorCount })} neutral />
+        <Chip ok={spec.diagnostics.scalesDerived} label={t('Escalas derivadas')} />
+        <Chip ok={spec.diagnostics.weightsComplete} label={t('Pesos completos')} />
       </div>
 
       {/* Aggregation formula */}
       <section className="border border-gray-200 rounded-xl p-5 bg-white space-y-3">
-        <h3 className="font-semibold text-gray-800">Fórmula de agregação</h3>
+        <h3 className="font-semibold text-gray-800">{t('Fórmula de agregação')}</h3>
         <p className="font-mono text-sm bg-gray-50 border border-gray-100 rounded-lg px-3 py-2 text-gray-800">
           {spec.formula.global}
         </p>
         {spec.formula.perGroup.length > 0 && (
           <div className="space-y-1.5">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Expansão por grupo</p>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t('Expansão por grupo')}</p>
             {spec.formula.perGroup.map((f) => (
               <p key={f.target} className="font-mono text-sm text-gray-700">
                 <span className="text-indigo-600 font-semibold">{f.target}</span> = {f.expression}
@@ -77,22 +78,22 @@ export default function ModelSummary() {
           </div>
         )}
         <ul className="text-xs text-gray-500 list-disc pl-5 space-y-0.5">
-          {spec.formula.notes.map((n, i) => <li key={i}>{n}</li>)}
+          {spec.formula.notes.map((n, i) => <li key={i}>{t(n)}</li>)}
         </ul>
       </section>
 
       {/* Global criteria table */}
       <section className="border border-gray-200 rounded-xl overflow-hidden bg-white">
-        <h3 className="font-semibold text-gray-800 px-5 pt-4">Tabela global de critérios</h3>
+        <h3 className="font-semibold text-gray-800 px-5 pt-4">{t('Tabela global de critérios')}</h3>
         <div className="overflow-x-auto p-4">
           <table className="min-w-full text-sm">
             <thead>
               <tr className="bg-gray-50 text-gray-600">
-                <th className="px-3 py-2 text-left border border-gray-200">Critério</th>
-                <th className="px-3 py-2 text-left border border-gray-200">Tipo</th>
-                <th className="px-3 py-2 text-left border border-gray-200">Grupo (pai)</th>
-                <th className="px-3 py-2 text-left border border-gray-200">Níveis (Bom→Neutro)</th>
-                <th className="px-3 py-2 text-right border border-gray-200">Peso efetivo</th>
+                <th className="px-3 py-2 text-left border border-gray-200">{t('Critério')}</th>
+                <th className="px-3 py-2 text-left border border-gray-200">{t('Tipo')}</th>
+                <th className="px-3 py-2 text-left border border-gray-200">{t('Grupo (pai)')}</th>
+                <th className="px-3 py-2 text-left border border-gray-200">{t('Níveis (Bom→Neutro)')}</th>
+                <th className="px-3 py-2 text-right border border-gray-200">{t('Peso efetivo')}</th>
               </tr>
             </thead>
             <tbody>
@@ -103,15 +104,15 @@ export default function ModelSummary() {
                     <TypeBadge type={c.type} />
                   </td>
                   <td className="px-3 py-2 border border-gray-200 text-gray-500">
-                    {c.parent === 'root' ? '— (topo)' : spec.criteria.find((x) => x.id === c.parent)?.label ?? c.parent}
+                    {c.parent === 'root' ? t('— (topo)') : spec.criteria.find((x) => x.id === c.parent)?.label ?? c.parent}
                   </td>
                   <td className="px-3 py-2 border border-gray-200 text-gray-600 text-xs">
-                    {c.levels ? c.levels.map((l) => l.label + (l.anchor ? ` (${l.anchor === 'good' ? 'Bom' : 'Neutro'})` : '')).join(' › ') : '—'}
-                    {c.veto && <span className="text-orange-600"> · veto: «{c.veto}»</span>}
-                    {c.continuous && <span className="text-blue-600"> · contínuo</span>}
+                    {c.levels ? c.levels.map((l) => l.label + (l.anchor ? ` (${l.anchor === 'good' ? t('Bom') : t('Neutro')})` : '')).join(' › ') : '—'}
+                    {c.veto && <span className="text-orange-600"> · {t('veto: «{{v}}»', { v: c.veto })}</span>}
+                    {c.continuous && <span className="text-blue-600"> {t('· contínuo')}</span>}
                   </td>
                   <td className="px-3 py-2 border border-gray-200 text-right font-mono">
-                    {c.effectiveWeight != null ? `${(c.effectiveWeight * 100).toFixed(1)}%` : c.type === 'composite' ? '∑ filhos' : '—'}
+                    {c.effectiveWeight != null ? `${(c.effectiveWeight * 100).toFixed(1)}%` : c.type === 'composite' ? t('∑ filhos') : '—'}
                   </td>
                 </tr>
               ))}
@@ -122,7 +123,7 @@ export default function ModelSummary() {
 
       {/* Weighting factors table */}
       <section className="border border-gray-200 rounded-xl overflow-hidden bg-white">
-        <h3 className="font-semibold text-gray-800 px-5 pt-4">Fatores de ponderação (por grupo)</h3>
+        <h3 className="font-semibold text-gray-800 px-5 pt-4">{t('Fatores de ponderação (por grupo)')}</h3>
         <div className="overflow-x-auto p-4 space-y-4">
           {spec.weighting.groups.map((g) => (
             <div key={g.id} className="space-y-1">
@@ -156,7 +157,7 @@ export default function ModelSummary() {
 
       {/* Decision bands */}
       <section className="border border-gray-200 rounded-xl p-5 bg-white space-y-3">
-        <h3 className="font-semibold text-gray-800">Perfis de decisão</h3>
+        <h3 className="font-semibold text-gray-800">{t('Perfis de decisão')}</h3>
         <div className="space-y-1.5">
           {bandViews.map((v) => {
             const b = v.band;
@@ -181,11 +182,11 @@ export default function ModelSummary() {
                     {b.action && <span className="text-xs text-gray-400">· {b.action}</span>}
                     {!v.isBase && (
                       <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${grounded ? 'bg-green-100 text-green-700' : 'bg-rose-100 text-rose-700'}`}>
-                        {grounded ? 'fundamentado' : 'manual'}
+                        {grounded ? t('fundamentado') : t('manual')}
                       </span>
                     )}
                   </div>
-                  {refText && <p className="text-xs text-gray-400 mt-0.5">Alternativa-limiar — {refText}</p>}
+                  {refText && <p className="text-xs text-gray-400 mt-0.5">{t('Alternativa-limiar — {{ref}}', { ref: refText })}</p>}
                 </div>
               </div>
             );
@@ -196,15 +197,15 @@ export default function ModelSummary() {
       {/* Apply */}
       <div className="mt-8 pt-4 border-t border-gray-100 flex items-center gap-3">
         <p className="flex-1 text-xs text-gray-400">
-          Modelo completo. Aplique-o para registar propostas e obter resultados.
+          {t('Modelo completo. Aplique-o para registar propostas e obter resultados.')}
         </p>
         <button
           className="ml-auto px-4 py-2 text-sm font-medium rounded-lg bg-green-700 text-white hover:bg-green-800 disabled:opacity-40 disabled:cursor-not-allowed"
           disabled={!ready}
-          title={!ready ? 'Conclua escalas e ponderação consistentes antes de aplicar.' : undefined}
+          title={!ready ? t('Conclua escalas e ponderação consistentes antes de aplicar.') : undefined}
           onClick={() => dispatch({ type: 'START_EVALUATION', model })}
         >
-          Aplicar este modelo →
+          {t('Aplicar este modelo →')}
         </button>
       </div>
     </div>
@@ -217,11 +218,12 @@ function Chip({ ok, label, neutral }: { ok: boolean; label: string; neutral?: bo
 }
 
 function TypeBadge({ type }: { type: 'composite' | 'qualification' | 'gate' }) {
+  const { t } = useTranslation();
   const map = {
     composite: { label: 'fator', cls: 'bg-emerald-100 text-emerald-700' },
     qualification: { label: 'qualif.', cls: 'bg-indigo-100 text-indigo-700' },
     gate: { label: 'porta', cls: 'bg-orange-100 text-orange-700' },
   } as const;
-  const t = map[type];
-  return <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${t.cls}`}>{t.label}</span>;
+  const badge = map[type];
+  return <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${badge.cls}`}>{t(badge.label)}</span>;
 }
