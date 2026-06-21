@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useApp } from '../store';
 import type { MacbethJudgment, JudgmentMatrix, DerivedScale, QualificationCriterion } from '../../domain/types';
 import { DEFAULT_ASSESSOR_ID } from '../../domain/types';
@@ -30,6 +31,7 @@ function ScaleRuler({
   scale: DerivedScale;
   criterion: QualificationCriterion;
 }) {
+  const { t } = useTranslation();
   const levels = criterion.descriptor.levels;
   const levelMap = new Map(levels.map((l) => [l.id, l]));
   const neutralId = levels[criterion.descriptor.neutralIndex]?.id;
@@ -70,13 +72,13 @@ function ScaleRuler({
     >
       {/* ── Column headers ── */}
       <text x={LABEL_X} y={HDR_Y} fontSize="9" fill="#9ca3af" fontWeight="600" letterSpacing="0.8">
-        PERFORMANCE
+        {t('PERFORMANCE')}
       </text>
       <text x={VAL_X} y={HDR_Y} fontSize="9" fill="#9ca3af" fontWeight="600" textAnchor="end" letterSpacing="0.8">
-        PONTOS
+        {t('PONTOS')}
       </text>
       <text x={RANGE_X} y={HDR_Y} fontSize="9" fill="#e5e7eb" letterSpacing="0">
-        intervalo
+        {t('intervalo')}
       </text>
       {/* Header separator */}
       <line x1={AX} y1={SEP_Y} x2={VIEW_W - 4} y2={SEP_Y} stroke="#f3f4f6" strokeWidth={1} />
@@ -141,7 +143,7 @@ function ScaleRuler({
               <g>
                 <rect x={PILL_X} y={iy - 8} width={PILL_W} height={14} rx={4} fill="#dcfce7" />
                 <text x={PILL_MID} y={iy + 3} fontSize="9" fill="#16a34a" fontWeight="bold" textAnchor="middle">
-                  Bom
+                  {t('Bom')}
                 </text>
               </g>
             )}
@@ -149,7 +151,7 @@ function ScaleRuler({
               <g>
                 <rect x={PILL_X} y={iy - 8} width={PILL_W} height={14} rx={4} fill="#dbeafe" />
                 <text x={PILL_MID} y={iy + 3} fontSize="9" fill="#2563eb" fontWeight="bold" textAnchor="middle">
-                  Neutro
+                  {t('Neutro')}
                 </text>
               </g>
             )}
@@ -189,6 +191,7 @@ function ScaleFormula({
   scale: DerivedScale;
   criterion: QualificationCriterion;
 }) {
+  const { t } = useTranslation();
   const levels = criterion.descriptor.levels;
   const levelMap = new Map(levels.map((l) => [l.id, l]));
 
@@ -245,7 +248,7 @@ function ScaleFormula({
       {/* Chart */}
       <div>
         <p className="text-xs text-gray-500 mb-1">
-          Escala cardinal — curva suave (interpolação monótona) do nível menos atrativo (esquerda) ao mais atrativo (direita)
+          {t('Escala cardinal — curva suave (interpolação monótona) do nível menos atrativo (esquerda) ao mais atrativo (direita)')}
         </p>
         <ResponsiveContainer width="100%" height={200}>
           <LineChart data={curve} margin={{ top: 8, right: 16, left: 0, bottom: 32 }}>
@@ -261,8 +264,8 @@ function ScaleFormula({
             />
             <YAxis tick={{ fontSize: 10 }} width={36} />
             <Tooltip content={<CustomTooltip />} />
-            <ReferenceLine y={0} stroke="#94a3b8" strokeDasharray="4 2" label={{ value: 'Neutro', fontSize: 10, fill: '#94a3b8' }} />
-            <ReferenceLine y={100} stroke="#16a34a" strokeDasharray="4 2" label={{ value: 'Bom', fontSize: 10, fill: '#16a34a' }} />
+            <ReferenceLine y={0} stroke="#94a3b8" strokeDasharray="4 2" label={{ value: t('Neutro'), fontSize: 10, fill: '#94a3b8' }} />
+            <ReferenceLine y={100} stroke="#16a34a" strokeDasharray="4 2" label={{ value: t('Bom'), fontSize: 10, fill: '#16a34a' }} />
             <Line type="linear" dataKey="value" stroke="#3b82f6" strokeWidth={2} dot={false} activeDot={{ r: 5 }} isAnimationActive={false} />
             {/* Mark the exact derived nodes the curve passes through */}
             {nodes.map((nd, i) => (
@@ -274,7 +277,7 @@ function ScaleFormula({
 
       {/* Node values */}
       <div>
-        <p className="text-xs font-semibold text-gray-600 mb-1">Valores cardinais derivados (a curva passa exatamente por estes pontos):</p>
+        <p className="text-xs font-semibold text-gray-600 mb-1">{t('Valores cardinais derivados (a curva passa exatamente por estes pontos):')}</p>
         <div className="bg-gray-50 border border-gray-100 rounded-lg p-3 text-xs text-gray-700 grid grid-cols-2 sm:grid-cols-3 gap-1">
           {[...scale.values]
             .sort((a, b) => b.value - a.value)
@@ -285,9 +288,7 @@ function ScaleFormula({
             ))}
         </div>
         <p className="text-[10px] text-gray-400 mt-1">
-          A escala de valor é a interpolação monótona-cúbica (PCHIP) que passa por todos os pontos
-          derivados — suave (sem pontos de corte) e sem oscilações. Âncoras: Neutro = 0, Bom = 100.
-          Desempenhos contínuos são lidos diretamente desta curva.
+          {t('A escala de valor é a interpolação monótona-cúbica (PCHIP) que passa por todos os pontos derivados — suave (sem pontos de corte) e sem oscilações. Âncoras: Neutro = 0, Bom = 100. Desempenhos contínuos são lidos diretamente desta curva.')}
         </p>
       </div>
     </div>
@@ -297,6 +298,7 @@ function ScaleFormula({
 // ── Main screen ───────────────────────────────────────────────────────────────
 
 export default function Scales() {
+  const { t } = useTranslation();
   const { state, dispatch } = useApp();
   const model = state.model!;
   const [derivingId, setDerivingId] = useState<string | null>(null);
@@ -377,7 +379,7 @@ export default function Scales() {
   if (qualCriteria.length === 0) {
     return (
       <div className="max-w-2xl mx-auto py-10 px-4 text-center text-gray-400">
-        <p>Sem critérios de qualificação definidos.</p>
+        <p>{t('Sem critérios de qualificação definidos.')}</p>
       </div>
     );
   }
@@ -411,10 +413,10 @@ export default function Scales() {
               <span className="block truncate">{c.label}</span>
               {scale ? (
                 <span className={`text-xs ${scale.consistencyMargin > 0 ? 'text-green-600' : 'text-red-500'}`}>
-                  {scale.consistencyMargin > 0 ? '✓ Derivada' : '✗ Inconsistente'}
+                  {scale.consistencyMargin > 0 ? t('✓ Derivada') : t('✗ Inconsistente')}
                 </span>
               ) : (
-                <span className="text-xs text-gray-400">Por derivar</span>
+                <span className="text-xs text-gray-400">{t('Por derivar')}</span>
               )}
             </button>
           );
@@ -431,7 +433,7 @@ export default function Scales() {
               disabled={derivingId === activeCrit.id}
               className="px-4 py-1.5 text-sm bg-blue-700 text-white rounded hover:bg-blue-800 disabled:opacity-50"
             >
-              {derivingId === activeCrit.id ? 'A derivar…' : 'Derivar escala'}
+              {derivingId === activeCrit.id ? t('A derivar…') : t('Derivar escala')}
             </button>
           </div>
 
@@ -443,9 +445,9 @@ export default function Scales() {
             emptyHint="São necessários pelo menos 2 níveis."
             renderQuestion={(more, less) => (
               <>
-                Qual a diferença de atratividade de passar de{' '}
+                {t('Qual a diferença de atratividade de passar de')}{' '}
                 <span className="inline-block bg-white border border-gray-300 rounded-lg px-2 py-0.5 font-semibold text-gray-700">{less.label}</span>
-                {' '}para{' '}
+                {' '}{t('para')}{' '}
                 <span className="inline-block bg-white border border-blue-400 rounded-lg px-2 py-0.5 font-semibold text-blue-700">{more.label}</span>
                 ?
               </>
@@ -454,7 +456,7 @@ export default function Scales() {
 
           <details className="border-t border-gray-100 pt-4 group" open={activeCrit.descriptor.levels.length <= 4}>
             <summary className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 cursor-pointer select-none flex items-center gap-1.5 hover:text-gray-700">
-              <span className="transition-transform group-open:rotate-90">▸</span> Matriz de juízos
+              <span className="transition-transform group-open:rotate-90">▸</span> {t('Matriz de juízos')}
             </summary>
             <JudgmentMatrixEditor
               items={activeCrit.descriptor.levels}
@@ -471,9 +473,9 @@ export default function Scales() {
             return (
               <div className="border border-gray-200 rounded-xl p-5 bg-white space-y-6">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-gray-700">Escala Derivada</h3>
+                  <h3 className="text-sm font-semibold text-gray-700">{t('Escala Derivada')}</h3>
                   <span className={`text-xs px-2 py-0.5 rounded-full ${scale.consistencyMargin > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
-                    margem: {scale.consistencyMargin.toFixed(3)}
+                    {t('margem: {{m}}', { m: scale.consistencyMargin.toFixed(3) })}
                   </span>
                 </div>
 
@@ -481,7 +483,7 @@ export default function Scales() {
                   <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-xs text-red-700">
                     <span className="mt-0.5 shrink-0">⚠</span>
                     <span>
-                      Escala inconsistente — os juízos contêm contradições cardinais. Revise a matriz acima: corrija pares de diferença de atratividade que violem a ordenação cardinal (p.ex. uma diferença «Forte» numa distância menor do que uma «Fraca»).
+                      {t('Escala inconsistente — os juízos contêm contradições cardinais. Revise a matriz acima: corrija pares de diferença de atratividade que violem a ordenação cardinal (p.ex. uma diferença «Forte» numa distância menor do que uma «Fraca»).')}
                     </span>
                   </div>
                 )}
@@ -489,7 +491,7 @@ export default function Scales() {
                 {/* Ruler / Thermometer */}
                 <div>
                   <p className="text-xs text-gray-500 mb-3">
-                    Régua de valor — níveis posicionados proporcionalmente ao seu valor cardinal
+                    {t('Régua de valor — níveis posicionados proporcionalmente ao seu valor cardinal')}
                   </p>
                   <ScaleRuler scale={scale} criterion={activeCrit} />
                 </div>

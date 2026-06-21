@@ -175,4 +175,29 @@ export const en: Record<string, string> = {
   'A matriz é inconsistente, mas o conflito resulta da combinação de vários juízos (um ciclo) e não de um único par isolável. Reveja as diferenças de atratividade — sobretudo as que envolvem categorias muito próximas entre si ou muito afastadas.':
     'The matrix is inconsistent, but the conflict comes from a combination of several judgments (a cycle) rather than a single isolable pair. Review the attractiveness differences — especially those involving categories very close to or very far from each other.',
   'Diferença inconsistente: {{a}} vs {{b}}': 'Inconsistent difference: {{a}} vs {{b}}',
+
+  // ── Scales ──────────────────────────────────────────────────────────────
+  PONTOS: 'POINTS',
+  intervalo: 'range',
+  'Escala cardinal — curva suave (interpolação monótona) do nível menos atrativo (esquerda) ao mais atrativo (direita)':
+    'Cardinal scale — smooth curve (monotone interpolation) from the least attractive level (left) to the most attractive (right)',
+  'Valores cardinais derivados (a curva passa exatamente por estes pontos):':
+    'Derived cardinal values (the curve passes exactly through these points):',
+  'A escala de valor é a interpolação monótona-cúbica (PCHIP) que passa por todos os pontos derivados — suave (sem pontos de corte) e sem oscilações. Âncoras: Neutro = 0, Bom = 100. Desempenhos contínuos são lidos diretamente desta curva.':
+    'The value scale is the monotone-cubic (PCHIP) interpolation passing through every derived point — smooth (no kinks) and without overshoot. Anchors: Neutral = 0, Good = 100. Continuous performances are read directly from this curve.',
+  'Sem critérios de qualificação definidos.': 'No qualification criteria defined.',
+  '✓ Derivada': '✓ Derived',
+  '✗ Inconsistente': '✗ Inconsistent',
+  'Por derivar': 'Not derived',
+  'A derivar…': 'Deriving…',
+  'Derivar escala': 'Derive scale',
+  'Qual a diferença de atratividade de passar de': 'What is the attractiveness difference of going from',
+  para: 'to',
+  'Matriz de juízos': 'Judgment matrix',
+  'Escala Derivada': 'Derived scale',
+  'margem: {{m}}': 'margin: {{m}}',
+  'Escala inconsistente — os juízos contêm contradições cardinais. Revise a matriz acima: corrija pares de diferença de atratividade que violem a ordenação cardinal (p.ex. uma diferença «Forte» numa distância menor do que uma «Fraca»).':
+    'Inconsistent scale — the judgments contain cardinal contradictions. Review the matrix above: fix attractiveness-difference pairs that violate the cardinal ordering (e.g. a «Strong» difference over a smaller distance than a «Weak» one).',
+  'Régua de valor — níveis posicionados proporcionalmente ao seu valor cardinal':
+    'Value ruler — levels positioned proportionally to their cardinal value',
 };
