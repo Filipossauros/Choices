@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useApp } from '../store';
 import { computeSensitivity } from '../../engine/sensitivity';
-import { displayBands } from '../../domain/decision';
+import { displayBands, bandRangeLabel } from '../../domain/decision';
 import { resolveBands } from '../../engine/aggregation';
 import { allGroupsConsistent, parentOf, weightsForGroup } from '../../domain/tree';
 import {
@@ -66,7 +66,8 @@ export default function Sensitivity() {
     });
   }
 
-  const bandViews = displayBands(resolveBands(model));
+  const resolvedScale = resolveBands(model);
+  const bandViews = displayBands(resolvedScale);
   const options = evaluation.options;
   // Use safe indexed keys for recharts dataKey (avoid UUID issues)
   const optKeys = options.map((_, i) => `v${i}`);
@@ -74,6 +75,24 @@ export default function Sensitivity() {
 
   return (
     <div className="max-w-5xl mx-auto py-6 px-4 space-y-6">
+      {/* Header + plain-language explanation */}
+      <div>
+        <h2 className="text-xl font-semibold text-gray-800">Análise de sensibilidade</h2>
+        <div className="mt-2 text-sm text-gray-600 bg-slate-50 border border-slate-200 rounded-xl p-4 leading-relaxed space-y-2">
+          <p>
+            <strong className="text-gray-700">O que mostra:</strong> cada linha é uma alternativa. O gráfico
+            segue o seu valor global V(p) à medida que o <strong>peso do critério selecionado</strong> varia de
+            0&nbsp;% a 100&nbsp;%. A linha vertical tracejada (azul) marca o <strong>peso atual</strong> e as
+            faixas coloridas de fundo são as zonas da política de decisão.
+          </p>
+          <p>
+            <strong className="text-gray-700">O que procurar:</strong> se as linhas se <strong>cruzam</strong>, a
+            ordenação muda nesse peso&nbsp;<span className="text-amber-600 font-semibold">⚡</span> — a decisão é
+            sensível a esse critério. Se <strong>nunca se cruzam</strong>, o resultado é robusto.
+          </p>
+        </div>
+      </div>
+
       {/* Criterion selector */}
       <div className="flex items-start gap-4 flex-wrap">
         <span className="text-sm font-medium text-gray-700 mt-1 shrink-0">Critérios activos:</span>
@@ -191,6 +210,19 @@ export default function Sensitivity() {
                 ))}
               </LineChart>
             </ResponsiveContainer>
+
+            {/* Plain-language axes + decision-zone legend */}
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px] text-gray-500">
+              <span>Eixo X: peso de «{criterion?.label}» (0→100%) · Eixo Y: valor global V(p)</span>
+              <span className="flex flex-wrap items-center gap-2.5 ml-auto">
+                {bandViews.map((v) => (
+                  <span key={v.band.id} className="inline-flex items-center gap-1">
+                    <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: v.band.color, opacity: 0.45 }} />
+                    {v.band.label} {bandRangeLabel(v.band, resolvedScale)}
+                  </span>
+                ))}
+              </span>
+            </div>
 
             {scenario.rankingChangePoints.length > 0 ? (
               <div className="border border-amber-200 bg-amber-50 rounded-lg p-3 text-xs text-amber-800">

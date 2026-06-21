@@ -1,3 +1,4 @@
+import { Fragment } from 'react';
 import { useApp } from '../store';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -48,6 +49,34 @@ export default function Report() {
   }
   function decisionBand(r: OptionResult): DecisionBand | undefined {
     return r.bandId ? bandMap.get(r.bandId) : undefined;
+  }
+
+  // Plain-language verdict (icon + one-line rationale) shown in the decision hero.
+  const bandViewsR = result ? displayBands(result.decisionScale) : [];
+  function verdictMeta(r: OptionResult, band: DecisionBand | undefined): { icon: string; sub: string } {
+    if (r.hardRejected) {
+      const gate = r.rejectedByGate ? model.valueTree.criteria[r.rejectedByGate]?.label : null;
+      const veto = r.vetoedByCriterion ? model.valueTree.criteria[r.vetoedByCriterion]?.label : null;
+      return {
+        icon: '❌',
+        sub: gate
+          ? `Porta «${gate}» não cumprida — eliminado antes da pontuação.`
+          : veto
+          ? `Veto em «${veto}».`
+          : 'Eliminado antes da pontuação.',
+      };
+    }
+    const idx = bandViewsR.findIndex((v) => v.band.id === band?.id);
+    const view = idx >= 0 ? bandViewsR[idx] : null;
+    const icon = idx === 0 ? '✅' : view?.isBase ? '⛔' : '⚠️';
+    const sub =
+      band?.action ??
+      (idx === 0
+        ? 'Cumpre os critérios e atinge a zona mais elevada da política de decisão.'
+        : view?.isBase
+        ? 'Não atinge as zonas superiores da política de decisão.'
+        : 'Atinge esta zona, mas não a zona superior da política de decisão.');
+    return { icon, sub };
   }
 
   // ── CSV export ─────────────────────────────────────────────────────────────
@@ -399,7 +428,61 @@ export default function Report() {
         </span>
       </div>
 
+      {/* Veredito — decision front and centre */}
+      {result && (
+        <section className="space-y-2.5">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs text-gray-400 font-semibold uppercase tracking-wide">Veredito · MACBETH</span>
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 ml-auto">
+              {bandViewsR.map((v, i) => (
+                <Fragment key={v.band.id}>
+                  {i > 0 && <span className="text-gray-300 select-none">·</span>}
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="text-[11px] font-bold rounded-full px-2 py-0.5 text-white" style={{ backgroundColor: v.band.color }}>
+                      {v.band.label}
+                    </span>
+                    <span className="font-mono text-[11px] text-gray-400">{bandRangeLabel(v.band, result.decisionScale)}</span>
+                  </span>
+                </Fragment>
+              ))}
+            </div>
+          </div>
+          {[...result.optionResults]
+            .sort((a, b) => (b.globalValue ?? -Infinity) - (a.globalValue ?? -Infinity))
+            .map((r) => {
+              const opt = evaluation.options.find((o) => o.id === r.optionId);
+              const band = decisionBand(r);
+              const rejected = r.hardRejected;
+              const accent = rejected ? '#dc2626' : band?.color ?? '#6b7280';
+              const { icon, sub } = verdictMeta(r, band);
+              const note = evaluation.optionNotes?.[r.optionId];
+              return (
+                <div
+                  key={r.optionId}
+                  className="flex items-center gap-4 rounded-2xl p-4 border"
+                  style={{ borderColor: accent + '66', backgroundColor: accent + '12' }}
+                >
+                  <span className="text-3xl leading-none shrink-0">{icon}</span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-lg font-extrabold text-gray-800 truncate">{opt?.label}</p>
+                    <p className="text-xs font-semibold" style={{ color: accent }}>
+                      {rejected ? 'Reprovado' : band?.label ?? '—'}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-0.5">{sub}</p>
+                    {note && <p className="text-xs text-gray-400 italic mt-0.5">{note}</p>}
+                  </div>
+                  <span className="font-mono text-2xl font-extrabold shrink-0 tabular-nums" style={{ color: accent }}>
+                    {rejected ? '—' : r.globalValue?.toFixed(1) ?? '—'}
+                  </span>
+                </div>
+              );
+            })}
+        </section>
+      )}
+
       {/* Export buttons — 2×2 grid */}
+      <div>
+      <span className="text-xs text-gray-400 font-semibold uppercase tracking-wide block mb-2">Exportar</span>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <button
           onClick={exportPDF}
@@ -447,43 +530,18 @@ export default function Report() {
           <span className="text-[10px] opacity-80">choices/model-spec@1</span>
         </button>
       </div>
+      </div>
 
-      {/* 1. Decisão */}
-      {result && (
-        <section className="border border-gray-200 rounded-xl p-5 bg-white space-y-3">
-          <h3 className="font-semibold text-gray-800">Decisão</h3>
-          <div className="flex flex-wrap gap-2 text-xs mb-1">
-            {sortBands(result.decisionScale).map((b) => (
-              <span key={b.id} className="px-2 py-0.5 rounded-full text-white font-medium" style={{ backgroundColor: b.color }}>
-                {b.label}: {bandRangeLabel(b, result.decisionScale)}
-              </span>
-            ))}
-          </div>
-          {[...result.optionResults]
-            .sort((a, b) => (b.globalValue ?? -Infinity) - (a.globalValue ?? -Infinity))
-            .map((r) => {
-              const opt = evaluation.options.find((o) => o.id === r.optionId);
-              const band = decisionBand(r);
-              const bg = r.hardRejected ? '#fee2e2' : band ? band.color + '22' : '#f3f4f6';
-              const fg = r.hardRejected ? '#b91c1c' : band?.color ?? '#6b7280';
-              const note = evaluation.optionNotes?.[r.optionId];
-              return (
-                <div key={r.optionId} className="flex items-start gap-3 p-3 rounded-lg border" style={{ backgroundColor: bg, borderColor: fg + '55' }}>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-gray-800">{opt?.label}</p>
-                    {note && <p className="text-xs text-gray-500 mt-0.5 italic">{note}</p>}
-                  </div>
-                  <span className="font-mono font-bold text-gray-700 shrink-0">{r.globalValue !== null ? r.globalValue.toFixed(1) : '—'}</span>
-                  <span className="text-sm font-semibold shrink-0" style={{ color: fg }}>{decisionLabel(r)}</span>
-                </div>
-              );
-            })}
-        </section>
-      )}
+      {/* Metodologia + Trilho — collapsed by default; decision stays the focus */}
+      <details className="border border-gray-200 rounded-xl bg-white">
+        <summary className="px-5 py-3 cursor-pointer text-sm font-semibold text-gray-700 hover:text-gray-900 select-none">
+          Metodologia &amp; trilho de auditoria
+        </summary>
+        <div className="px-5 pb-5 space-y-5">
 
-      {/* 2. Metodologia */}
-      <section className="border border-gray-200 rounded-xl p-5 bg-white space-y-2">
-        <h3 className="font-semibold text-gray-800">Metodologia — Método MACBETH</h3>
+      {/* Metodologia */}
+      <section className="space-y-2">
+        <h3 className="font-semibold text-gray-800 text-sm">Metodologia — Método MACBETH</h3>
         <p className="text-sm text-gray-600 leading-relaxed">
           <em>Measuring Attractiveness by a Categorical Based Evaluation Technique</em> (Bana e Costa &amp; Vansnick, 1994). Utiliza juízos qualitativos de diferença de atratividade — de <em>Nula</em> a <em>Extrema</em> — entre pares de alternativas para construir escalas cardinais de valor por programação linear.
         </p>
@@ -492,9 +550,9 @@ export default function Report() {
         </p>
       </section>
 
-      {/* 3. Trilho de Auditoria */}
-      <section className="border border-gray-200 rounded-xl p-5 bg-white space-y-4">
-        <h3 className="font-semibold text-gray-800">Trilho de Auditoria</h3>
+      {/* Trilho de Auditoria */}
+      <section className="space-y-4 border-t border-gray-100 pt-4">
+        <h3 className="font-semibold text-gray-800 text-sm">Trilho de Auditoria</h3>
         {qualCriteria.map((c) => {
           if (c.type !== 'qualification') return null;
           const scale = model.derivedScales.find((s) => s.criterionId === c.id);
@@ -539,6 +597,8 @@ export default function Report() {
           );
         })}
       </section>
+        </div>
+      </details>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { useMemo, useEffect, useState } from 'react';
+import { useMemo, useEffect, useState, Fragment } from 'react';
 import { useApp } from '../store';
 import { aggregate } from '../../engine/aggregation';
 import { displayBands, bandRangeLabel } from '../../domain/decision';
@@ -197,90 +197,76 @@ export default function Results() {
         </div>
       </div>
 
-      {/* ── Ranking cards ── */}
-      <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${Math.min(sorted.length, 3)}, 1fr)` }}>
-        {sorted.map((r, i) => {
+      {/* ── Decision policy (compact strip) ── */}
+      <div className="bg-white rounded-xl border border-gray-200 p-4">
+        <span className="text-xs text-gray-400 font-semibold uppercase tracking-wide">Política de decisão</span>
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-2 mt-2.5">
+          {bandViews.map((v, i) => (
+            <Fragment key={v.band.id}>
+              {i > 0 && <span className="text-gray-300 select-none">·</span>}
+              <span className="inline-flex items-center gap-2">
+                <span className="text-xs font-bold rounded-full px-2.5 py-0.5 text-white" style={{ backgroundColor: v.band.color }}>
+                  {v.band.label}
+                </span>
+                <span className="font-mono text-xs text-gray-500">{bandRangeLabel(v.band, result.decisionScale)}</span>
+              </span>
+            </Fragment>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Ranking cards (one row each) ── */}
+      <div className="space-y-2.5">
+        {sorted.map((r) => {
           const option = evaluation.options.find((o) => o.id === r.optionId);
           const band = bandOf(r.bandId);
-          const borderColor = r.hardRejected ? '#e5e7eb' : band?.color ?? '#e5e7eb';
+          const rejected = r.hardRejected;
+          const accent = rejected ? '#dc2626' : band?.color ?? '#94a3b8';
           const isWhy = activeWhyId === r.optionId;
 
           return (
             <div
               key={r.optionId}
-              className={`bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm transition-shadow ${isWhy ? 'ring-2 ring-indigo-400' : ''}`}
-              style={{ borderTop: `4px solid ${borderColor}` }}
+              className={`bg-white rounded-xl border p-3.5 transition-shadow ${isWhy ? 'ring-2 ring-indigo-300' : ''}`}
+              style={{ borderColor: accent + '55', borderLeftWidth: '4px', borderLeftColor: accent }}
             >
-              <div className="p-4">
-                <p className="text-xs text-gray-400 font-medium mb-1">
-                  {r.hardRejected
-                    ? `— · ${r.vetoedByCriterion ? 'Vetado' : 'Reprovado'}`
-                    : `#${i + 1}${band ? ` · ${band.label}` : ''}`}
-                </p>
-                <p className="font-semibold text-gray-800 text-sm leading-snug">
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-bold text-gray-800 flex-1 min-w-0 truncate">
                   {option?.label ?? r.optionId}
-                </p>
-                {r.hardRejected ? (
-                  <>
-                    <p className="text-3xl font-black text-gray-300 mt-2 mb-1">—</p>
-                    <p className="text-xs text-red-500 font-medium">
-                      {r.rejectedByGate
-                        ? `Porta: ${model.valueTree.criteria[r.rejectedByGate]?.label ?? 'eliminatória'}`
-                        : r.vetoedByCriterion
-                        ? `Veto: ${model.valueTree.criteria[r.vetoedByCriterion]?.label ?? ''}`
-                        : 'Eliminado'}
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-3xl font-black text-gray-900 mt-2 mb-1" style={{ color: band?.color }}>
-                      {r.globalValue?.toFixed(1) ?? '—'}
-                    </p>
-                    <div className="h-2 rounded-full bg-gray-100 overflow-hidden mb-3">
-                      <div
-                        className="h-full rounded-full transition-all"
-                        style={{ width: `${Math.max(0, r.globalValue ?? 0)}%`, backgroundColor: band?.color ?? '#94a3b8' }}
-                      />
-                    </div>
-                    <button
-                      onClick={() => setWhyOptionId(isWhy && whyOptionId !== null ? null : r.optionId)}
-                      className="text-xs text-indigo-600 hover:text-indigo-800 font-medium"
-                    >
-                      {isWhy ? '▲ Fechar' : '▼ Porquê?'}
-                    </button>
-                  </>
-                )}
+                </span>
+                <span
+                  className="font-mono text-base font-bold tabular-nums shrink-0"
+                  style={{ color: rejected ? '#9ca3af' : '#334155' }}
+                >
+                  {rejected ? '—' : r.globalValue?.toFixed(1) ?? '—'}
+                </span>
+                <span
+                  className="text-xs font-bold rounded-lg px-2.5 py-1 shrink-0 whitespace-nowrap"
+                  style={{ backgroundColor: accent + '22', color: accent }}
+                >
+                  {rejected ? 'Reprovado' : band?.label ?? '—'}
+                </span>
               </div>
+              {rejected ? (
+                <p className="text-xs text-red-600 mt-1.5">
+                  ❌{' '}
+                  {r.rejectedByGate
+                    ? `Critério de habilitação «${model.valueTree.criteria[r.rejectedByGate]?.label ?? ''}» não cumprido — eliminado antes da pontuação.`
+                    : r.vetoedByCriterion
+                    ? `Veto: «${model.valueTree.criteria[r.vetoedByCriterion]?.label ?? ''}».`
+                    : 'Eliminado antes da pontuação.'}
+                </p>
+              ) : (
+                <button
+                  onClick={() => setWhyOptionId(isWhy && whyOptionId !== null ? null : r.optionId)}
+                  className="text-xs text-indigo-600 hover:text-indigo-800 font-medium mt-1.5"
+                >
+                  {isWhy ? '▴ Fechar' : '▾ Porquê? Alavancas de melhoria'}
+                </button>
+              )}
             </div>
           );
         })}
-      </div>
-
-      {/* ── Decision policy ── */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-2.5">
-        <span className="text-xs text-gray-400 font-semibold uppercase tracking-wide">Política de decisão</span>
-        <div className="grid sm:grid-cols-2 gap-x-6 gap-y-2">
-          {bandViews.map((v) => {
-            const b = v.band;
-            const grounded = !!b.referenceProfile;
-            return (
-              <div key={b.id} className="flex items-center gap-2.5 text-sm min-w-0">
-                <span className="w-3 h-3 rounded shrink-0" style={{ backgroundColor: b.color }} />
-                <span className="font-medium text-gray-800 shrink-0">{b.label}</span>
-                {b.action && <span className="text-xs text-gray-400 truncate">· {b.action}</span>}
-                <span className="ml-auto font-mono text-xs text-gray-500 shrink-0">{bandRangeLabel(b, result.decisionScale)}</span>
-                {!v.isBase && (
-                  <span
-                    className={`text-[10px] px-1.5 py-0.5 rounded-full shrink-0 ${grounded ? 'bg-green-100 text-green-700' : 'bg-rose-100 text-rose-700'}`}
-                    title={grounded ? 'Limiar fundamentado por alternativa-limiar' : 'Limiar definido manualmente'}
-                  >
-                    {grounded ? 'fund.' : 'manual'}
-                  </span>
-                )}
-              </div>
-            );
-          })}
-        </div>
       </div>
 
       {/* ── "Why" panel ── */}

@@ -23,10 +23,7 @@ function BalanceMascot() {
         .bm-beam{animation:bm-tilt 4s ease-in-out infinite;transform-origin:80px 50px}
         .bm-eyes{animation:bm-blink 5s ease-in-out infinite;transform-origin:50% 50%}
       `}</style>
-      <svg className="bm-body" width="112" height="108" viewBox="0 0 160 150" xmlns="http://www.w3.org/2000/svg">
-        {/* base */}
-        <rect x="64" y="132" width="32" height="9" rx="4.5" fill="#6366f1" />
-        <rect x="74" y="78" width="12" height="56" rx="6" fill="#818cf8" />
+      <svg className="bm-body" width="112" height="64" viewBox="0 0 160 90" xmlns="http://www.w3.org/2000/svg">
         {/* tilting beam + pans */}
         <g className="bm-beam">
           <rect x="34" y="46" width="92" height="7" rx="3.5" fill="#6366f1" />
