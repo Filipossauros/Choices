@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useApp } from '../store';
 import type { Option, Performance, QualificationCriterion } from '../../domain/types';
 import { v4 as uuidv4 } from 'uuid';
@@ -27,6 +28,7 @@ function nearestLevel(crit: QualificationCriterion, position: number): string {
 }
 
 export default function Analysis() {
+  const { t } = useTranslation();
   const { state, dispatch } = useApp();
   const evaluation = state.evaluation!;
   const model = evaluation.model;
@@ -34,13 +36,13 @@ export default function Analysis() {
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const isPositions = model.subjectKind === 'positions';
-  const subjectSingular = isPositions ? 'posição' : 'proposta';
-  const subjectPlaceholder = isPositions ? 'Nome da posição / momento…' : 'Nome da proposta…';
-  const subjectColumnHeader = isPositions ? 'Posição / Momento' : 'Proposta';
-  const subjectScreenTitle = isPositions ? 'Análise e monitorização' : 'Análise e avaliação';
+  const subjectSingular = isPositions ? t('posição') : t('proposta');
+  const subjectPlaceholder = isPositions ? t('Nome da posição / momento…') : t('Nome da proposta…');
+  const subjectColumnHeader = isPositions ? t('Posição / Momento') : t('Proposta');
+  const subjectScreenTitle = isPositions ? t('Análise e monitorização') : t('Análise e avaliação');
   const subjectScreenDesc = isPositions
-    ? 'Registe as posições / momentos, verifique a habilitação (portas) e classifique o desempenho em cada critério de qualificação. Uma porta falhada exclui a posição antes da agregação.'
-    : 'Registe as propostas, verifique a habilitação (portas) e classifique o desempenho em cada critério de qualificação. Uma porta falhada reprova a proposta antes da agregação.';
+    ? t('Registe as posições / momentos, verifique a habilitação (portas) e classifique o desempenho em cada critério de qualificação. Uma porta falhada exclui a posição antes da agregação.')
+    : t('Registe as propostas, verifique a habilitação (portas) e classifique o desempenho em cada critério de qualificação. Uma porta falhada reprova a proposta antes da agregação.');
 
   const qualCriteria = Object.values(model.valueTree.criteria).filter(
     (c) => c.type === 'qualification',
@@ -74,7 +76,7 @@ export default function Analysis() {
   }
 
   function deleteOption(id: string) {
-    if (!confirm(`Eliminar esta ${subjectSingular}?`)) return;
+    if (!confirm(t('Eliminar esta {{subject}}?', { subject: subjectSingular }))) return;
     dispatch({
       type: 'UPDATE_EVALUATION',
       patch: {
@@ -92,7 +94,7 @@ export default function Analysis() {
   if (allCriteria.length === 0) {
     return (
       <div className="max-w-3xl mx-auto py-10 px-4 text-center text-gray-400">
-        <p>O modelo aplicado não tem critérios definidos.</p>
+        <p>{t('O modelo aplicado não tem critérios definidos.')}</p>
       </div>
     );
   }
@@ -113,12 +115,12 @@ export default function Analysis() {
           className="flex-1 border border-gray-200 rounded px-3 py-2 text-sm"
         />
         <button onClick={addOption} className="px-4 py-2 bg-blue-700 text-white text-sm rounded hover:bg-blue-800">
-          + Adicionar {subjectSingular}
+          {t('+ Adicionar {{subject}}', { subject: subjectSingular })}
         </button>
       </div>
 
       {evaluation.options.length === 0 ? (
-        <p className="text-center text-gray-400 italic py-8">Nenhuma {subjectSingular} registada ainda.</p>
+        <p className="text-center text-gray-400 italic py-8">{t('Nenhuma {{subject}} registada ainda.', { subject: subjectSingular })}</p>
       ) : (
         <>
           <div className="overflow-x-auto">
@@ -127,13 +129,13 @@ export default function Analysis() {
                 <tr className="bg-gray-50">
                   <th className="px-3 py-2 text-left font-medium text-gray-600 border border-gray-200 sticky left-0 bg-gray-50">{subjectColumnHeader}</th>
                   {gateCriteria.map((c) => (
-                    <th key={c.id} className="px-3 py-2 text-center font-medium text-gray-600 border border-gray-200 bg-orange-50" title="Porta (habilitação)">
+                    <th key={c.id} className="px-3 py-2 text-center font-medium text-gray-600 border border-gray-200 bg-orange-50" title={t('Porta (habilitação)')}>
                       <span className="inline-flex items-center gap-1.5"><IconGate className="w-3.5 h-3.5 text-orange-500" /> {c.label}</span>
                     </th>
                   ))}
                   {qualCriteria.map((c) => (
-                    <th key={c.id} className="px-3 py-2 text-center font-medium text-gray-600 border border-gray-200" title="Critério de qualificação">
-                      <span className="inline-flex items-center gap-1.5"><IconQualification className="w-3.5 h-3.5 text-indigo-500" /> {c.label}{c.continuous ? ' (contínuo)' : ''}</span>
+                    <th key={c.id} className="px-3 py-2 text-center font-medium text-gray-600 border border-gray-200" title={t('Critério de qualificação')}>
+                      <span className="inline-flex items-center gap-1.5"><IconQualification className="w-3.5 h-3.5 text-indigo-500" /> {c.label}{c.continuous ? t(' (contínuo)') : ''}</span>
                     </th>
                   ))}
                   <th className="px-2 py-2 border border-gray-200" />
@@ -173,8 +175,8 @@ export default function Analysis() {
                             }`}
                           >
                             <option value="">—</option>
-                            <option value="pass">Cumpre</option>
-                            <option value="fail">Não cumpre</option>
+                            <option value="pass">{t('Cumpre')}</option>
+                            <option value="fail">{t('Não cumpre')}</option>
                           </select>
                         </td>
                       );
@@ -196,7 +198,7 @@ export default function Analysis() {
                               className="w-full accent-blue-600"
                             />
                             <div className="text-[10px] text-gray-500 mt-0.5">
-                              {perf ? `${(pos * 100).toFixed(0)}% · ≈ ${nearestLevel(c, pos)}` : 'por definir'}
+                              {perf ? `${(pos * 100).toFixed(0)}% · ≈ ${nearestLevel(c, pos)}` : t('por definir')}
                             </div>
                           </td>
                         );
@@ -213,8 +215,8 @@ export default function Analysis() {
                             {c.descriptor.levels.map((level, idx) => (
                               <option key={level.id} value={level.id}>
                                 {level.label}
-                                {c.descriptor.neutralIndex === idx ? ' (Neutro)' : ''}
-                                {c.descriptor.goodIndex === idx ? ' (Bom)' : ''}
+                                {c.descriptor.neutralIndex === idx ? t(' (Neutro)') : ''}
+                                {c.descriptor.goodIndex === idx ? t(' (Bom)') : ''}
                               </option>
                             ))}
                           </select>
@@ -234,7 +236,7 @@ export default function Analysis() {
           {/* Habilitação summary */}
           {gateCriteria.length > 0 && (
             <div className="border border-orange-200 bg-orange-50/50 rounded-xl p-4 space-y-2">
-              <h3 className="text-sm font-semibold text-orange-800">Habilitação (Andar 1)</h3>
+              <h3 className="text-sm font-semibold text-orange-800">{t('Habilitação (Andar 1)')}</h3>
               <div className="flex flex-wrap gap-2">
                 {evaluation.options.map((o) => {
                   const statuses = gateCriteria.map((g) => findPerf(o.id, g.id)?.value ?? 'pending');
@@ -247,7 +249,7 @@ export default function Analysis() {
                         anyFail ? 'bg-red-100 text-red-700' : allPass ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
                       }`}
                     >
-                      {o.label}: {anyFail ? 'Reprovado' : allPass ? 'Habilitado' : 'Por verificar'}
+                      {o.label}: {anyFail ? t('Reprovado') : allPass ? t('Habilitado') : t('Por verificar')}
                     </span>
                   );
                 })}
@@ -261,7 +263,7 @@ export default function Analysis() {
         next="results"
         nextLabel="Resultados"
         hint="Registe as propostas e o seu desempenho antes de agregar."
-        blockedBy={evaluation.options.length === 0 ? `Adicione pelo menos uma ${subjectSingular} para continuar.` : undefined}
+        blockedBy={evaluation.options.length === 0 ? t('Adicione pelo menos uma {{subject}} para continuar.', { subject: subjectSingular }) : undefined}
       />
     </div>
   );

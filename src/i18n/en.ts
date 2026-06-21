@@ -334,4 +334,36 @@ export const en: Record<string, string> = {
     'A leaf’s effective (global) weight is the product of the weights along the path to the root.',
   'Âncoras: vᵢ(Neutro) = 0, vᵢ(Bom) = 100. Portas (gate) são eliminatórias e não entram em V(p).':
     'Anchors: vᵢ(Neutral) = 0, vᵢ(Good) = 100. Gates are eliminatory and don’t enter V(p).',
+
+  // ── Analysis ────────────────────────────────────────────────────────────
+  posição: 'position',
+  proposta: 'proposal',
+  'Nome da posição / momento…': 'Position / moment name…',
+  'Nome da proposta…': 'Proposal name…',
+  'Posição / Momento': 'Position / Moment',
+  Proposta: 'Proposal',
+  'Análise e monitorização': 'Analysis & monitoring',
+  'Registe as posições / momentos, verifique a habilitação (portas) e classifique o desempenho em cada critério de qualificação. Uma porta falhada exclui a posição antes da agregação.':
+    'Register the positions / moments, check eligibility (gates), and rate performance on each qualification criterion. A failed gate excludes the position before aggregation.',
+  'Registe as propostas, verifique a habilitação (portas) e classifique o desempenho em cada critério de qualificação. Uma porta falhada reprova a proposta antes da agregação.':
+    'Register the proposals, check eligibility (gates), and rate performance on each qualification criterion. A failed gate rejects the proposal before aggregation.',
+  'Eliminar esta {{subject}}?': 'Delete this {{subject}}?',
+  'O modelo aplicado não tem critérios definidos.': 'The applied model has no criteria defined.',
+  '+ Adicionar {{subject}}': '+ Add {{subject}}',
+  'Nenhuma {{subject}} registada ainda.': 'No {{subject}} registered yet.',
+  'Porta (habilitação)': 'Gate (eligibility)',
+  'Critério de qualificação': 'Qualification criterion',
+  ' (contínuo)': ' (continuous)',
+  Cumpre: 'Pass',
+  'Não cumpre': 'Fail',
+  'por definir': 'to set',
+  ' (Neutro)': ' (Neutral)',
+  ' (Bom)': ' (Good)',
+  'Habilitação (Andar 1)': 'Eligibility (Tier 1)',
+  Reprovado: 'Rejected',
+  Habilitado: 'Eligible',
+  'Por verificar': 'To check',
+  'Registe as propostas e o seu desempenho antes de agregar.':
+    'Register the proposals and their performance before aggregating.',
+  'Adicione pelo menos uma {{subject}} para continuar.': 'Add at least one {{subject}} to continue.',
 };
