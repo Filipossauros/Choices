@@ -16,29 +16,24 @@ function BalanceMascot() {
   return (
     <>
       <style>{`
-        @keyframes fx-float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
-        @keyframes fx-ears { 0%,100%{transform:rotate(0)} 25%{transform:rotate(-3deg)} 60%{transform:rotate(2deg)} }
-        @keyframes fx-tail { 0%,100%{transform:rotate(-6deg)} 50%{transform:rotate(8deg)} }
+        @keyframes fx-float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
+        @keyframes fx-ears { 0%,100%{transform:rotate(0)} 25%{transform:rotate(-4deg)} 60%{transform:rotate(3deg)} }
+        @keyframes fx-tail { 0%,100%{transform:rotate(-7deg)} 50%{transform:rotate(7deg)} }
         @keyframes fx-pulse { 0%,100%{opacity:0.35;transform:scale(1)} 50%{opacity:0.6;transform:scale(1.08)} }
         @keyframes fx-spark { 0%,100%{opacity:0.25;transform:scale(0.85)} 50%{opacity:0.95;transform:scale(1.15)} }
-        @keyframes fx-glint { 0%,100%{opacity:0.2} 50%{opacity:0.9} }
+        @keyframes fx-blink { 0%,91%,100%{transform:scaleY(1)} 95%{transform:scaleY(0.1)} }
         .fx-body{animation:fx-float 4s ease-in-out infinite;display:inline-block}
-        .fx-ears{animation:fx-ears 5s ease-in-out infinite;transform-origin:80px 26px}
-        .fx-tail{animation:fx-tail 4.4s ease-in-out infinite;transform-origin:52px 76px}
-        .fx-glow{animation:fx-pulse 4s ease-in-out infinite;transform-origin:80px 58px}
+        .fx-ears{animation:fx-ears 5s ease-in-out infinite;transform-origin:80px 34px}
+        .fx-tail{animation:fx-tail 4.4s ease-in-out infinite;transform-origin:104px 116px}
+        .fx-glow{animation:fx-pulse 4s ease-in-out infinite;transform-origin:80px 84px}
         .fx-spark{animation:fx-spark 3s ease-in-out infinite}
-        .fx-glint{animation:fx-glint 3.5s ease-in-out infinite}
+        .fx-eyes{animation:fx-blink 5.5s ease-in-out infinite;transform-origin:80px 52px}
       `}</style>
-      <svg className="fx-body" width="132" height="100" viewBox="0 0 160 120" xmlns="http://www.w3.org/2000/svg">
+      <svg className="fx-body" width="128" height="120" viewBox="0 0 160 150" xmlns="http://www.w3.org/2000/svg">
         <defs>
           <linearGradient id="fx-fur" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="#fb923c" />
-            <stop offset="1" stopColor="#ea580c" />
-          </linearGradient>
-          <linearGradient id="fx-glass" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0" stopColor="#312e81" />
-            <stop offset="0.5" stopColor="#1e293b" />
-            <stop offset="1" stopColor="#0f172a" />
+            <stop offset="0" stopColor="#fdba74" />
+            <stop offset="1" stopColor="#f97316" />
           </linearGradient>
           <radialGradient id="fx-aura" cx="0.5" cy="0.5" r="0.5">
             <stop offset="0" stopColor="#c4b5fd" stopOpacity="0.6" />
@@ -47,59 +42,64 @@ function BalanceMascot() {
         </defs>
 
         {/* soft brand aura */}
-        <circle className="fx-glow" cx="80" cy="58" r="48" fill="url(#fx-aura)" />
+        <circle className="fx-glow" cx="80" cy="84" r="60" fill="url(#fx-aura)" />
 
-        {/* fluffy swishing tail (behind) */}
+        {/* fluffy curled tail (simple, behind the body) */}
         <g className="fx-tail">
-          <path d="M56 84 C 22 96, 4 70, 16 46 C 17 60, 31 67, 46 66 C 35 74, 33 86, 56 84 Z" fill="url(#fx-fur)" />
-          <path d="M16 46 C 11 56, 12 65, 19 70 C 14 60, 22 55, 30 57 C 25 51, 20 47, 16 46 Z" fill="#fff7ed" />
+          <path d="M104 122 C 138 120, 150 92, 138 68 C 136 84, 122 94, 108 96 C 122 104, 128 118, 104 122 Z" fill="url(#fx-fur)" />
+          <path d="M138 68 C 144 78, 144 88, 137 94 C 142 83, 133 79, 126 81 C 131 74, 134 70, 138 68 Z" fill="#fff7ed" />
         </g>
 
-        {/* ears */}
+        {/* ── simple geometric body (rounded capsule) ── */}
+        <rect x="50" y="86" width="60" height="50" rx="26" fill="url(#fx-fur)" />
+        {/* white belly */}
+        <ellipse cx="80" cy="116" rx="17" ry="20" fill="#fff7ed" />
+        {/* little feet */}
+        <ellipse cx="67" cy="134" rx="9" ry="6.5" fill="#f97316" />
+        <ellipse cx="93" cy="134" rx="9" ry="6.5" fill="#f97316" />
+        {/* tiny front paws */}
+        <ellipse cx="58" cy="112" rx="7" ry="9" fill="url(#fx-fur)" />
+        <ellipse cx="102" cy="112" rx="7" ry="9" fill="url(#fx-fur)" />
+
+        {/* ears (rounded, behind head) */}
         <g className="fx-ears">
-          <path d="M54 32 L41 3 L73 23 Z" fill="url(#fx-fur)" />
-          <path d="M55 28 L48 11 L67 22 Z" fill="#7c2d12" />
-          <path d="M106 32 L119 3 L87 23 Z" fill="url(#fx-fur)" />
-          <path d="M105 28 L112 11 L93 22 Z" fill="#7c2d12" />
+          <path d="M52 36 C 44 14, 50 6, 60 16 C 67 23, 70 30, 71 36 Z" fill="url(#fx-fur)" />
+          <path d="M57 33 C 52 19, 55 14, 60 19 C 64 23, 66 29, 66 33 Z" fill="#fb7185" />
+          <path d="M108 36 C 116 14, 110 6, 100 16 C 93 23, 90 30, 89 36 Z" fill="url(#fx-fur)" />
+          <path d="M103 33 C 108 19, 105 14, 100 19 C 96 23, 94 29, 94 33 Z" fill="#fb7185" />
         </g>
 
-        {/* cheek fur tufts */}
-        <path d="M46 50 L29 52 L47 60 Z" fill="url(#fx-fur)" />
-        <path d="M114 50 L131 52 L113 60 Z" fill="url(#fx-fur)" />
+        {/* round cute head */}
+        <circle cx="80" cy="52" r="35" fill="url(#fx-fur)" />
+        {/* top rim light + little cowlick */}
+        <path d="M60 30 Q80 20 100 30" stroke="#fff1e0" strokeWidth="3" strokeLinecap="round" fill="none" opacity="0.6" />
+        <path d="M77 20 C 75 11, 85 11, 83 20 Z" fill="url(#fx-fur)" />
 
-        {/* head */}
-        <path
-          d="M80 16 C 56 16, 44 32, 44 48 C 44 66, 60 88, 80 94 C 100 88, 116 66, 116 48 C 116 32, 104 16, 80 16 Z"
-          fill="url(#fx-fur)"
-        />
-        {/* top rim light */}
-        <path d="M62 24 Q80 16 98 24" stroke="#fed7aa" strokeWidth="3" strokeLinecap="round" fill="none" opacity="0.7" />
+        {/* big fluffy white muzzle / cheeks */}
+        <path d="M54 56 C 52 80, 70 92, 80 92 C 90 92, 108 80, 106 56 C 96 64, 64 64, 54 56 Z" fill="#fff7ed" />
 
-        {/* white muzzle / cheeks */}
-        <path d="M60 56 C 63 78, 75 88, 80 90 C 85 88, 97 78, 100 56 C 92 62, 68 62, 60 56 Z" fill="#fff7ed" />
-
-        {/* cool sunglasses */}
-        <g>
-          <line x1="73" y1="44" x2="87" y2="44" stroke="#0f172a" strokeWidth="3.5" strokeLinecap="round" />
-          <line x1="52" y1="42" x2="44" y2="40" stroke="#0f172a" strokeWidth="3" strokeLinecap="round" />
-          <line x1="108" y1="42" x2="116" y2="40" stroke="#0f172a" strokeWidth="3" strokeLinecap="round" />
-          <rect x="52" y="37" width="24" height="15" rx="7" fill="url(#fx-glass)" stroke="#0f172a" strokeWidth="1.5" />
-          <rect x="84" y="37" width="24" height="15" rx="7" fill="url(#fx-glass)" stroke="#0f172a" strokeWidth="1.5" />
-          {/* lens glints */}
-          <path className="fx-glint" d="M56 40 l6 0 l-9 9 l-1 -4 z" fill="#a5b4fc" opacity="0.7" />
-          <path className="fx-glint" d="M88 40 l6 0 l-9 9 l-1 -4 z" fill="#a5b4fc" opacity="0.7" />
+        {/* big cute eyes (blink) */}
+        <g className="fx-eyes">
+          <ellipse cx="66" cy="52" rx="7.5" ry="9" fill="#1f2937" />
+          <ellipse cx="94" cy="52" rx="7.5" ry="9" fill="#1f2937" />
+          <circle cx="68.5" cy="49" r="2.6" fill="#ffffff" />
+          <circle cx="96.5" cy="49" r="2.6" fill="#ffffff" />
+          <circle cx="64" cy="55" r="1.4" fill="#ffffff" opacity="0.8" />
+          <circle cx="92" cy="55" r="1.4" fill="#ffffff" opacity="0.8" />
         </g>
 
-        {/* nose + cool smirk */}
-        <path d="M74 67 Q80 63 86 67 Q84 74 80 75 Q76 74 74 67 Z" fill="#1f2937" />
-        <circle cx="77" cy="68.5" r="1.3" fill="#4b5563" />
-        <path d="M80 75 Q80 81 86 80" stroke="#1f2937" strokeWidth="2.2" fill="none" strokeLinecap="round" />
-        {/* tiny fang */}
-        <path d="M80 80 l2 4 l2 -4 z" fill="#ffffff" />
+        {/* rosy blush cheeks */}
+        <circle cx="58" cy="64" r="5.5" fill="#fb7185" opacity="0.45" />
+        <circle cx="102" cy="64" r="5.5" fill="#fb7185" opacity="0.45" />
+
+        {/* little nose + :3 mouth */}
+        <path d="M76 64 Q80 61 84 64 Q82 69 80 69.5 Q78 69 76 64 Z" fill="#3f3f46" />
+        <path d="M80 69.5 Q76 74 72 71" stroke="#3f3f46" strokeWidth="2" fill="none" strokeLinecap="round" />
+        <path d="M80 69.5 Q84 74 88 71" stroke="#3f3f46" strokeWidth="2" fill="none" strokeLinecap="round" />
 
         {/* sparkles */}
-        <path className="fx-spark" d="M22 34 l1.6 4.2 l4.2 1.6 l-4.2 1.6 l-1.6 4.2 l-1.6 -4.2 l-4.2 -1.6 l4.2 -1.6 z" fill="#fbbf24" opacity="0.85" />
-        <path className="fx-spark" d="M140 44 l1.1 3 l3 1.1 l-3 1.1 l-1.1 3 l-1.1 -3 l-3 -1.1 l3 -1.1 z" fill="#a5b4fc" opacity="0.85" />
+        <path className="fx-spark" d="M24 40 l1.6 4.2 l4.2 1.6 l-4.2 1.6 l-1.6 4.2 l-1.6 -4.2 l-4.2 -1.6 l4.2 -1.6 z" fill="#fbbf24" opacity="0.85" />
+        <path className="fx-spark" d="M138 52 l1.1 3 l3 1.1 l-3 1.1 l-1.1 3 l-1.1 -3 l-3 -1.1 l3 -1.1 z" fill="#a5b4fc" opacity="0.85" />
       </svg>
     </>
   );

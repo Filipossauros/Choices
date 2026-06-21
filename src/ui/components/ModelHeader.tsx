@@ -139,8 +139,7 @@ export default function ModelHeader() {
   }
 
   const statuses = screens.map(statusOf);
-  const doneCount = statuses.filter((s) => s === 'done').length;
-  const progress = screens.length ? doneCount / screens.length : 0;
+  const activeIndex = screens.indexOf(currentScreen);
 
   return (
     <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
@@ -201,11 +200,21 @@ export default function ModelHeader() {
               );
             })}
           </nav>
-          <div className="h-[3px] bg-gray-100">
-            <div
-              className="h-full bg-gradient-to-r from-blue-600 to-green-500 transition-all duration-500"
-              style={{ width: `${progress * 100}%` }}
-            />
+          {/* Segmented progress — one segment per step, coloured to match its
+              dot so the bar mirrors the real per-step state (not a misleading
+              left-aligned fill). */}
+          <div className="h-[3px] bg-gray-100 flex gap-px">
+            {statuses.map((status, i) => {
+              const segCls =
+                i === activeIndex
+                  ? 'bg-blue-500'
+                  : status === 'done'
+                  ? 'bg-green-500'
+                  : status === 'partial'
+                  ? 'bg-amber-400'
+                  : 'bg-transparent';
+              return <div key={screens[i]} className={`flex-1 h-full transition-colors duration-500 ${segCls}`} />;
+            })}
           </div>
         </>
       )}
