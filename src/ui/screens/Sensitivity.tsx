@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useApp } from '../store';
 import { computeSensitivity } from '../../engine/sensitivity';
 import { displayBands, bandRangeLabel } from '../../domain/decision';
@@ -21,6 +22,7 @@ import ScreenNav from '../components/ScreenNav';
 const OPTION_COLORS = ['#3b82f6', '#16a34a', '#d97706', '#dc2626', '#8b5cf6', '#ec4899'];
 
 export default function Sensitivity() {
+  const { t } = useTranslation();
   const { state } = useApp();
   const evaluation = state.evaluation!;
   const model = evaluation.model;
@@ -43,7 +45,7 @@ export default function Sensitivity() {
   if (!evaluation.aggregationResult || !allGroupsConsistent(model)) {
     return (
       <div className="max-w-2xl mx-auto py-10 px-4 text-center text-gray-400">
-        <p>Navegue para «Resultados» para calcular a agregação e activar a análise de sensibilidade.</p>
+        <p>{t('Navegue para «Resultados» para calcular a agregação e activar a análise de sensibilidade.')}</p>
       </div>
     );
   }
@@ -51,7 +53,7 @@ export default function Sensitivity() {
   if (qualCriteria.length < 2) {
     return (
       <div className="max-w-2xl mx-auto py-10 px-4 text-center text-gray-400">
-        <p>São necessários pelo menos 2 critérios de qualificação para a análise de sensibilidade.</p>
+        <p>{t('São necessários pelo menos 2 critérios de qualificação para a análise de sensibilidade.')}</p>
       </div>
     );
   }
@@ -67,25 +69,20 @@ export default function Sensitivity() {
     <div className="max-w-5xl mx-auto py-6 px-4 space-y-6">
       {/* Header + plain-language explanation */}
       <div>
-        <h2 className="text-xl font-semibold text-gray-800">Análise de sensibilidade</h2>
+        <h2 className="text-xl font-semibold text-gray-800">{t('Análise de sensibilidade')}</h2>
         <div className="mt-2 text-sm text-gray-600 bg-slate-50 border border-slate-200 rounded-xl p-4 leading-relaxed space-y-2">
           <p>
-            <strong className="text-gray-700">O que mostra:</strong> cada linha é uma alternativa. O gráfico
-            segue o seu valor global V(p) à medida que o <strong>peso do critério selecionado</strong> varia de
-            0&nbsp;% a 100&nbsp;%. A linha vertical tracejada (azul) marca o <strong>peso atual</strong> e as
-            faixas coloridas de fundo são as zonas da política de decisão.
+            <strong className="text-gray-700">{t('O que mostra:')}</strong> {t('cada linha é uma alternativa. O gráfico segue o seu valor global V(p) à medida que o peso do critério selecionado varia de 0 % a 100 %. A linha vertical tracejada (azul) marca o peso atual e as faixas coloridas de fundo são as zonas da política de decisão.')}
           </p>
           <p>
-            <strong className="text-gray-700">O que procurar:</strong> se as linhas se <strong>cruzam</strong>, a
-            ordenação muda nesse peso&nbsp;<span className="text-amber-600 font-semibold">⚡</span> — a decisão é
-            sensível a esse critério. Se <strong>nunca se cruzam</strong>, o resultado é robusto.
+            <strong className="text-gray-700">{t('O que procurar:')}</strong> {t('se as linhas se cruzam, a ordenação muda nesse peso')}&nbsp;<span className="text-amber-600 font-semibold">⚡</span> {t('— a decisão é sensível a esse critério. Se nunca se cruzam, o resultado é robusto.')}
           </p>
         </div>
       </div>
 
       {/* Criterion selector — single-select (radio) */}
       <div className="flex items-start gap-4 flex-wrap">
-        <span className="text-sm font-medium text-gray-700 mt-1 shrink-0">Critério analisado:</span>
+        <span className="text-sm font-medium text-gray-700 mt-1 shrink-0">{t('Critério analisado:')}</span>
         <div className="flex flex-wrap gap-2" role="radiogroup">
           {qualCriteria.map((c) => {
             const isActive = activeCriterionId === c.id;
@@ -112,7 +109,7 @@ export default function Sensitivity() {
             );
           })}
         </div>
-        <span className="text-xs text-gray-400 mt-1.5">selecione para visualizar</span>
+        <span className="text-xs text-gray-400 mt-1.5">{t('selecione para visualizar')}</span>
       </div>
 
       {/* Single chart panel for the selected criterion */}
@@ -144,10 +141,10 @@ export default function Sensitivity() {
             <div className="flex items-center gap-2 flex-wrap">
               <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: '#3b82f6' }} />
               <h3 className="text-sm font-semibold text-gray-700">
-                Sensibilidade de V(p) ao peso de «{criterion?.label}»
+                {t('Sensibilidade de V(p) ao peso de «{{label}}»', { label: criterion?.label })}
               </h3>
               <span className="text-xs text-gray-400 ml-auto">
-                peso actual: <strong>{currentWeight.toFixed(1)}%</strong>
+                {t('peso actual:')} <strong>{currentWeight.toFixed(1)}%</strong>
               </span>
             </div>
 
@@ -175,7 +172,7 @@ export default function Sensitivity() {
                   x={currentWeightLabel}
                   stroke="#3b82f6"
                   strokeDasharray="3 3"
-                  label={{ value: 'atual', position: 'top', fontSize: 9, fill: '#3b82f6' }}
+                  label={{ value: t('atual'), position: 'top', fontSize: 9, fill: '#3b82f6' }}
                 />
                 {scenario.rankingChangePoints.map((w) => {
                   const xLabel = `${(w * 100).toFixed(0)}%`;
@@ -206,7 +203,7 @@ export default function Sensitivity() {
 
             {/* Plain-language axes + decision-zone legend */}
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px] text-gray-500">
-              <span>Eixo X: peso de «{criterion?.label}» (0→100%) · Eixo Y: valor global V(p)</span>
+              <span>{t('Eixo X: peso de «{{label}}» (0→100%) · Eixo Y: valor global V(p)', { label: criterion?.label })}</span>
               <span className="flex flex-wrap items-center gap-2.5 ml-auto">
                 {bandViews.map((v) => (
                   <span key={v.band.id} className="inline-flex items-center gap-1">
@@ -219,7 +216,7 @@ export default function Sensitivity() {
 
             {scenario.rankingChangePoints.length > 0 ? (
               <div className="border border-amber-200 bg-amber-50 rounded-lg p-3 text-xs text-amber-800">
-                <p className="font-medium mb-1">⚡ Mudanças de ordenação detectadas:</p>
+                <p className="font-medium mb-1">⚡ {t('Mudanças de ordenação detectadas:')}</p>
                 <ul className="space-y-0.5">
                   {scenario.rankingChangePoints.map((w, idx) => {
                     const prev = idx === 0 ? scenario.points[0] : scenario.points.find((pt) => pt.weightValue >= scenario.rankingChangePoints[idx - 1]);
@@ -236,7 +233,7 @@ export default function Sensitivity() {
                       <li key={idx}>
                         <span className="font-mono text-amber-900">{criterion?.label} = {(w * 100).toFixed(1)}%</span>
                         {swaps.length > 0 && (
-                          <span className="text-amber-700"> — {swaps.map((s) => labelOf(s.id)).join(' ↔ ')} trocam posição</span>
+                          <span className="text-amber-700"> — {t('{{pair}} trocam posição', { pair: swaps.map((s) => labelOf(s.id)).join(' ↔ ') })}</span>
                         )}
                       </li>
                     );
@@ -245,7 +242,7 @@ export default function Sensitivity() {
               </div>
             ) : (
               <div className="border border-green-200 bg-green-50 rounded-lg p-2 text-xs text-green-800">
-                ✓ A ordenação é robusta a qualquer variação do peso de «{criterion?.label}».
+                ✓ {t('A ordenação é robusta a qualquer variação do peso de «{{label}}».', { label: criterion?.label })}
               </div>
             )}
           </div>

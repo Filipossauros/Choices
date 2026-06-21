@@ -412,4 +412,28 @@ export const en: Record<string, string> = {
   ' — faltam ainda {{gap}} (combine vários critérios).': ' — still {{gap}} short (combine several criteria).',
   'Alavanca mais eficiente: maior ganho de V(p) por melhoria de um nível.':
     'Most efficient lever: largest V(p) gain per one-level improvement.',
+
+  // ── Sensitivity ─────────────────────────────────────────────────────────
+  'Navegue para «Resultados» para calcular a agregação e activar a análise de sensibilidade.':
+    'Go to «Results» to compute the aggregation and enable sensitivity analysis.',
+  'São necessários pelo menos 2 critérios de qualificação para a análise de sensibilidade.':
+    'At least 2 qualification criteria are required for sensitivity analysis.',
+  'Análise de sensibilidade': 'Sensitivity analysis',
+  'O que mostra:': 'What it shows:',
+  'cada linha é uma alternativa. O gráfico segue o seu valor global V(p) à medida que o peso do critério selecionado varia de 0 % a 100 %. A linha vertical tracejada (azul) marca o peso atual e as faixas coloridas de fundo são as zonas da política de decisão.':
+    'each line is an alternative. The chart follows its global value V(p) as the weight of the selected criterion varies from 0 % to 100 %. The dashed vertical line (blue) marks the current weight and the coloured background bands are the decision-policy zones.',
+  'O que procurar:': 'What to look for:',
+  'se as linhas se cruzam, a ordenação muda nesse peso': 'if the lines cross, the ranking changes at that weight',
+  '— a decisão é sensível a esse critério. Se nunca se cruzam, o resultado é robusto.':
+    '— the decision is sensitive to that criterion. If they never cross, the result is robust.',
+  'Critério analisado:': 'Criterion analysed:',
+  'selecione para visualizar': 'select to view',
+  'Sensibilidade de V(p) ao peso de «{{label}}»': 'Sensitivity of V(p) to the weight of «{{label}}»',
+  'peso actual:': 'current weight:',
+  'Eixo X: peso de «{{label}}» (0→100%) · Eixo Y: valor global V(p)':
+    'X axis: weight of «{{label}}» (0→100%) · Y axis: global value V(p)',
+  'Mudanças de ordenação detectadas:': 'Ranking changes detected:',
+  '{{pair}} trocam posição': '{{pair}} swap positions',
+  'A ordenação é robusta a qualquer variação do peso de «{{label}}».':
+    'The ranking is robust to any variation of the weight of «{{label}}».',
 };
