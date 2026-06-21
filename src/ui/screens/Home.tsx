@@ -13,105 +13,219 @@ import type { ComponentType, SVGProps } from 'react';
 
 // ── Mascot ────────────────────────────────────────────────────────────────────
 
+function useDarkMode() {
+  const [dark, setDark] = useState(() => document.documentElement.classList.contains('dark'));
+  useEffect(() => {
+    const obs = new MutationObserver(() => setDark(document.documentElement.classList.contains('dark')));
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    return () => obs.disconnect();
+  }, []);
+  return dark;
+}
+
+// pre-computed paper stack rotations
+// stack right: x=150, w=46, pivot_x=173
+const SR: [number, number, number][] = [
+  [174,-5,186],[162,3,174],[150,-4,162],[138,5,150],
+  [126,-3,138],[114,5,126],[102,-5,114],[90,3,102],
+];
+// stack front: x=96, w=40, pivot_x=116
+const SF: [number, number, number][] = [
+  [188,-4,200],[176,4,188],[164,-3,176],
+];
+
 function BalanceMascot() {
+  const dark = useDarkMode();
   return (
     <>
       <style>{`
-        @keyframes fx-float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
-        @keyframes fx-ears  { 0%,100%{transform:rotate(0)} 25%{transform:rotate(-3deg)} 65%{transform:rotate(3deg)} }
-        @keyframes fx-tail  { 0%,100%{transform:rotate(-6deg)} 50%{transform:rotate(7deg)} }
-        @keyframes fx-pulse { 0%,100%{opacity:0.3;transform:scale(1)} 50%{opacity:0.55;transform:scale(1.08)} }
-        @keyframes fx-spark { 0%,100%{opacity:0.2;transform:scale(0.8)} 50%{opacity:1;transform:scale(1.2)} }
-        @keyframes fx-blink { 0%,90%,100%{transform:scaleY(1)} 95%{transform:scaleY(0.08)} }
-        .fx-body { animation:fx-float 4s ease-in-out infinite; display:inline-block }
-        .fx-ears { animation:fx-ears  5s ease-in-out infinite; transform-origin:80px 36px }
-        .fx-tail { animation:fx-tail  4.4s ease-in-out infinite; transform-origin:104px 108px }
-        .fx-glow { animation:fx-pulse 4s ease-in-out infinite; transform-origin:80px 88px }
-        .fx-spark{ animation:fx-spark 3s ease-in-out infinite }
-        .fx-eyes { animation:fx-blink 5.5s ease-in-out infinite; transform-origin:80px 63px }
+        @keyframes wb-breath{0%,100%{transform:translateY(0)}50%{transform:translateY(-1.4px)}}
+        @keyframes wb-blink{0%,88%,100%{transform:scaleY(1)}92%,96%{transform:scaleY(0.12)}}
+        @keyframes wb-ear{0%,68%,100%{transform:rotate(0deg)}73%{transform:rotate(5deg)}78%{transform:rotate(-2deg)}83%{transform:rotate(5deg)}}
+        @keyframes wb-plant{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}}
+        @keyframes wb-steam{0%{opacity:0.55;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-22px) scale(1.9)}}
+        @keyframes wb-flicker{0%,100%{opacity:1}40%{opacity:0.82}70%{opacity:0.95}}
+        @keyframes wb-mote{0%{opacity:0;transform:translateY(0)}20%{opacity:0.5}80%{opacity:0.4}100%{opacity:0;transform:translateY(-75px)}}
+        @keyframes wb-flyX{0%,100%{transform:translateX(0)}25%{transform:translateX(26px)}50%{transform:translateX(0)}75%{transform:translateX(-26px)}}
+        @keyframes wb-flyY{0%{transform:translateY(0)}12.5%{transform:translateY(18px)}25%{transform:translateY(0)}37.5%{transform:translateY(-18px)}50%{transform:translateY(0)}62.5%{transform:translateY(18px)}75%{transform:translateY(0)}87.5%{transform:translateY(-18px)}100%{transform:translateY(0)}}
+        @keyframes wb-glow{0%,100%{opacity:0.65}50%{opacity:1}}
+        @keyframes wb-sunray{0%,100%{opacity:0.9}50%{opacity:0.5}}
+        @keyframes wb-startwink{0%,80%,100%{opacity:0.8}90%{opacity:0.2}}
+        .wb-breath{animation:wb-breath 4s ease-in-out infinite}
+        .wb-blink{animation:wb-blink 6s ease-in-out infinite;transform-origin:120px 154px}
+        .wb-ear{animation:wb-ear 7s ease-in-out infinite;transform-origin:141px 134px}
+        .wb-plant{animation:wb-plant 3.5s ease-in-out infinite;transform-origin:233px 166px}
+        .wb-flyX{animation:wb-flyX 3s ease-in-out infinite}
+        .wb-flyY{animation:wb-flyY 1.5s ease-in-out infinite}
+        .wb-glow{animation:wb-glow 1.2s ease-in-out infinite}
+        .wb-flicker{animation:wb-flicker 2.3s ease-in-out infinite}
+        .wb-sunray{animation:wb-sunray 3s ease-in-out infinite}
+        .wb-star{animation:wb-startwink 4s ease-in-out infinite}
       `}</style>
-      <svg className="fx-body" width="128" height="134" viewBox="0 0 160 168" overflow="visible" xmlns="http://www.w3.org/2000/svg">
+      <svg width="230" height="247" viewBox="0 0 260 280" xmlns="http://www.w3.org/2000/svg">
         <defs>
-          <radialGradient id="fx-aura" cx="0.5" cy="0.5" r="0.5">
-            <stop offset="0" stopColor="#c4b5fd" stopOpacity="0.55" />
-            <stop offset="1" stopColor="#c4b5fd" stopOpacity="0" />
+          <clipPath id="wb-winclip"><rect x="18" y="30" width="70" height="88"/></clipPath>
+          <linearGradient id="wb-fur" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#f7b06a"/><stop offset="1" stopColor="#d9692c"/>
+          </linearGradient>
+          <linearGradient id="wb-furD" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#d9692c"/><stop offset="1" stopColor="#a8431a"/>
+          </linearGradient>
+          <linearGradient id="wb-desk" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#7c5436"/><stop offset="1" stopColor="#5e3c24"/>
+          </linearGradient>
+          <linearGradient id="wb-paper" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#fdfaf0"/><stop offset="1" stopColor="#e7ddc4"/>
+          </linearGradient>
+          <radialGradient id="wb-pool" cx="0.46" cy="0.38" r="0.58">
+            <stop offset="0" stopColor="#fff3c0" stopOpacity="0.75"/>
+            <stop offset="0.5" stopColor="#ffe08a" stopOpacity="0.28"/>
+            <stop offset="1" stopColor="#ffe08a" stopOpacity="0"/>
+          </radialGradient>
+          <radialGradient id="wb-moon" cx="0.5" cy="0.5" r="0.5">
+            <stop offset="0" stopColor="#fdf6d8"/><stop offset="1" stopColor="#cdd6c0" stopOpacity="0.2"/>
           </radialGradient>
         </defs>
 
-        {/* soft aura */}
-        <circle className="fx-glow" cx="80" cy="88" r="64" fill="url(#fx-aura)" />
+        {/* ── Window (left) ── */}
+        <rect x="14" y="26" width="78" height="96" rx="3" fill="#26314a"/>
+        <rect x="18" y="30" width="70" height="88" fill={dark ? '#33415f' : '#9ecbf0'}/>
+        <g clipPath="url(#wb-winclip)">
+          {dark ? (
+            <>
+              <circle cx="64" cy="56" r="41" fill="#fdf6d8" opacity="0.08"/>
+              <circle cx="64" cy="56" r="28" fill="#fdf6d8" opacity="0.16"/>
+              <circle cx="64" cy="56" r="18" fill="#fdf6d8" opacity="0.30"/>
+              <circle cx="64" cy="56" r="13" fill="url(#wb-moon)"/>
+              {([{x:30,y:44,d:0},{x:78,y:40,d:1.2},{x:34,y:70,d:2.1},{x:80,y:80,d:0.7},{x:50,y:96,d:1.8}]).map((s,i)=>(
+                <circle key={i} cx={s.x} cy={s.y} r="1.1" fill="#fdf6d8" opacity="0.85"
+                  className="wb-star" style={{animationDelay:`${s.d}s`}}/>
+              ))}
+            </>
+          ) : (
+            <>
+              <g className="wb-sunray">
+                {[0,45,90,135,180,225,270,315].map(a=>(
+                  <line key={a}
+                    x1={64+17*Math.cos(a*Math.PI/180)} y1={56+17*Math.sin(a*Math.PI/180)}
+                    x2={64+24*Math.cos(a*Math.PI/180)} y2={56+24*Math.sin(a*Math.PI/180)}
+                    stroke="#ffd700" strokeWidth="2.5" strokeLinecap="round"/>
+                ))}
+              </g>
+              <circle cx="64" cy="56" r="12" fill="#ffd700"/>
+              <circle cx="64" cy="56" r="9" fill="#fff176"/>
+            </>
+          )}
+        </g>
+        {/* Window dividers */}
+        <line x1="53" y1="30" x2="53" y2="118" stroke="#26314a" strokeWidth="3"/>
+        <line x1="18" y1="74" x2="88" y2="74" stroke="#26314a" strokeWidth="3"/>
 
-        {/* ── Tail (lateral right, low-poly facets) ── */}
-        <g className="fx-tail">
-          <polygon points="104,108 146,132 130,156 90,148 95,126" fill="#E8763A" />
-          <polygon points="130,156 146,132 150,152 133,165" fill="#F4A55A" />
-          <polygon points="130,156 90,148 108,158" fill="#C04818" />
-          <polygon points="133,165 150,152 142,168 126,166" fill="#FFF8F4" />
+        {/* ── Desk lamp (right, articulated) ── */}
+        <rect x="196" y="180" width="34" height="6" rx="2" fill="#2a2230"/>
+        <line x1="213" y1="182" x2="206" y2="120" stroke="#4a3f4a" strokeWidth="4"/>
+        <line x1="206" y1="120" x2="176" y2="92" stroke="#4a3f4a" strokeWidth="4"/>
+        <path d="M176 92 l-20 8 l8 18 l18 -12 z" fill="#5a4a3a"/>
+        <path d="M158 100 l8 18 l-10 4 l-4 -16z" fill="#3a2f2a"/>
+        {/* Lamp glow halos */}
+        <circle cx="160" cy="110" r="38" fill="#fff1bc" opacity="0.07" className="wb-flicker"/>
+        <circle cx="160" cy="110" r="26" fill="#fff1bc" opacity="0.14" className="wb-flicker"/>
+        <circle cx="160" cy="110" r="15" fill="#fff1bc" opacity="0.26" className="wb-flicker"/>
+        <circle cx="160" cy="110" r="7"  fill="#fff1bc" opacity="0.88" className="wb-flicker"/>
+
+        {/* Light pool on desk */}
+        <ellipse cx="120" cy="160" rx="110" ry="80" fill="url(#wb-pool)" className="wb-flicker"/>
+
+        {/* Dust motes */}
+        {([{x:92,y:155},{x:112,y:132},{x:132,y:158},{x:154,y:118},{x:171,y:143},{x:143,y:168},{x:122,y:128}]).map((m,i)=>(
+          <circle key={i} cx={m.x} cy={m.y} r="1.2" fill="#fff2b0"
+            style={{animation:`wb-mote ${3.5+i*0.4}s ease-in-out ${i*0.5}s infinite`}}/>
+        ))}
+
+        {/* ── Desk ── */}
+        <rect x="0" y="186" width="260" height="94" fill="url(#wb-desk)"/>
+        <rect x="0" y="186" width="260" height="5" fill="#8a6038"/>
+
+        {/* Books (left of fox) */}
+        <rect x="20" y="177" width="40" height="9" rx="1" fill="#7a9a6a"/>
+        <rect x="24" y="168" width="36" height="9" rx="1" fill="#c98a4a"/>
+        <rect x="18" y="159" width="42" height="9" rx="1" fill="#9a6a8a"/>
+
+        {/* Paper stack right */}
+        {SR.map(([ry,ang,py],i)=>(
+          <g key={i} transform={`rotate(${ang} 173 ${py})`}>
+            <rect x="150" y={ry} width="46" height="12" fill="url(#wb-paper)" stroke="#cbbf9e" strokeWidth="0.6"/>
+          </g>
+        ))}
+
+        {/* Paper stack front */}
+        {SF.map(([ry,ang,py],i)=>(
+          <g key={i} transform={`rotate(${ang} 116 ${py})`}>
+            <rect x="96" y={ry} width="40" height="12" fill="url(#wb-paper)" stroke="#cbbf9e" strokeWidth="0.6"/>
+          </g>
+        ))}
+
+        {/* Plant (far right) */}
+        <rect x="222" y="166" width="22" height="20" rx="2" fill="#b56a47"/>
+        <g className="wb-plant">
+          <path d="M233 166 q-14 -18 -6 -32" stroke="#6a9a5a" strokeWidth="3" fill="none"/>
+          <path d="M233 166 q14 -16 6 -30"  stroke="#6a9a5a" strokeWidth="3" fill="none"/>
+          <path d="M233 166 q0 -22 0 -36"   stroke="#6a9a5a" strokeWidth="3" fill="none"/>
         </g>
 
-        {/* ── Body (sitting, origami facets) ── */}
-        <polygon points="60,88 100,88 110,140 50,140" fill="#E8763A" />
-        <polygon points="60,88 50,140 44,114" fill="#F4A55A" />
-        <polygon points="100,88 110,140 116,113" fill="#C04818" />
-        {/* belly */}
-        <polygon points="68,92 92,92 97,136 63,136" fill="#FFF5EC" />
-        <polygon points="68,92 92,92 80,100" fill="#FFEEDD" opacity="0.45" />
-
-        {/* paws */}
-        <ellipse cx="63" cy="144" rx="14" ry="7" fill="#E8763A" />
-        <ellipse cx="97" cy="144" rx="14" ry="7" fill="#E8763A" />
-        <ellipse cx="63" cy="144" rx="9"  ry="4.5" fill="#C04818" opacity="0.45" />
-        <ellipse cx="97" cy="144" rx="9"  ry="4.5" fill="#C04818" opacity="0.45" />
-
-        {/* ── Ears (angular origami, behind head) ── */}
-        <g className="fx-ears">
-          <polygon points="54,70 40,28 72,54" fill="#E8763A" />
-          <polygon points="54,70 44,32 68,54" fill="#B83A10" />
-          <polygon points="106,70 120,28 88,54" fill="#E8763A" />
-          <polygon points="106,70 116,32 92,54" fill="#B83A10" />
-          <polygon points="48,66 48,34 66,52" fill="#FFBBA0" opacity="0.6" />
-          <polygon points="112,66 112,34 94,52" fill="#FFBBA0" opacity="0.6" />
+        {/* ── Fox ── */}
+        <g className="wb-breath">
+          {/* Left ear */}
+          <polygon points="99,134 89,98 113,116" fill="url(#wb-furD)"/>
+          <polygon points="101,110 101,92 111,106" fill="#f7b8a0" opacity="0.6"/>
+          {/* Right ear — occasional twitch */}
+          <g className="wb-ear">
+            <polygon points="141,134 151,98 127,116" fill="url(#wb-furD)"/>
+            <polygon points="139,110 139,92 129,106" fill="#f7b8a0" opacity="0.6"/>
+          </g>
+          {/* Head */}
+          <ellipse cx="120" cy="156" rx="35" ry="31" fill="url(#wb-fur)"/>
+          {/* Rim light */}
+          <path d="M90 146 a35 31 0 0 1 60 0" fill="none" stroke="#ffe6b0" strokeWidth="2.4" opacity="0.7"/>
+          {/* Muzzle */}
+          <ellipse cx="120" cy="168" rx="23" ry="19" fill="#fdf3e2"/>
+          {/* Tired droopy eyes */}
+          <g className="wb-blink">
+            <path d="M99 154 q8 5 16 0"  stroke="#3a2412" strokeWidth="3" fill="none" strokeLinecap="round"/>
+            <path d="M125 154 q8 5 16 0" stroke="#3a2412" strokeWidth="3" fill="none" strokeLinecap="round"/>
+          </g>
+          {/* Eye bags */}
+          <path d="M101 161 q6 3 12 0" stroke="#cc9999" strokeWidth="1.4" fill="none" opacity="0.6"/>
+          <path d="M127 161 q6 3 12 0" stroke="#cc9999" strokeWidth="1.4" fill="none" opacity="0.6"/>
+          {/* Nose, mouth, tongue */}
+          <ellipse cx="120" cy="166" rx="4" ry="2.6" fill="#3a2412"/>
+          <line x1="120" y1="169" x2="120" y2="173" stroke="#3a2412" strokeWidth="2"/>
+          <path d="M112 175 q8 4 16 0" stroke="#3a2412" strokeWidth="2" fill="none" strokeLinecap="round"/>
+          <ellipse cx="113" cy="177" rx="3" ry="4" fill="#ff8a80"/>
         </g>
 
-        {/* ── Head (low-poly faceted) ── */}
-        <polygon points="54,70 80,34 106,70 80,80" fill="#F4A55A" />
-        <polygon points="54,70 80,80 66,74" fill="#E8763A" />
-        <polygon points="106,70 80,80 94,74" fill="#C04818" />
+        {/* Coffee cup (in front of fox) */}
+        {[0,1,2].map(i=>(
+          <circle key={i} cx={84+(i-1)*5} cy={170} r={2.4} fill="#e8e8e0"
+            style={{animation:`wb-steam 2.1s ease-out ${i*0.7}s infinite`}}/>
+        ))}
+        <rect x="74" y="172" width="20" height="18" rx="2" fill="#cf6a52"/>
+        <path d="M94 176 q8 0 8 6 q0 6 -8 6" fill="none" stroke="#cf6a52" strokeWidth="3"/>
 
-        {/* muzzle */}
-        <polygon points="66,78 94,78 80,94" fill="#FFF5EC" />
-        <polygon points="66,78 94,78 80,84" fill="#FFEEDD" opacity="0.5" />
-        <ellipse cx="80" cy="78.5" rx="4.5" ry="2.8" fill="#3A1808" />
-        <path d="M76,85 Q80,90 84,85" stroke="#C04818" strokeWidth="1.2" fill="none" strokeLinecap="round" />
-
-        {/* ── Eyes (big round, triple highlight) ── */}
-        <g className="fx-eyes">
-          <circle cx="64" cy="62" r="9.5" fill="white" />
-          <circle cx="96" cy="62" r="9.5" fill="white" />
-          <circle cx="64" cy="63" r="7.5" fill="#1E0E04" />
-          <circle cx="96" cy="63" r="7.5" fill="#1E0E04" />
-          <circle cx="64" cy="63" r="6"   fill="#7A3808" opacity="0.35" />
-          <circle cx="96" cy="63" r="6"   fill="#7A3808" opacity="0.35" />
-          <circle cx="64" cy="63" r="4.5" fill="#080402" />
-          <circle cx="96" cy="63" r="4.5" fill="#080402" />
-          {/* main highlight */}
-          <ellipse cx="66.5" cy="59"  rx="3"   ry="2.5" fill="white" />
-          <ellipse cx="98.5" cy="59"  rx="3"   ry="2.5" fill="white" />
-          {/* secondary highlight */}
-          <circle cx="61.5" cy="66.5" r="1.5" fill="white" opacity="0.6" />
-          <circle cx="93.5" cy="66.5" r="1.5" fill="white" opacity="0.6" />
-          {/* tiny sparkle */}
-          <circle cx="59"   cy="59"   r="1"   fill="white" opacity="0.75" />
-          <circle cx="91"   cy="59"   r="1"   fill="white" opacity="0.75" />
+        {/* ── Firefly / moth circling lamp ── */}
+        <g className="wb-flyX" style={{transformOrigin:'160px 112px'}}>
+          <g className="wb-flyY" style={{transformOrigin:'160px 112px'}}>
+            <g className="wb-glow">
+              <circle cx="160" cy="112" r="14" fill="#fff6a0" opacity="0.09"/>
+              <circle cx="160" cy="112" r="9"  fill="#fff6a0" opacity="0.17"/>
+              <circle cx="160" cy="112" r="5"  fill="#fff6a0" opacity="0.32"/>
+              <circle cx="160" cy="112" r="2.5" fill="#fffde0"/>
+              {/* tiny wings */}
+              <ellipse cx="155" cy="109" rx="2.8" ry="1.4" fill="#fff" opacity="0.45" transform="rotate(-20 160 112)"/>
+              <ellipse cx="165" cy="109" rx="2.8" ry="1.4" fill="#fff" opacity="0.45" transform="rotate(20 160 112)"/>
+            </g>
+          </g>
         </g>
-
-        {/* blush */}
-        <ellipse cx="51"  cy="74" rx="7" ry="4" fill="#FF9988" opacity="0.3" />
-        <ellipse cx="109" cy="74" rx="7" ry="4" fill="#FF9988" opacity="0.3" />
-
-        {/* sparkles */}
-        <path className="fx-spark" d="M20 36 l1.6 4.2 l4.2 1.6 l-4.2 1.6 l-1.6 4.2 l-1.6-4.2 l-4.2-1.6 l4.2-1.6 z" fill="#fbbf24" opacity="0.85" />
-        <path className="fx-spark" d="M143 48 l1.1 3 l3 1.1 l-3 1.1 l-1.1 3 l-1.1-3 l-3-1.1 l3-1.1 z" fill="#a5b4fc" opacity="0.85" style={{ animationDelay: '1.5s' }} />
       </svg>
     </>
   );
