@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useApp } from '../store';
 import { allGroupsConsistent } from '../../domain/tree';
 import { scoreProfile, resolveBands } from '../../engine/aggregation';
@@ -8,6 +9,7 @@ import { v4 as uuidv4 } from 'uuid';
 const H = 320; // preview ladder height
 
 export default function DecisionScale() {
+  const { t } = useTranslation();
   const { state, dispatch } = useApp();
   const model = state.model!;
   const bands = model.decisionScale;
@@ -43,7 +45,7 @@ export default function DecisionScale() {
   function addBand() {
     update([
       ...bands,
-      { id: uuidv4(), label: 'Nova zona de decisão', minScore: 50, color: '#6366f1' },
+      { id: uuidv4(), label: t('Nova zona de decisão'), minScore: 50, color: '#6366f1' },
     ]);
   }
   function removeBand(id: string) {
@@ -99,12 +101,16 @@ export default function DecisionScale() {
   for (let i = 1; i < nonBase.length; i++) {
     if (Math.abs(nonBase[i].eff - nonBase[i - 1].eff) < 0.05) {
       warnings.push(
-        `As zonas «${nonBase[i - 1].band.label}» e «${nonBase[i].band.label}» têm o mesmo limiar (${nonBase[i].eff.toFixed(1)}) — uma fica inalcançável.`,
+        t('As zonas «{{a}}» e «{{b}}» têm o mesmo limiar ({{s}}) — uma fica inalcançável.', {
+          a: nonBase[i - 1].band.label,
+          b: nonBase[i].band.label,
+          s: nonBase[i].eff.toFixed(1),
+        }),
       );
     }
   }
   for (const b of incomplete) {
-    warnings.push(`O perfil de referência de «${b.label}» está incompleto — defina um nível em todos os critérios.`);
+    warnings.push(t('O perfil de referência de «{{label}}» está incompleto — defina um nível em todos os critérios.', { label: b.label }));
   }
 
   // Preview axis bounds — ignore the base zone's own cut-off (it's a catch-all
@@ -119,19 +125,12 @@ export default function DecisionScale() {
     <div className="max-w-4xl mx-auto py-6 px-4 space-y-5">
       {/* ── Header ── */}
       <div className="space-y-2">
-        <h2 className="text-lg font-semibold text-gray-800">Perfis de decisão</h2>
+        <h2 className="text-lg font-semibold text-gray-800">{t('Perfis de decisão')}</h2>
         <p className="text-sm text-gray-500 leading-relaxed">
-          A pontuação global V(p) ∈ [0, 100] (Neutro = 0, Bom = 100) diz <em>quão boa</em> é cada alternativa.
-          Aqui define-se o que <strong>fazer</strong> com cada resultado: zonas com nome e <strong>ação</strong>
-          {' '}(ex.: «Aceitar», «Rejeitar», «Aplicar sanção»), separadas por <strong>limiares</strong> de corte.
-          Cada resultado cai na zona mais alta cujo limiar atinge.
+          {t('A pontuação global V(p) ∈ [0, 100] (Neutro = 0, Bom = 100) diz quão boa é cada alternativa. Aqui define-se o que fazer com cada resultado: zonas com nome e ação (ex.: «Aceitar», «Rejeitar», «Aplicar sanção»), separadas por limiares de corte. Cada resultado cai na zona mais alta cujo limiar atinge.')}
         </p>
         <p className="text-xs text-gray-400 leading-relaxed">
-          Para que o limiar seja <strong>defensável</strong> (e não um número arbitrário), descreve-se uma{' '}
-          <strong>alternativa-limiar de referência</strong> — o pior caso que ainda pertence à zona — e o MACBETH
-          calcula o seu V(p). O corte fica assim ligado a uma situação concreta e rastreável. Os limiares são{' '}
-          <strong>compensatórios</strong>; para mínimos rígidos por critério use o <strong>Veto</strong> ou uma{' '}
-          <strong>Porta</strong>. O valor manual existe só como recurso provisório ou override assumido.
+          {t('Para que o limiar seja defensável (e não um número arbitrário), descreve-se uma alternativa-limiar de referência — o pior caso que ainda pertence à zona — e o MACBETH calcula o seu V(p). O corte fica assim ligado a uma situação concreta e rastreável. Os limiares são compensatórios; para mínimos rígidos por critério use o Veto ou uma Porta. O valor manual existe só como recurso provisório ou override assumido.')}
         </p>
       </div>
 
@@ -139,11 +138,9 @@ export default function DecisionScale() {
         <div className="bg-rose-50 border border-rose-200 rounded-lg px-3 py-2 text-sm text-rose-800 flex items-start gap-2">
           <span className="mt-0.5 shrink-0">⚖️</span>
           <span>
-            {ungrounded.length === 1 ? 'A zona' : 'As zonas'}{' '}
+            {ungrounded.length === 1 ? t('A zona') : t('As zonas')}{' '}
             <strong>{ungrounded.map((b) => `«${b.label}»`).join(', ')}</strong>{' '}
-            {ungrounded.length === 1 ? 'tem limiar manual' : 'têm limiar manual'} (não derivado de uma
-            alternativa-limiar). Para uma decisão defensável, derive {ungrounded.length === 1 ? 'esse limiar' : 'esses limiares'}{' '}
-            a partir de um perfil de referência.
+            {ungrounded.length === 1 ? t('tem limiar manual') : t('têm limiar manual')} {t('(não derivado de uma alternativa-limiar). Para uma decisão defensável, derive esses limiares a partir de um perfil de referência.')}
           </span>
         </div>
       )}
@@ -163,9 +160,7 @@ export default function DecisionScale() {
         <div className="bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 text-sm text-blue-800 flex items-start gap-2">
           <span className="mt-0.5 shrink-0">ℹ</span>
           <span>
-            As <strong>Escalas</strong> e a <strong>Ponderação</strong> ainda não estão concluídas e consistentes,
-            por isso os limiares por perfil não podem ser calculados. Pode definir limiares <strong>provisórios</strong> a
-            número e convertê-los depois.
+            {t('As Escalas e a Ponderação ainda não estão concluídas e consistentes, por isso os limiares por perfil não podem ser calculados. Pode definir limiares provisórios a número e convertê-los depois.')}
           </span>
         </div>
       )}
@@ -198,7 +193,7 @@ export default function DecisionScale() {
                   style={{ top: hTop, height: Math.max(0, hBot - hTop), backgroundColor: b.color }}
                 >
                   <span className="truncate text-sm font-semibold drop-shadow-sm leading-tight">{b.label}</span>
-                  <span className="font-mono text-[11px] opacity-90">{isBase ? 'base' : `≥ ${eff.toFixed(1)}`}</span>
+                  <span className="font-mono text-[11px] opacity-90">{isBase ? t('base') : `≥ ${eff.toFixed(1)}`}</span>
                 </div>
               );
             })}
@@ -225,36 +220,36 @@ export default function DecisionScale() {
                     value={b.color}
                     onChange={(e) => patchBand(b.id, { color: e.target.value })}
                     className="w-7 h-7 rounded cursor-pointer border border-gray-200 shrink-0 p-0"
-                    title="Cor da zona"
+                    title={t('Cor da zona')}
                   />
                   <input
                     value={b.label}
                     onChange={(e) => patchBand(b.id, { label: e.target.value })}
                     className="flex-1 bg-transparent border-0 focus:ring-0 px-1 py-0.5 text-sm font-semibold text-gray-800 min-w-0"
-                    placeholder="Nome da zona de decisão"
+                    placeholder={t('Nome da zona de decisão')}
                   />
                   {!isBase && grounded && !profileIncomplete(b) && (
-                    <span className="shrink-0 px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-green-100 text-green-700" title="Limiar fundamentado por uma alternativa-limiar (rastreável)">
-                      ● Fundamentado
+                    <span className="shrink-0 px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-green-100 text-green-700" title={t('Limiar fundamentado por uma alternativa-limiar (rastreável)')}>
+                      ● {t('Fundamentado')}
                     </span>
                   )}
                   {!isBase && (manual || (!ready)) && (
-                    <span className="shrink-0 px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-rose-100 text-rose-700" title="Limiar definido à mão, não derivado de um perfil">
-                      ● {manual ? 'manual' : 'provisório'}
+                    <span className="shrink-0 px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-rose-100 text-rose-700" title={t('Limiar definido à mão, não derivado de um perfil')}>
+                      ● {manual ? t('manual') : t('provisório')}
                     </span>
                   )}
                   <span
                     className="shrink-0 px-2.5 py-1 rounded-full text-xs font-bold font-mono text-white"
                     style={{ backgroundColor: b.color }}
-                    title={isBase ? 'Zona base — apanha tudo o que não atinge as zonas acima' : 'Limiar de corte'}
+                    title={isBase ? t('Zona base — apanha tudo o que não atinge as zonas acima') : t('Limiar de corte')}
                   >
-                    {isBase ? 'base' : `V(p) ≥ ${eff.toFixed(1)}`}
+                    {isBase ? t('base') : `V(p) ≥ ${eff.toFixed(1)}`}
                   </span>
                   <button
                     onClick={() => removeBand(b.id)}
                     disabled={bands.length <= 1}
                     className="text-gray-300 hover:text-red-500 disabled:opacity-20 text-sm px-1 shrink-0"
-                    aria-label="Remover zona"
+                    aria-label={t('Remover zona')}
                   >
                     ✕
                   </button>
@@ -264,11 +259,11 @@ export default function DecisionScale() {
                 <div className="p-3 space-y-3">
                   {/* Action */}
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-500 shrink-0">Ação</span>
+                    <span className="text-xs text-gray-500 shrink-0">{t('Ação')}</span>
                     <input
                       value={b.action ?? ''}
                       onChange={(e) => patchBand(b.id, { action: e.target.value })}
-                      placeholder="O que fazer nesta zona? (ex.: aceitar a proposta, aplicar sanção…)"
+                      placeholder={t('O que fazer nesta zona? (ex.: aceitar a proposta, aplicar sanção…)')}
                       className="flex-1 border border-gray-200 rounded-lg px-2 py-1 text-sm focus:ring-1 focus:ring-blue-400"
                     />
                   </div>
@@ -276,25 +271,24 @@ export default function DecisionScale() {
                   {/* Cut-off */}
                   {isBase ? (
                     <p className="text-xs text-gray-500 bg-gray-50 border border-gray-100 rounded-lg px-3 py-2">
-                      Zona <strong>base</strong> — aplica-se a tudo o que não atinge nenhuma das zonas acima. Não tem
-                      limiar próprio.
+                      {t('Zona base — aplica-se a tudo o que não atinge nenhuma das zonas acima. Não tem limiar próprio.')}
                     </p>
                   ) : showProfileEditor ? (
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                          Alternativa-limiar de referência
+                          {t('Alternativa-limiar de referência')}
                         </p>
                         <button
                           onClick={() => useManual(b.id)}
                           className="text-xs text-gray-400 hover:text-gray-700 underline"
-                          title="Definir o limiar à mão (override assumido)"
+                          title={t('Definir o limiar à mão (override assumido)')}
                         >
-                          usar valor manual
+                          {t('usar valor manual')}
                         </button>
                       </div>
                       <p className="text-[11px] text-gray-400 -mt-1">
-                        Descreva o <em>pior</em> caso que ainda pertence a esta zona; o limiar é o seu V(p).
+                        {t('Descreva o pior caso que ainda pertence a esta zona; o limiar é o seu V(p).')}
                       </p>
                       <div className="grid sm:grid-cols-2 gap-x-4 gap-y-1.5">
                         {qualCriteria.map((c) => (
@@ -314,29 +308,29 @@ export default function DecisionScale() {
                         ))}
                       </div>
                       <div className="flex items-center gap-2 pt-2 mt-1 border-t border-gray-100">
-                        <span className="text-xs text-gray-500">Limiar derivado por MACBETH:</span>
+                        <span className="text-xs text-gray-500">{t('Limiar derivado por MACBETH:')}</span>
                         <span className="font-mono text-sm font-bold" style={{ color: b.color }}>
-                          {grounded && !profileIncomplete(b) ? `V(p) ≥ ${eff.toFixed(1)}` : '— (descreva todos os critérios)'}
+                          {grounded && !profileIncomplete(b) ? `V(p) ≥ ${eff.toFixed(1)}` : t('— (descreva todos os critérios)')}
                         </span>
                       </div>
                     </div>
                   ) : showManualInput ? (
                     <div className="flex items-center gap-3 flex-wrap">
-                      <label className="text-sm text-gray-500 whitespace-nowrap">Limiar — V(p) ≥</label>
+                      <label className="text-sm text-gray-500 whitespace-nowrap">{t('Limiar — V(p) ≥')}</label>
                       <input
                         type="number"
                         value={b.minScore}
                         onChange={(e) => patchBand(b.id, { minScore: Number(e.target.value), manualThreshold: true })}
                         className="w-24 border border-gray-200 rounded-lg px-2 py-1 text-sm text-center font-mono focus:ring-1 focus:ring-rose-300"
                       />
-                      <span className="text-xs text-gray-400">pontos</span>
+                      <span className="text-xs text-gray-400">{t('pontos')}</span>
                       {ready && (
                         <button
                           onClick={() => useProfile(b.id)}
                           className="text-xs text-blue-600 hover:text-blue-800 underline ml-auto"
-                          title="Definir o limiar descrevendo uma alternativa-limiar (defensável)"
+                          title={t('Definir o limiar descrevendo uma alternativa-limiar (defensável)')}
                         >
-                          derivar por alternativa-limiar
+                          {t('derivar por alternativa-limiar')}
                         </button>
                       )}
                     </div>
@@ -350,7 +344,7 @@ export default function DecisionScale() {
             onClick={addBand}
             className="w-full py-2.5 text-sm text-blue-600 hover:text-blue-800 border-2 border-dashed border-gray-200 hover:border-blue-300 rounded-xl transition-colors"
           >
-            + Adicionar zona de decisão
+            {t('+ Adicionar zona de decisão')}
           </button>
         </div>
       </div>

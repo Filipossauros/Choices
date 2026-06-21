@@ -246,4 +246,52 @@ export const en: Record<string, string> = {
     'With scales and weights for all groups defined, build the decision profiles (MACBETH thresholds).',
   'Calcule pesos consistentes em todos os grupos antes de avançar.':
     'Compute consistent weights in all groups before continuing.',
+
+  // ── Decision profiles ───────────────────────────────────────────────────
+  'Nova zona de decisão': 'New decision zone',
+  'As zonas «{{a}}» e «{{b}}» têm o mesmo limiar ({{s}}) — uma fica inalcançável.':
+    'Zones «{{a}}» and «{{b}}» have the same threshold ({{s}}) — one becomes unreachable.',
+  'O perfil de referência de «{{label}}» está incompleto — defina um nível em todos os critérios.':
+    'The reference profile of «{{label}}» is incomplete — set a level for every criterion.',
+  'A pontuação global V(p) ∈ [0, 100] (Neutro = 0, Bom = 100) diz quão boa é cada alternativa. Aqui define-se o que fazer com cada resultado: zonas com nome e ação (ex.: «Aceitar», «Rejeitar», «Aplicar sanção»), separadas por limiares de corte. Cada resultado cai na zona mais alta cujo limiar atinge.':
+    'The global score V(p) ∈ [0, 100] (Neutral = 0, Good = 100) says how good each alternative is. Here you define what to do with each result: named zones with an action (e.g. «Accept», «Reject», «Apply sanction»), separated by cut-off thresholds. Each result falls into the highest zone whose threshold it reaches.',
+  'Para que o limiar seja defensável (e não um número arbitrário), descreve-se uma alternativa-limiar de referência — o pior caso que ainda pertence à zona — e o MACBETH calcula o seu V(p). O corte fica assim ligado a uma situação concreta e rastreável. Os limiares são compensatórios; para mínimos rígidos por critério use o Veto ou uma Porta. O valor manual existe só como recurso provisório ou override assumido.':
+    'So the threshold is defensible (not an arbitrary number), you describe a reference threshold alternative — the worst case that still belongs to the zone — and MACBETH computes its V(p). The cut-off is thus tied to a concrete, traceable situation. Thresholds are compensatory; for hard per-criterion minimums use a Veto or a Gate. The manual value exists only as a provisional resort or a deliberate override.',
+  'A zona': 'The zone',
+  'As zonas': 'The zones',
+  'tem limiar manual': 'has a manual threshold',
+  'têm limiar manual': 'have a manual threshold',
+  '(não derivado de uma alternativa-limiar). Para uma decisão defensável, derive esses limiares a partir de um perfil de referência.':
+    '(not derived from a threshold alternative). For a defensible decision, derive those thresholds from a reference profile.',
+  'As Escalas e a Ponderação ainda não estão concluídas e consistentes, por isso os limiares por perfil não podem ser calculados. Pode definir limiares provisórios a número e convertê-los depois.':
+    'The Scales and Weighting are not yet complete and consistent, so profile thresholds cannot be computed. You can set provisional numeric thresholds and convert them later.',
+  'Cor da zona': 'Zone colour',
+  'Nome da zona de decisão': 'Decision zone name',
+  'Limiar fundamentado por uma alternativa-limiar (rastreável)': 'Threshold grounded on a threshold alternative (traceable)',
+  Fundamentado: 'Grounded',
+  'Limiar definido à mão, não derivado de um perfil': 'Threshold set by hand, not derived from a profile',
+  provisório: 'provisional',
+  'Zona base — apanha tudo o que não atinge as zonas acima': 'Base zone — catches everything that doesn’t reach the zones above',
+  'Limiar de corte': 'Cut-off threshold',
+  'Remover zona': 'Remove zone',
+  Ação: 'Action',
+  'O que fazer nesta zona? (ex.: aceitar a proposta, aplicar sanção…)':
+    'What to do in this zone? (e.g. accept the proposal, apply a sanction…)',
+  'Zona base — aplica-se a tudo o que não atinge nenhuma das zonas acima. Não tem limiar próprio.':
+    'Base zone — applies to everything that doesn’t reach any of the zones above. It has no threshold of its own.',
+  'Alternativa-limiar de referência': 'Reference threshold alternative',
+  'Definir o limiar à mão (override assumido)': 'Set the threshold by hand (deliberate override)',
+  'usar valor manual': 'use manual value',
+  'Descreva o pior caso que ainda pertence a esta zona; o limiar é o seu V(p).':
+    'Describe the worst case that still belongs to this zone; the threshold is its V(p).',
+  'Limiar derivado por MACBETH:': 'Threshold derived by MACBETH:',
+  '— (descreva todos os critérios)': '— (describe all criteria)',
+  'Limiar — V(p) ≥': 'Threshold — V(p) ≥',
+  pontos: 'points',
+  'Definir o limiar descrevendo uma alternativa-limiar (defensável)': 'Set the threshold by describing a threshold alternative (defensible)',
+  'derivar por alternativa-limiar': 'derive from threshold alternative',
+  '+ Adicionar zona de decisão': '+ Add decision zone',
+  'Veja a síntese do modelo (fórmula, pesos) e exporte para JSON / IA.':
+    'See the model summary (formula, weights) and export to JSON / AI.',
+  'Defina pelo menos uma zona de decisão.': 'Define at least one decision zone.',
 };
