@@ -19,6 +19,29 @@ function judgmentLabel(j: MacbethJudgment): string {
 
 type Doc = jsPDF & { lastAutoTable?: { finalY: number } };
 
+// jsPDF's built-in Helvetica only covers Latin-1, so Unicode glyphs used across
+// the UI (Σ, subscripts, arrows, ≥, en-dashes, bullets…) render as garbage in
+// the PDF. Map them to ASCII-safe equivalents before drawing any text.
+function sx(s: unknown): string {
+  return String(s ?? '')
+    .replace(/Σ/g, 'sum')
+    .replace(/ᵢ/g, 'i')
+    .replace(/ⱼ/g, 'j')
+    .replace(/→/g, '->')
+    .replace(/↔/g, '<->')
+    .replace(/›/g, '>')
+    .replace(/‹/g, '<')
+    .replace(/≥/g, '>=')
+    .replace(/≤/g, '<=')
+    .replace(/[–—]/g, '-')
+    .replace(/•/g, '-')
+    .replace(/[“”]/g, '"')
+    .replace(/[‘’]/g, "'")
+    .replace(/…/g, '...')
+    .replace(/[⚡✓✕✗]/g, '')
+    .replace(/ /g, ' ');
+}
+
 // Verdict glyph for the decision hero — SVG (not emoji) so it inherits the
 // band's accent colour and stays visually consistent with the rest of the UI.
 function VerdictIcon({ type, color }: { type: 'pass' | 'warn' | 'fail'; color: string }) {
@@ -194,6 +217,13 @@ export default function Report() {
     const pageH = doc.internal.pageSize.getHeight();
     let y = 16;
 
+    // Route every text draw — including autoTable cell rendering, which calls
+    // doc.text internally — through the ASCII sanitizer, so no Unicode glyph
+    // ever reaches the Latin-1-only built-in font and garbles the page.
+    const drawText = doc.text.bind(doc) as (t: string | string[], ...a: unknown[]) => jsPDF;
+    doc.text = ((t: string | string[], ...a: unknown[]) =>
+      drawText(Array.isArray(t) ? t.map(sx) : sx(t), ...a)) as typeof doc.text;
+
     function checkPage(needed = 25) {
       if (y + needed > pageH - 16) { doc.addPage(); y = 16; }
     }
@@ -288,7 +318,7 @@ export default function Report() {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
     const methodText = `Este relatório utiliza o Método MACBETH (Measuring Attractiveness by a Categorical Based Evaluation Technique, Bana e Costa & Vansnick, 1994). O método utiliza juízos qualitativos de diferença de atratividade — de Nula a Extrema — entre pares de alternativas para construir escalas cardinais de valor por programação linear. O modelo de agregação é aditivo: V(p) = Σᵢ kᵢ · vᵢ(p), ancorado em Neutro = 0 e Bom = 100. A habilitação corre a montante — qualquer porta falhada reprova a ${subj.one} antes da agregação multicritério.`;
-    const mLines = doc.splitTextToSize(methodText, pageW - 28);
+    const mLines = doc.splitTextToSize(sx(methodText), pageW - 28);
     checkPage(mLines.length * 4.5 + 8);
     doc.text(mLines, 14, y);
     y += mLines.length * 4.5 + 6;
@@ -321,7 +351,7 @@ export default function Report() {
     doc.setTextColor(110);
     doc.text(
       doc.splitTextToSize(
-        'Os limiares "Fundamentado" derivam de uma alternativa-limiar de referência (o pior caso ainda incluído na zona), cujo V(p) é calculado pelo modelo — rastreável e não arbitrário. "Manual" indica um valor inserido à mão.',
+        sx('Os limiares "Fundamentado" derivam de uma alternativa-limiar de referência (o pior caso ainda incluído na zona), cujo V(p) é calculado pelo modelo — rastreável e não arbitrário. "Manual" indica um valor inserido à mão.'),
         pageW - 28,
       ),
       14,
