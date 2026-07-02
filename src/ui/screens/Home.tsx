@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, memo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useApp } from '../store';
 import { repository } from '../../repository';
@@ -13,29 +13,26 @@ import type { ComponentType, SVGProps } from 'react';
 
 // ── Mascot ────────────────────────────────────────────────────────────────────
 
-function useDarkMode() {
-  const [dark, setDark] = useState(() => document.documentElement.classList.contains('dark'));
-  useEffect(() => {
-    const obs = new MutationObserver(() => setDark(document.documentElement.classList.contains('dark')));
-    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
-    return () => obs.disconnect();
-  }, []);
-  return dark;
+// paper stacks: sheets as [y, angle]; rotation pivot derived as (x + w/2, y + 12)
+const STACKS: { x: number; w: number; sheets: [number, number][] }[] = [
+  { x: 150, w: 46, sheets: [[174,-5],[162,3],[150,-4],[138,5],[126,-3],[114,5],[102,-5],[90,3]] },
+  { x: 96,  w: 40, sheets: [[188,-4],[176,4],[164,-3]] },
+];
+
+const MOTES = [{x:92,y:155},{x:112,y:132},{x:132,y:158},{x:154,y:118},{x:171,y:143},{x:143,y:168},{x:122,y:128}];
+const STARS = [{x:30,y:44,d:0},{x:78,y:40,d:1.2},{x:34,y:70,d:2.1},{x:80,y:80,d:0.7},{x:50,y:96,d:1.8}];
+
+function Halo({ cx, cy, fill, rings }: { cx: number; cy: number; fill: string; rings: [number, number][] }) {
+  return (
+    <>
+      {rings.map(([r, o], i) => (
+        <circle key={i} cx={cx} cy={cy} r={r} fill={fill} opacity={o} />
+      ))}
+    </>
+  );
 }
 
-// pre-computed paper stack rotations
-// stack right: x=150, w=46, pivot_x=173
-const SR: [number, number, number][] = [
-  [174,-5,186],[162,3,174],[150,-4,162],[138,5,150],
-  [126,-3,138],[114,5,126],[102,-5,114],[90,3,102],
-];
-// stack front: x=96, w=40, pivot_x=116
-const SF: [number, number, number][] = [
-  [188,-4,200],[176,4,188],[164,-3,176],
-];
-
-function BalanceMascot() {
-  const dark = useDarkMode();
+const BalanceMascot = memo(function BalanceMascot() {
   return (
     <>
       <style>{`
@@ -61,8 +58,17 @@ function BalanceMascot() {
         .wb-flicker{animation:wb-flicker 2.3s ease-in-out infinite}
         .wb-sunray{animation:wb-sunray 3s ease-in-out infinite}
         .wb-star{animation:wb-startwink 4s ease-in-out infinite}
+        .wb-night{display:none}
+        .dark .wb-night{display:inline}
+        .dark .wb-day{display:none}
+        .wb-glass{fill:#9ecbf0}
+        .dark .wb-glass{fill:#33415f}
+        @media (prefers-reduced-motion: reduce){
+          .wb-scene *{animation:none !important}
+          .wb-mote-c,.wb-steam-c{display:none}
+        }
       `}</style>
-      <svg width="230" height="247" viewBox="0 0 260 280" xmlns="http://www.w3.org/2000/svg">
+      <svg className="wb-scene" width="230" height="247" viewBox="0 0 260 280" xmlns="http://www.w3.org/2000/svg">
         <defs>
           <clipPath id="wb-winclip"><rect x="18" y="30" width="70" height="88"/></clipPath>
           <linearGradient id="wb-fur" x1="0" y1="0" x2="0" y2="1">
@@ -87,35 +93,29 @@ function BalanceMascot() {
           </radialGradient>
         </defs>
 
-        {/* ── Window (left) ── */}
+        {/* ── Window (left) — night sky in dark mode, sun in light mode (via .dark CSS) ── */}
         <rect x="14" y="26" width="78" height="96" rx="3" fill="#26314a"/>
-        <rect x="18" y="30" width="70" height="88" fill={dark ? '#33415f' : '#9ecbf0'}/>
+        <rect x="18" y="30" width="70" height="88" className="wb-glass"/>
         <g clipPath="url(#wb-winclip)">
-          {dark ? (
-            <>
-              <circle cx="64" cy="56" r="41" fill="#fdf6d8" opacity="0.08"/>
-              <circle cx="64" cy="56" r="28" fill="#fdf6d8" opacity="0.16"/>
-              <circle cx="64" cy="56" r="18" fill="#fdf6d8" opacity="0.30"/>
-              <circle cx="64" cy="56" r="13" fill="url(#wb-moon)"/>
-              {([{x:30,y:44,d:0},{x:78,y:40,d:1.2},{x:34,y:70,d:2.1},{x:80,y:80,d:0.7},{x:50,y:96,d:1.8}]).map((s,i)=>(
-                <circle key={i} cx={s.x} cy={s.y} r="1.1" fill="#fdf6d8" opacity="0.85"
-                  className="wb-star" style={{animationDelay:`${s.d}s`}}/>
+          <g className="wb-night">
+            <Halo cx={64} cy={56} fill="#fdf6d8" rings={[[41,0.08],[28,0.16],[18,0.30]]} />
+            <circle cx="64" cy="56" r="13" fill="url(#wb-moon)"/>
+            {STARS.map((s,i)=>(
+              <circle key={i} cx={s.x} cy={s.y} r="1.1" fill="#fdf6d8" opacity="0.85"
+                className="wb-star" style={{animationDelay:`${s.d}s`}}/>
+            ))}
+          </g>
+          <g className="wb-day">
+            <g className="wb-sunray">
+              {[0,45,90,135,180,225,270,315].map(a=>(
+                <line key={a} x1="81" y1="56" x2="88" y2="56"
+                  stroke="#ffd700" strokeWidth="2.5" strokeLinecap="round"
+                  transform={`rotate(${a} 64 56)`}/>
               ))}
-            </>
-          ) : (
-            <>
-              <g className="wb-sunray">
-                {[0,45,90,135,180,225,270,315].map(a=>(
-                  <line key={a}
-                    x1={64+17*Math.cos(a*Math.PI/180)} y1={56+17*Math.sin(a*Math.PI/180)}
-                    x2={64+24*Math.cos(a*Math.PI/180)} y2={56+24*Math.sin(a*Math.PI/180)}
-                    stroke="#ffd700" strokeWidth="2.5" strokeLinecap="round"/>
-                ))}
-              </g>
-              <circle cx="64" cy="56" r="12" fill="#ffd700"/>
-              <circle cx="64" cy="56" r="9" fill="#fff176"/>
-            </>
-          )}
+            </g>
+            <circle cx="64" cy="56" r="12" fill="#ffd700"/>
+            <circle cx="64" cy="56" r="9" fill="#fff176"/>
+          </g>
         </g>
         {/* Window dividers */}
         <line x1="53" y1="30" x2="53" y2="118" stroke="#26314a" strokeWidth="3"/>
@@ -127,19 +127,19 @@ function BalanceMascot() {
         <line x1="206" y1="120" x2="176" y2="92" stroke="#4a3f4a" strokeWidth="4"/>
         <path d="M176 92 l-20 8 l8 18 l18 -12 z" fill="#5a4a3a"/>
         <path d="M158 100 l8 18 l-10 4 l-4 -16z" fill="#3a2f2a"/>
-        {/* Lamp glow halos */}
-        <circle cx="160" cy="110" r="38" fill="#fff1bc" opacity="0.07" className="wb-flicker"/>
-        <circle cx="160" cy="110" r="26" fill="#fff1bc" opacity="0.14" className="wb-flicker"/>
-        <circle cx="160" cy="110" r="15" fill="#fff1bc" opacity="0.26" className="wb-flicker"/>
-        <circle cx="160" cy="110" r="7"  fill="#fff1bc" opacity="0.88" className="wb-flicker"/>
+        {/* Lamp glow halos — flicker animates the group's opacity, which multiplies
+            the per-ring opacities instead of overriding them */}
+        <g className="wb-flicker">
+          <Halo cx={160} cy={110} fill="#fff1bc" rings={[[38,0.07],[26,0.14],[15,0.26],[7,0.88]]} />
+        </g>
 
         {/* Light pool on desk */}
         <ellipse cx="120" cy="160" rx="110" ry="80" fill="url(#wb-pool)" className="wb-flicker"/>
 
-        {/* Dust motes */}
-        {([{x:92,y:155},{x:112,y:132},{x:132,y:158},{x:154,y:118},{x:171,y:143},{x:143,y:168},{x:122,y:128}]).map((m,i)=>(
-          <circle key={i} cx={m.x} cy={m.y} r="1.2" fill="#fff2b0"
-            style={{animation:`wb-mote ${3.5+i*0.4}s ease-in-out ${i*0.5}s infinite`}}/>
+        {/* Dust motes — `backwards` keeps them at the 0% keyframe (invisible) during the stagger delay */}
+        {MOTES.map((m,i)=>(
+          <circle key={i} cx={m.x} cy={m.y} r="1.2" fill="#fff2b0" className="wb-mote-c"
+            style={{animation:`wb-mote ${3.5+i*0.4}s ease-in-out ${i*0.5}s infinite backwards`}}/>
         ))}
 
         {/* ── Desk ── */}
@@ -151,19 +151,14 @@ function BalanceMascot() {
         <rect x="24" y="168" width="36" height="9" rx="1" fill="#c98a4a"/>
         <rect x="18" y="159" width="42" height="9" rx="1" fill="#9a6a8a"/>
 
-        {/* Paper stack right */}
-        {SR.map(([ry,ang,py],i)=>(
-          <g key={i} transform={`rotate(${ang} 173 ${py})`}>
-            <rect x="150" y={ry} width="46" height="12" fill="url(#wb-paper)" stroke="#cbbf9e" strokeWidth="0.6"/>
-          </g>
-        ))}
-
-        {/* Paper stack front */}
-        {SF.map(([ry,ang,py],i)=>(
-          <g key={i} transform={`rotate(${ang} 116 ${py})`}>
-            <rect x="96" y={ry} width="40" height="12" fill="url(#wb-paper)" stroke="#cbbf9e" strokeWidth="0.6"/>
-          </g>
-        ))}
+        {/* Paper stacks */}
+        {STACKS.map((st,si)=>
+          st.sheets.map(([ry,ang],i)=>(
+            <g key={`${si}-${i}`} transform={`rotate(${ang} ${st.x + st.w/2} ${ry + 12})`}>
+              <rect x={st.x} y={ry} width={st.w} height="12" fill="url(#wb-paper)" stroke="#cbbf9e" strokeWidth="0.6"/>
+            </g>
+          ))
+        )}
 
         {/* Plant (far right) */}
         <rect x="222" y="166" width="22" height="20" rx="2" fill="#b56a47"/>
@@ -206,8 +201,8 @@ function BalanceMascot() {
 
         {/* Coffee cup (in front of fox) */}
         {[0,1,2].map(i=>(
-          <circle key={i} cx={84+(i-1)*5} cy={170} r={2.4} fill="#e8e8e0"
-            style={{animation:`wb-steam 2.1s ease-out ${i*0.7}s infinite`}}/>
+          <circle key={i} cx={84+(i-1)*5} cy={170} r={2.4} fill="#e8e8e0" className="wb-steam-c"
+            style={{animation:`wb-steam 2.1s ease-out ${i*0.7}s infinite backwards`}}/>
         ))}
         <rect x="74" y="172" width="20" height="18" rx="2" fill="#cf6a52"/>
         <path d="M94 176 q8 0 8 6 q0 6 -8 6" fill="none" stroke="#cf6a52" strokeWidth="3"/>
@@ -216,9 +211,7 @@ function BalanceMascot() {
         <g className="wb-flyX" style={{transformOrigin:'160px 112px'}}>
           <g className="wb-flyY" style={{transformOrigin:'160px 112px'}}>
             <g className="wb-glow">
-              <circle cx="160" cy="112" r="14" fill="#fff6a0" opacity="0.09"/>
-              <circle cx="160" cy="112" r="9"  fill="#fff6a0" opacity="0.17"/>
-              <circle cx="160" cy="112" r="5"  fill="#fff6a0" opacity="0.32"/>
+              <Halo cx={160} cy={112} fill="#fff6a0" rings={[[14,0.09],[9,0.17],[5,0.32]]} />
               <circle cx="160" cy="112" r="2.5" fill="#fffde0"/>
               {/* tiny wings */}
               <ellipse cx="155" cy="109" rx="2.8" ry="1.4" fill="#fff" opacity="0.45" transform="rotate(-20 160 112)"/>
@@ -229,7 +222,7 @@ function BalanceMascot() {
       </svg>
     </>
   );
-}
+});
 
 // ── Template factories ─────────────────────────────────────────────────────────
 
