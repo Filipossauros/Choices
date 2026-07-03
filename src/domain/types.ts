@@ -220,6 +220,12 @@ export interface OptionResult {
   criterionScores: Record<string, number | null>;
   vetoedByCriterion?: string;
   rejectedByGate?: string;
+  /**
+   * Gate criteria still unanswered when this result was computed. A non-empty
+   * list means the classification is provisional: any of these gates failing
+   * would hard-reject the option regardless of its score.
+   */
+  pendingGates?: string[];
 }
 
 export interface AggregationResult {

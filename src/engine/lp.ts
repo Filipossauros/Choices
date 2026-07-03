@@ -95,6 +95,9 @@ export async function solveLP(model: LPModel): Promise<LPResult> {
     const res = await glpk.solve(glpkModel, glpk.GLP_MSG_OFF);
     const statusMap: Record<number, LPResult['status']> = {
       [glpk.GLP_OPT]: 'optimal',
+      // Feasible-but-not-proven-optimal: the values are a valid solution and
+      // the objective a valid lower bound — usable, not a solver failure.
+      [glpk.GLP_FEAS]: 'optimal',
       [glpk.GLP_INFEAS]: 'infeasible',
       [glpk.GLP_UNBND]: 'unbounded',
       [glpk.GLP_UNDEF]: 'error',

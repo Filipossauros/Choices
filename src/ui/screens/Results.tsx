@@ -224,6 +224,14 @@ export default function Results() {
                 >
                   {rejected ? '—' : r.globalValue?.toFixed(1) ?? '—'}
                 </span>
+                {!rejected && (r.pendingGates?.length ?? 0) > 0 && (
+                  <span
+                    className="text-[10px] font-semibold rounded-full px-2 py-0.5 shrink-0 whitespace-nowrap bg-amber-100 text-amber-700"
+                    title={t('Há critérios de habilitação por responder — se algum falhar, a opção é eliminada independentemente da pontuação.')}
+                  >
+                    ⏳ {t('provisório')}
+                  </span>
+                )}
                 <span
                   className="text-xs font-bold rounded-lg px-2.5 py-1 shrink-0 whitespace-nowrap"
                   style={{ backgroundColor: accent + '22', color: accent }}
@@ -231,6 +239,13 @@ export default function Results() {
                   {rejected ? t('Reprovado') : band?.label ?? '—'}
                 </span>
               </div>
+              {!rejected && (r.pendingGates?.length ?? 0) > 0 && (
+                <p className="text-xs text-amber-600 mt-1.5">
+                  {t('Habilitação pendente: {{gates}} — classificação provisória.', {
+                    gates: r.pendingGates!.map((g) => `«${model.valueTree.criteria[g]?.label ?? g}»`).join(', '),
+                  })}
+                </p>
+              )}
               {rejected ? (
                 <p className="text-xs text-red-600 mt-1.5">
                   {r.rejectedByGate

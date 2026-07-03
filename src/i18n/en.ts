@@ -253,6 +253,14 @@ export const en: Record<string, string> = {
     'Zones «{{a}}» and «{{b}}» have the same threshold ({{s}}) — one becomes unreachable.',
   'O perfil de referência de «{{label}}» está incompleto — defina um nível em todos os critérios.':
     'The reference profile of «{{label}}» is incomplete — set a level for every criterion.',
+  'O perfil de «{{label}}» referencia um nível que já não existe — escolha novamente esse critério. Até lá, vale o último limiar calculado.':
+    'The profile of «{{label}}» references a level that no longer exists — pick that criterion again. Until then, the last computed cut-off applies.',
+  'A zona «{{a}}» devia cortar acima de «{{b}}», mas o seu perfil pontua agora abaixo ({{sa}} < {{sb}}) — reveja os perfis ou a ponderação.':
+    'Zone «{{a}}» should cut above «{{b}}», but its profile now scores below it ({{sa}} < {{sb}}) — review the profiles or the weighting.',
+  'Há critérios de habilitação por responder — se algum falhar, a opção é eliminada independentemente da pontuação.':
+    'There are unanswered gate criteria — if any fails, the option is eliminated regardless of its score.',
+  'Habilitação pendente: {{gates}} — classificação provisória.':
+    'Pending gates: {{gates}} — provisional classification.',
   'A pontuação global V(p) ∈ [0, 100] (Neutro = 0, Bom = 100) diz quão boa é cada alternativa. Aqui define-se o que fazer com cada resultado: zonas com nome e ação (ex.: «Aceitar», «Rejeitar», «Aplicar sanção»), separadas por limiares de corte. Cada resultado cai na zona mais alta cujo limiar atinge.':
     'The global score V(p) ∈ [0, 100] (Neutral = 0, Good = 100) says how good each alternative is. Here you define what to do with each result: named zones with an action (e.g. «Accept», «Reject», «Apply sanction»), separated by cut-off thresholds. Each result falls into the highest zone whose threshold it reaches.',
   'Para que o limiar seja defensável (e não um número arbitrário), descreve-se uma alternativa-limiar de referência — o pior caso que ainda pertence à zona — e o MACBETH calcula o seu V(p). O corte fica assim ligado a uma situação concreta e rastreável. Os limiares são compensatórios; para mínimos rígidos por critério use o Veto ou uma Porta. O valor manual existe só como recurso provisório ou override assumido.':

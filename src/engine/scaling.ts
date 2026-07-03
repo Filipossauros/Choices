@@ -45,7 +45,11 @@ function buildScaleConstraints(
   for (let k = 1; k <= 6; k++) {
     bounds.push({ name: sName(k), type: 'FR' });
   }
-  bounds.push({ name: 'z', type: 'LO', lb: 0 });
+  // z ∈ [0, 100] — the cap keeps the LP bounded for partial matrices whose
+  // judged pairs never chain to the Neutral/Good anchors (otherwise max-z is
+  // unbounded and GLPK returns garbage). Fully anchored matrices always have
+  // z* well below 100 (the Neutral–Good span caps every category width).
+  bounds.push({ name: 'z', type: 'DB', lb: 0, ub: 100 });
 
   // Anchors
   constraints.push({
@@ -95,17 +99,31 @@ function buildScaleConstraints(
         rhs: 0,
       });
     } else {
-      constraints.push({
-        name: `lb_${idx}`,
-        vars: [
-          { name: vA, coef: 1 },
-          { name: vB, coef: -1 },
-          { name: sName(kLo), coef: -1 },
-          { name: 'z', coef: -1 },
-        ],
-        type: 'GE',
-        rhs: 0,
-      });
+      if (kLo >= 1) {
+        constraints.push({
+          name: `lb_${idx}`,
+          vars: [
+            { name: vA, coef: 1 },
+            { name: vB, coef: -1 },
+            { name: sName(kLo), coef: -1 },
+            { name: 'z', coef: -1 },
+          ],
+          type: 'GE',
+          rhs: 0,
+        });
+      } else {
+        // Interval starting at C0 ("null to hi"): indifference is admissible,
+        // so the lower bound is just d ≥ 0 — no s_0 threshold, no z margin.
+        constraints.push({
+          name: `lb_${idx}`,
+          vars: [
+            { name: vA, coef: 1 },
+            { name: vB, coef: -1 },
+          ],
+          type: 'GE',
+          rhs: 0,
+        });
+      }
       if (kHi < 6) {
         constraints.push({
           name: `ub_${idx}`,
@@ -172,6 +190,19 @@ export async function deriveScale(
   const consistencyMargin =
     primary.status === 'optimal' ? primary.objectiveValue : -1;
 
+  // Range LPs keep the discrimination margin at its optimum (z fixed at z*):
+  // the admissible range is the variation among maximally-discriminating
+  // scales. Leaving z free would let it collapse to 0, where all category
+  // separations vanish and the ranges degenerate to judgment-violating spans.
+  const rangeBounds =
+    consistencyMargin > 0
+      ? bounds.map((b) =>
+          b.name === 'z'
+            ? ({ name: 'z', type: 'FX', lb: consistencyMargin, ub: consistencyMargin } as LPBound)
+            : b,
+        )
+      : bounds;
+
   // Compute value + admissible range for each level
   const scaleValues: ScaleValue[] = await Promise.all(
     descriptor.levels.map(async (level) => {
@@ -184,14 +215,14 @@ export async function deriveScale(
           direction: 'MIN',
           objective: [{ name: varName, coef: 1 }],
           constraints,
-          bounds,
+          bounds: rangeBounds,
         }),
         solveLP({
           name: `rmax_${criterionId}_${level.id}`,
           direction: 'MAX',
           objective: [{ name: varName, coef: 1 }],
           constraints,
-          bounds,
+          bounds: rangeBounds,
         }),
       ]);
 

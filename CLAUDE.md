@@ -78,14 +78,16 @@ proposals score at any position along the descriptor, read from this curve
 
 **Consistency LP (consistency.ts):**  
 Maximise z subject to:
-- v[i] ∈ [0,1] for all alternatives (bounds the LP; z ≤ 1)
+- v[i] ∈ [0,1] for all alternatives; z ∈ [0,1] (explicit cap so all-C0 matrices stay bounded and solve as consistent)
 - v[last] = 0 (least-attractive fixed as anchor)
-- Ordinal: v[A] − v[B] ≥ z for each pair with category ≥ 1
-- Cardinal: d(higher-cat pair) − d(lower-cat pair) ≥ z for all pairs with different non-zero categories
+- Ordinal: exact C0 ⟹ v[A] = v[B]; catLo ≥ 1 ⟹ v[A] − v[B] ≥ z; interval {lo:0, hi>0} ⟹ v[A] − v[B] ≥ 0 (indifference admissible, no margin)
+- Cardinal: d(p1) − d(p2) ≥ z only when catLo(p1) > catHi(p2) — interval-aware; overlapping category ranges impose no ordering
 
 z* > 0 ⟹ consistent. Cardinal constraints deduplicate variable coefficients when pairs share an alternative (e.g. A-B and A-C both contain A — the shared variable is collapsed by summing coefficients before passing to GLPK, which rejects duplicate names in a row).
 
-**Scale LP (scaling.ts):** threshold variables s[1]…s[6]; neutral and good levels fixed as EQ constraints (normalization). Admissible ranges computed via parallel min/max LPs per level.
+**Scale LP (scaling.ts):** threshold variables s[1]…s[6]; neutral and good levels fixed as EQ constraints (normalization); z capped (≤100) so partial matrices that never chain to the anchors stay bounded. Intervals starting at C0 lower-bound the difference at 0 (no s_0). Admissible ranges computed via parallel min/max LPs per level **with z fixed at z*** — the range is the variation among maximally-discriminating scales (z free would collapse all category separations into degenerate judgment-violating spans). Same pattern in weighting.ts (z ≤ 1; all-equal judgments now yield 1/n).
+
+**Decision-profile integrity (aggregation.ts):** `resolveBands` treats a profile whose levelId no longer resolves in the derived scale as incomplete (falls back to the cached `minScore` — never renormalizes over a subset); `bandOrderConflicts` flags bands whose live-resolved cut-offs invert the stored order; `OptionResult.pendingGates` marks classifications provisional while gates are unanswered.
 
 ## Extension points
 

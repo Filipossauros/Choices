@@ -120,13 +120,50 @@ export function resolveBands(model: EvaluationModel): DecisionBand[] {
   const qualIds = Object.values(model.valueTree.criteria)
     .filter((c) => c.type === 'qualification')
     .map((c) => c.id);
+  const scaleMap = new Map(model.derivedScales.map((s) => [s.criterionId, s]));
   return model.decisionScale.map((b) => {
     if (!b.referenceProfile) return b;
-    const complete = qualIds.every((id) => b.referenceProfile![id]);
+    // Complete = every qualification criterion has a level AND that level still
+    // resolves in the criterion's derived scale. A dead level id (level deleted
+    // or scale re-derived) must count as incomplete, otherwise scoreProfile
+    // would silently renormalize the weights over the remaining criteria.
+    const complete = qualIds.every((id) => {
+      const levelId = b.referenceProfile![id];
+      return !!levelId && !!scaleMap.get(id)?.values.some((v) => v.levelId === levelId);
+    });
     if (!complete) return b;
     const s = scoreProfile(model, b.referenceProfile);
     return s == null ? b : { ...b, minScore: s };
   });
+}
+
+/**
+ * Detect decision bands whose live-resolved cut-offs invert the order implied
+ * by their stored `minScore`s (the last state the user accepted). This happens
+ * when scales or weights change after profiles were set: a nominally higher
+ * band's profile can drop below a lower band's, and `classify` would silently
+ * swap their meaning. Pairs whose stored cut-offs tie are skipped (that is the
+ * near-collision case, warned separately).
+ */
+export function bandOrderConflicts(
+  model: EvaluationModel,
+): { higher: DecisionBand; lower: DecisionBand }[] {
+  const resolved = resolveBands(model);
+  const stored = model.decisionScale;
+  const conflicts: { higher: DecisionBand; lower: DecisionBand }[] = [];
+  for (let i = 0; i < stored.length; i++) {
+    for (let j = i + 1; j < stored.length; j++) {
+      const storedDiff = stored[i].minScore - stored[j].minScore;
+      if (Math.abs(storedDiff) < 1e-9) continue;
+      const resolvedDiff = resolved[i].minScore - resolved[j].minScore;
+      if (storedDiff > 0 && resolvedDiff < 0) {
+        conflicts.push({ higher: resolved[i], lower: resolved[j] });
+      } else if (storedDiff < 0 && resolvedDiff > 0) {
+        conflicts.push({ higher: resolved[j], lower: resolved[i] });
+      }
+    }
+  }
+  return conflicts;
 }
 
 export function aggregate(evaluation: Evaluation): AggregationResult {
@@ -216,6 +253,12 @@ export function aggregate(evaluation: Evaluation): AggregationResult {
     const globalValue = global === null ? null : round2(global);
     const band = globalValue !== null ? classify(globalValue, decisionScale) : null;
 
+    // Unanswered gates make the classification provisional — any of them
+    // failing later would hard-reject the option regardless of its score.
+    const pendingGates = gateResults
+      .filter((g) => g.verdict === 'pending')
+      .map((g) => g.criterionId);
+
     return {
       optionId: option.id,
       globalValue,
@@ -223,6 +266,7 @@ export function aggregate(evaluation: Evaluation): AggregationResult {
       hardRejected: false,
       gateResults,
       criterionScores: nodeScores,
+      ...(pendingGates.length > 0 ? { pendingGates } : {}),
     };
   });
 

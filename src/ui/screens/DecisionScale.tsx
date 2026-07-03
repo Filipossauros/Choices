@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { useApp } from '../store';
 import { allGroupsConsistent } from '../../domain/tree';
-import { scoreProfile, resolveBands } from '../../engine/aggregation';
+import { scoreProfile, resolveBands, bandOrderConflicts } from '../../engine/aggregation';
 import ScreenNav from '../components/ScreenNav';
 import type { DecisionBand, QualificationCriterion } from '../../domain/types';
 import { v4 as uuidv4 } from 'uuid';
@@ -37,9 +37,27 @@ export default function DecisionScale() {
     update(bands.map((b) => (b.id === id ? { ...b, ...patch } : b)));
   }
 
+  function levelResolves(criterionId: string, levelId: string): boolean {
+    return model.derivedScales.some(
+      (s) => s.criterionId === criterionId && s.values.some((v) => v.levelId === levelId),
+    );
+  }
+  // Incomplete = a criterion without a level, or whose chosen level no longer
+  // resolves in the derived scale (level deleted / scale re-derived). Either
+  // way the cut-off falls back to the cached minScore instead of being derived.
   function profileIncomplete(b: DecisionBand): boolean {
     if (!b.referenceProfile) return true;
-    return qualCriteria.some((c) => !b.referenceProfile![c.id]);
+    return qualCriteria.some((c) => {
+      const lv = b.referenceProfile![c.id];
+      return !lv || !levelResolves(c.id, lv);
+    });
+  }
+  function profileHasDeadLevel(b: DecisionBand): boolean {
+    if (!b.referenceProfile) return false;
+    return qualCriteria.some((c) => {
+      const lv = b.referenceProfile![c.id];
+      return !!lv && !levelResolves(c.id, lv);
+    });
   }
 
   function addBand() {
@@ -110,7 +128,23 @@ export default function DecisionScale() {
     }
   }
   for (const b of incomplete) {
-    warnings.push(t('O perfil de referência de «{{label}}» está incompleto — defina um nível em todos os critérios.', { label: b.label }));
+    if (profileHasDeadLevel(b)) {
+      warnings.push(t('O perfil de «{{label}}» referencia um nível que já não existe — escolha novamente esse critério. Até lá, vale o último limiar calculado.', { label: b.label }));
+    } else {
+      warnings.push(t('O perfil de referência de «{{label}}» está incompleto — defina um nível em todos os critérios.', { label: b.label }));
+    }
+  }
+  // Order inversions: a nominally higher zone whose profile now scores below a
+  // lower zone's (scales/weights changed since the profiles were accepted).
+  for (const { higher, lower } of bandOrderConflicts(model)) {
+    warnings.push(
+      t('A zona «{{a}}» devia cortar acima de «{{b}}», mas o seu perfil pontua agora abaixo ({{sa}} < {{sb}}) — reveja os perfis ou a ponderação.', {
+        a: higher.label,
+        b: lower.label,
+        sa: higher.minScore.toFixed(1),
+        sb: lower.minScore.toFixed(1),
+      }),
+    );
   }
 
   // Preview axis bounds — ignore the base zone's own cut-off (it's a catch-all

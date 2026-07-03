@@ -6,16 +6,23 @@
  *   maximize z
  *   subject to:
  *     (1) Normalization: v[last] = 0,  v[i] ∈ [0, 1] for all i
- *     (2) For each pair (A,B) with c=0: v[A] = v[B]
- *     (3) For each pair (A,B) with c≥1: v[A] - v[B] ≥ z  (ordinal + positive)
- *     (4) Cardinal: for all pairs (p1,p2) with catLo(p1) < catLo(p2):
+ *     (2) For each pair (A,B) judged exactly C0: v[A] = v[B]
+ *     (3) For each pair (A,B) with catLo ≥ 1: v[A] - v[B] ≥ z  (ordinal + positive)
+ *         An interval starting at C0 ({lo:0, hi>0}) only requires v[A] - v[B] ≥ 0
+ *         — indifference is still admissible, so no strict margin is imposed.
+ *     (4) Cardinal: for all pairs (p1,p2) with catLo(p2) > catHi(p1):
  *           d(p2) - d(p1) ≥ z  i.e.  v[p2.A]-v[p2.B]-v[p1.A]+v[p1.B] ≥ z
- *     z ≥ 0
+ *         Interval judgments only dominate/are dominated when their category
+ *         ranges do not overlap (lo of one strictly above hi of the other);
+ *         overlapping intervals impose no relative ordering.
+ *     z ∈ [0, 1]
  *
  *   z* > 0  ⟹ consistent (MACBETH cardinal + ordinal consistency)
  *   z* = 0  ⟹ inconsistent (no positive margin exists)
  *
- * Note: v[i] ∈ [0,1] provides the normalization that makes the LP bounded.
+ * Note: v[i] ∈ [0,1] provides the normalization that makes the LP bounded;
+ * z ≤ 1 keeps the LP bounded even when no constraint involves z (e.g. a matrix
+ * judged entirely C0), which is trivially consistent.
  * The empty-judgment case is handled as trivially consistent (z = 1).
  */
 
@@ -57,8 +64,9 @@ function buildLP(
     bounds.push({ name: vn(id), type: 'DB', lb: 0, ub: 1 });
   }
 
-  // z ≥ 0
-  bounds.push({ name: 'z', type: 'LO', lb: 0 });
+  // z ∈ [0, 1] — the upper bound keeps the LP bounded when no constraint
+  // involves z (all-C0 matrices), which must solve as consistent.
+  bounds.push({ name: 'z', type: 'DB', lb: 0, ub: 1 });
 
   // Fix least-attractive (last) to 0
   const last = ids[ids.length - 1];
@@ -68,9 +76,10 @@ function buildLP(
   for (let idx = 0; idx < entries.length; idx++) {
     const { idA, idB, judgment } = entries[idx];
     const kLo = catLo(judgment);
+    const kHi = catHi(judgment);
 
-    if (kLo === 0) {
-      // Equal attractiveness: v[A] = v[B]
+    if (kLo === 0 && kHi === 0) {
+      // Exactly C0 — equal attractiveness: v[A] = v[B]
       constraints.push({
         name: `eq_${idx}`,
         vars: [
@@ -78,6 +87,18 @@ function buildLP(
           { name: vn(idB), coef: -1 },
         ],
         type: 'EQ',
+        rhs: 0,
+      });
+    } else if (kLo === 0) {
+      // Interval starting at C0 ("null to hi") — indifference still admissible,
+      // so only weak dominance is required: v[A] - v[B] ≥ 0 (no z margin).
+      constraints.push({
+        name: `ord_${idx}`,
+        vars: [
+          { name: vn(idA), coef: 1 },
+          { name: vn(idB), coef: -1 },
+        ],
+        type: 'GE',
         rhs: 0,
       });
     } else {
@@ -96,19 +117,31 @@ function buildLP(
   }
 
   // ── Cardinal consistency ─────────────────────────────────────────────────
-  // For every pair of judgment entries with different (non-zero) categories,
-  // the higher-category pair must have a strictly larger v-difference.
+  // A pair must have a strictly larger v-difference than another only when its
+  // category range sits strictly above the other's: catLo(p1) > catHi(p2).
+  // For exact judgments (lo = hi) this is the classic "different non-zero
+  // categories" rule; overlapping intervals impose no relative ordering.
   for (let p = 0; p < entries.length; p++) {
     const ep = entries[p];
-    const kp = catLo(ep.judgment);
-    if (kp === 0) continue;
+    // Exactly-C0 pairs are pinned to d = 0 by their EQ constraint; the ordinal
+    // constraints already dominate them, so skip to avoid redundant rows.
+    if (catLo(ep.judgment) === 0 && catHi(ep.judgment) === 0) continue;
 
     for (let q = p + 1; q < entries.length; q++) {
       const eq = entries[q];
-      const kq = catLo(eq.judgment);
-      if (kq === 0 || kp === kq) continue;
+      if (catLo(eq.judgment) === 0 && catHi(eq.judgment) === 0) continue;
 
-      const [lo, hi] = kp < kq ? [ep, eq] : [eq, ep];
+      let lo: JudgmentEntry;
+      let hi: JudgmentEntry;
+      if (catLo(ep.judgment) > catHi(eq.judgment)) {
+        lo = eq;
+        hi = ep;
+      } else if (catLo(eq.judgment) > catHi(ep.judgment)) {
+        lo = ep;
+        hi = eq;
+      } else {
+        continue; // category ranges overlap — no ordering implied
+      }
 
       // d(hi) - d(lo) ≥ z
       // (v[hi.A] - v[hi.B]) - (v[lo.A] - v[lo.B]) ≥ z
@@ -223,10 +256,11 @@ async function suggestCorrection(
   const current = entries[idx];
   const kCurrent = catLo(current.judgment);
 
-  // Try all categories from 0 to 6, skipping the current one
-  const candidates: MacbethCategory[] = ([0, 1, 2, 3, 4, 5, 6] as MacbethCategory[]).filter(
-    (c) => c !== kCurrent,
-  );
+  // Try all categories except the current one, nearest to the assessor's
+  // original judgment first — the suggestion should disturb it minimally.
+  const candidates: MacbethCategory[] = ([0, 1, 2, 3, 4, 5, 6] as MacbethCategory[])
+    .filter((c) => c !== kCurrent)
+    .sort((a, b) => Math.abs(a - kCurrent) - Math.abs(b - kCurrent));
 
   for (const cat of candidates) {
     const candidate: MacbethJudgment = { kind: 'exact', category: cat };

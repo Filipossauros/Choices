@@ -50,7 +50,10 @@ export async function deriveWeights(
   for (let k = 1; k <= 6; k++) {
     bounds.push({ name: sName(k), type: 'FR' });
   }
-  bounds.push({ name: 'z', type: 'LO', lb: 0 });
+  // z ∈ [0, 1] — the cap keeps the LP bounded when no judgment constrains z
+  // (e.g. all criteria judged equally important), which must solve as
+  // consistent with weights 1/n rather than returning an unbounded error.
+  bounds.push({ name: 'z', type: 'DB', lb: 0, ub: 1 });
 
   // Anchor: all-Neutro = 0
   constraints.push({
@@ -99,17 +102,30 @@ export async function deriveWeights(
         rhs: 0,
       });
     } else {
-      constraints.push({
-        name: `wlb_${idx}`,
-        vars: [
-          { name: vA, coef: 1 },
-          { name: vB, coef: -1 },
-          { name: sName(kLo), coef: -1 },
-          { name: 'z', coef: -1 },
-        ],
-        type: 'GE',
-        rhs: 0,
-      });
+      if (kLo >= 1) {
+        constraints.push({
+          name: `wlb_${idx}`,
+          vars: [
+            { name: vA, coef: 1 },
+            { name: vB, coef: -1 },
+            { name: sName(kLo), coef: -1 },
+            { name: 'z', coef: -1 },
+          ],
+          type: 'GE',
+          rhs: 0,
+        });
+      } else {
+        // Interval starting at C0: indifference admissible — d ≥ 0 only.
+        constraints.push({
+          name: `wlb_${idx}`,
+          vars: [
+            { name: vA, coef: 1 },
+            { name: vB, coef: -1 },
+          ],
+          type: 'GE',
+          rhs: 0,
+        });
+      }
       if (kHi < 6) {
         constraints.push({
           name: `wub_${idx}`,
@@ -160,6 +176,17 @@ export async function deriveWeights(
 
   const consistencyMargin = result.status === 'optimal' ? result.objectiveValue : -1;
 
+  // Range LPs keep z at its optimum — same rationale as scaling.ts: with z
+  // free the separations collapse and the ranges degenerate.
+  const rangeBounds =
+    consistencyMargin > 0
+      ? bounds.map((b) =>
+          b.name === 'z'
+            ? ({ name: 'z', type: 'FX', lb: consistencyMargin, ub: consistencyMargin } as LPBound)
+            : b,
+        )
+      : bounds;
+
   // Compute central weight + admissible [min, max] for each criterion via parallel LPs
   const weights: CriterionWeight[] = await Promise.all(
     criterionIds.map(async (id) => {
@@ -172,14 +199,14 @@ export async function deriveWeights(
           direction: 'MIN',
           objective: [{ name: varName, coef: 1 }],
           constraints,
-          bounds,
+          bounds: rangeBounds,
         }),
         solveLP({
           name: `wmax_${id}`,
           direction: 'MAX',
           objective: [{ name: varName, coef: 1 }],
           constraints,
-          bounds,
+          bounds: rangeBounds,
         }),
       ]);
 
