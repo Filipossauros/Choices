@@ -24,6 +24,15 @@ function Svg({ className = 'w-4 h-4', children, ...rest }: P) {
   );
 }
 
+/** Drag handle — the conventional six-dot grip. */
+export function IconGrip(p: P) {
+  return (
+    <Svg {...p} strokeWidth={2.5}>
+      <path d="M9 5h.01M15 5h.01M9 12h.01M15 12h.01M9 19h.01M15 19h.01" />
+    </Svg>
+  );
+}
+
 /** Gate / habilitação — a doorway. */
 export function IconGate(p: P) {
   return (

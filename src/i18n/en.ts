@@ -100,6 +100,21 @@ export const en: Record<string, string> = {
   'Fator composto (decompõe em subcritérios)': 'Composite factor (decomposes into sub-criteria)',
   'Qualificação (escala graduada)': 'Qualification (graded scale)',
   'Porta (habilitação binária)': 'Gate (binary eligibility)',
+  'Condição eliminatória (sim/não)': 'Eliminatory condition (yes/no)',
+  'Elimina a proposta inteira.': 'Eliminates the entire proposal.',
+  'Se a resposta for «não cumpre», a proposta é excluída sem chegar a ser pontuada — não é compensada por nenhum outro critério. O alcance é sempre global, mesmo que esta condição esteja dentro de um fator.':
+    'If the answer is «does not comply», the proposal is excluded without ever being scored — no other criterion can compensate for it. The scope is always global, even when this condition sits inside a factor.',
+  'Se «não» devesse apenas pontuar mal — admitindo compensação pelos restantes critérios — então isto não é uma condição eliminatória, mas um critério de qualificação com dois níveis.':
+    'If «no» should merely score badly — allowing the remaining criteria to compensate — then this is not an eliminatory condition but a two-level qualification criterion.',
+  'Converter em critério Sim/Não (pontua, não elimina)': 'Convert to a Yes/No criterion (scores, does not eliminate)',
+  'Elimina a proposta inteira se não for cumprida — alcance global, não apenas neste fator.':
+    'Eliminates the entire proposal if unmet — global scope, not just within this factor.',
+  eliminatório: 'eliminatory',
+  Eliminatório: 'Eliminatory',
+  Sim: 'Yes',
+  Não: 'No',
+  'Arrastar para reordenar (ou ↑/↓ com o teclado)': 'Drag to reorder (or ↑/↓ with the keyboard)',
+  'Reordenar «{{label}}» — posição {{i}} de {{n}}': 'Reorder «{{label}}» — position {{i}} of {{n}}',
   'Este fator tem subcritérios. Remova-os para mudar o tipo.':
     'This factor has sub-criteria. Remove them to change its type.',
   'Um fator composto agrega os seus subcritérios por ponderação. Depois de o guardar, use «+ subcritério» para o decompor. A sua pontuação é calculada a partir dos filhos.':

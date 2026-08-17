@@ -222,7 +222,7 @@ function TypeBadge({ type }: { type: 'composite' | 'qualification' | 'gate' }) {
   const map = {
     composite: { label: 'fator', cls: 'bg-emerald-100 text-emerald-700' },
     qualification: { label: 'qualif.', cls: 'bg-indigo-100 text-indigo-700' },
-    gate: { label: 'porta', cls: 'bg-orange-100 text-orange-700' },
+    gate: { label: 'eliminatório', cls: 'bg-orange-100 text-orange-700' },
   } as const;
   const badge = map[type];
   return <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${badge.cls}`}>{t(badge.label)}</span>;

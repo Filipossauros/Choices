@@ -229,6 +229,30 @@ export function updateCriterion(tree: ValueTree, criterion: Criterion): ValueTre
   return { ...tree, criteria: { ...tree.criteria, [criterion.id]: criterion } };
 }
 
+/**
+ * Move a child to a new position within the same parent group. `toIndex` is the
+ * target slot in the list *after* the item is lifted out, so moving down by one
+ * means `toIndex === fromIndex + 1` is a no-op — callers should pass the final
+ * intended index. Purely presentational: weights and judgments are keyed by
+ * criterion id, so sibling order carries no model meaning.
+ */
+export function reorderChild(
+  tree: ValueTree,
+  parentId: string,
+  fromIndex: number,
+  toIndex: number,
+): ValueTree {
+  const root = mapNode(tree.root, (n) => {
+    if (n.criterionId !== parentId) return n;
+    if (fromIndex < 0 || fromIndex >= n.children.length) return n;
+    const children = [...n.children];
+    const [moved] = children.splice(fromIndex, 1);
+    children.splice(Math.max(0, Math.min(toIndex, children.length)), 0, moved);
+    return { ...n, children };
+  });
+  return { ...tree, root };
+}
+
 /** Remove a node and its whole subtree; prunes orphaned criteria entries. */
 export function removeNode(tree: ValueTree, id: string): ValueTree {
   function strip(node: ValueTreeNode): ValueTreeNode {

@@ -11,10 +11,10 @@ import type {
   ValueTreeNode,
 } from '../../domain/types';
 import { ROOT_ID } from '../../domain/types';
-import { addChild, updateCriterion, removeNode, findNode } from '../../domain/tree';
+import { addChild, updateCriterion, removeNode, findNode, parentOf, reorderChild } from '../../domain/tree';
 import { v4 as uuidv4 } from 'uuid';
 import ScreenNav from '../components/ScreenNav';
-import { IconGate, IconQualification, IconComposite } from '../components/icons';
+import { IconGate, IconQualification, IconComposite, IconGrip } from '../components/icons';
 
 const DEFAULT_LEVELS = ['Excelente', 'Bom', 'Suficiente', 'Neutro', 'Insuficiente'];
 
@@ -118,6 +118,24 @@ function CriterionForm({
   const [vetoLevelId, setVetoLevelId] = useState<string | undefined>(initQ?.vetoLevelId);
   const [continuous, setContinuous] = useState<boolean>(initQ?.continuous ?? false);
 
+  /**
+   * Escape hatch from the eliminatory type: a yes/no question that should merely
+   * score badly is a two-level qualification, not a gate. Anchoring "Não" at
+   * Neutro (0) and "Sim" at Bom (100) needs no judgments — both levels are the
+   * anchors, so the scale derives trivially.
+   */
+  function convertToBinaryQualification() {
+    setType('qualification');
+    setLevels([
+      { id: uuidv4(), label: t('Sim') },
+      { id: uuidv4(), label: t('Não') },
+    ]);
+    setGoodIndex(0);
+    setNeutralIndex(1);
+    setVetoLevelId(undefined);
+    setContinuous(false);
+  }
+
   function handleSave() {
     if (!label.trim()) return alert(t('Introduza um nome para o critério.'));
     const id = initial?.id ?? uuidv4();
@@ -166,7 +184,7 @@ function CriterionForm({
             </label>
             <label className={`flex items-center gap-2 ${lockedComposite ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}>
               <input type="radio" checked={type === 'gate'} disabled={lockedComposite} onChange={() => setType('gate')} />
-              <span className="text-sm flex items-center gap-1.5"><IconGate className="w-4 h-4 text-orange-600" /> {t('Porta (habilitação binária)')}</span>
+              <span className="text-sm flex items-center gap-1.5"><IconGate className="w-4 h-4 text-orange-600" /> {t('Condição eliminatória (sim/não)')}</span>
             </label>
           </div>
           {lockedComposite && (
@@ -179,6 +197,27 @@ function CriterionForm({
         <p className="text-sm text-gray-500 bg-emerald-50 border border-emerald-100 rounded-lg px-3 py-2">
           {t('Um fator composto agrega os seus subcritérios por ponderação. Depois de o guardar, use «+ subcritério» para o decompor. A sua pontuação é calculada a partir dos filhos.')}
         </p>
+      )}
+
+      {type === 'gate' && (
+        <div className="text-sm bg-orange-50 border border-orange-200 rounded-lg px-3 py-2.5 space-y-2.5">
+          <p className="text-orange-900">
+            <strong>{t('Elimina a proposta inteira.')}</strong>{' '}
+            {t('Se a resposta for «não cumpre», a proposta é excluída sem chegar a ser pontuada — não é compensada por nenhum outro critério. O alcance é sempre global, mesmo que esta condição esteja dentro de um fator.')}
+          </p>
+          <div className="border-t border-orange-200 pt-2.5">
+            <p className="text-xs text-orange-800/80 mb-2">
+              {t('Se «não» devesse apenas pontuar mal — admitindo compensação pelos restantes critérios — então isto não é uma condição eliminatória, mas um critério de qualificação com dois níveis.')}
+            </p>
+            <button
+              type="button"
+              onClick={convertToBinaryQualification}
+              className="px-3 py-1.5 text-xs font-medium bg-white text-indigo-700 border border-indigo-200 rounded-lg hover:bg-indigo-50"
+            >
+              {t('Converter em critério Sim/Não (pontua, não elimina)')}
+            </button>
+          </div>
+        </div>
       )}
 
       {type === 'qualification' && (
@@ -219,7 +258,7 @@ const TYPE_ICON: Record<CritType, { Icon: typeof IconGate; cls: string }> = {
 const TYPE_TAG: Record<CritType, { label: string; cls: string }> = {
   composite: { label: 'Fator', cls: 'bg-emerald-100 text-emerald-700' },
   qualification: { label: 'Qualificação', cls: 'bg-indigo-100 text-indigo-700' },
-  gate: { label: 'Porta', cls: 'bg-orange-100 text-orange-700' },
+  gate: { label: 'Eliminatório', cls: 'bg-orange-100 text-orange-700' },
 };
 
 export default function Criteria() {
@@ -230,6 +269,10 @@ export default function Criteria() {
   const [addingUnder, setAddingUnder] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [modelLabel, setModelLabel] = useState(model.label);
+  // Reordering is confined to siblings of one group: cross-group moves would
+  // silently invalidate both groups' weights, so they are rejected on drop.
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [dropAt, setDropAt] = useState<{ id: string; edge: 'top' | 'bottom' } | null>(null);
 
   const criteria = model.valueTree.criteria;
   const totalLeaves = Object.values(criteria).filter((c) => c.type !== 'composite').length;
@@ -275,6 +318,32 @@ export default function Criteria() {
     });
   }
 
+  function moveNode(parentId: string, fromIndex: number, toIndex: number) {
+    if (fromIndex === toIndex) return;
+    dispatch({
+      type: 'UPDATE_MODEL',
+      patch: { valueTree: reorderChild(model.valueTree, parentId, fromIndex, toIndex) },
+    });
+  }
+
+  /** True when the dragged node is a sibling of `parentId` — the only legal drop. */
+  function canDropIn(parentId: string): boolean {
+    return dragId !== null && parentOf(model.valueTree, dragId) === parentId;
+  }
+
+  function handleDrop(parentId: string, targetIndex: number, edge: 'top' | 'bottom') {
+    setDropAt(null);
+    if (!dragId || !canDropIn(parentId)) return;
+    const siblings = findNode(model.valueTree, parentId)?.children ?? [];
+    const from = siblings.findIndex((s) => s.criterionId === dragId);
+    setDragId(null);
+    if (from < 0) return;
+    // Target slot in the list *after* the dragged item is lifted out.
+    let to = edge === 'bottom' ? targetIndex + 1 : targetIndex;
+    if (from < to) to -= 1;
+    moveNode(parentId, from, to);
+  }
+
   function commitLabel() {
     if (modelLabel !== model.label) dispatch({ type: 'UPDATE_MODEL', patch: { label: modelLabel } });
   }
@@ -292,7 +361,7 @@ export default function Criteria() {
   }
 
   // ── Recursive node renderer ──────────────────────────────────────────────
-  function renderNode(node: ValueTreeNode, depth: number) {
+  function renderNode(node: ValueTreeNode, depth: number, parentId: string, index: number, siblingCount: number) {
     const c = criteria[node.criterionId];
     if (!c) return null;
     const tag = TYPE_TAG[c.type];
@@ -307,13 +376,58 @@ export default function Criteria() {
       );
     }
 
+    const isDragging = dragId === c.id;
+    const showTop = dropAt?.id === c.id && dropAt.edge === 'top';
+    const showBottom = dropAt?.id === c.id && dropAt.edge === 'bottom';
+
+    function onDragOver(e: React.DragEvent) {
+      if (!dragId || dragId === c!.id || !canDropIn(parentId)) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      const r = e.currentTarget.getBoundingClientRect();
+      const edge = e.clientY < r.top + r.height / 2 ? 'top' : 'bottom';
+      if (dropAt?.id !== c!.id || dropAt.edge !== edge) setDropAt({ id: c!.id, edge });
+    }
+
+    /** Keyboard equivalent of dragging, so reordering is not pointer-only. */
+    function onHandleKeyDown(e: React.KeyboardEvent) {
+      if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+      e.preventDefault();
+      const to = index + (e.key === 'ArrowUp' ? -1 : 1);
+      if (to < 0 || to >= siblingCount) return;
+      moveNode(parentId, index, to);
+    }
+
     return (
       <li key={c.id} className="space-y-2">
         <div
-          className={`flex items-start gap-3 flex-wrap p-3 border rounded-lg hover:border-gray-300 ${
-            isComposite ? 'bg-emerald-50/60 border-emerald-200' : 'bg-white border-gray-200'
-          }`}
+          className="relative"
+          onDragOver={onDragOver}
+          onDragLeave={() => setDropAt((p) => (p?.id === c.id ? null : p))}
+          onDrop={(e) => { e.preventDefault(); handleDrop(parentId, index, dropAt?.edge ?? 'top'); }}
         >
+          {showTop && <div className="absolute -top-1 inset-x-0 h-0.5 rounded-full bg-blue-500 z-10" aria-hidden="true" />}
+          {showBottom && <div className="absolute -bottom-1 inset-x-0 h-0.5 rounded-full bg-blue-500 z-10" aria-hidden="true" />}
+        <div
+          className={`flex items-start gap-3 flex-wrap p-3 border rounded-lg hover:border-gray-300 transition-opacity ${
+            isComposite ? 'bg-emerald-50/60 border-emerald-200' : 'bg-white border-gray-200'
+          } ${isDragging ? 'opacity-40' : ''}`}
+        >
+          {/* A span, not a button: form controls are unreliable drag sources in
+              several browsers. role/tabIndex keep it operable from the keyboard. */}
+          <span
+            draggable
+            role="button"
+            tabIndex={0}
+            onDragStart={(e) => { setDragId(c.id); e.dataTransfer.effectAllowed = 'move'; }}
+            onDragEnd={() => { setDragId(null); setDropAt(null); }}
+            onKeyDown={onHandleKeyDown}
+            className="mt-1 text-gray-300 hover:text-gray-600 cursor-grab active:cursor-grabbing shrink-0 focus:outline-none focus:text-blue-600 focus:ring-2 focus:ring-blue-300 rounded"
+            title={t('Arrastar para reordenar (ou ↑/↓ com o teclado)')}
+            aria-label={t('Reordenar «{{label}}» — posição {{i}} de {{n}}', { label: c.label, i: index + 1, n: siblingCount })}
+          >
+            <IconGrip className="w-3.5 h-4" />
+          </span>
           {isComposite ? (
             <button onClick={() => toggleCollapse(c.id)} className="text-gray-400 hover:text-gray-700 text-xs mt-1 w-3" aria-label={isOpen ? t('Colapsar') : t('Expandir')}>
               {isOpen ? '▾' : '▸'}
@@ -341,6 +455,11 @@ export default function Criteria() {
                 {c.vetoLevelId && t(' · Veto: «{{veto}}»', { veto: c.descriptor.levels.find((l) => l.id === c.vetoLevelId)?.label })}
               </p>
             )}
+            {c.type === 'gate' && (
+              <p className="text-xs text-orange-700/80 mt-0.5">
+                {t('Elimina a proposta inteira se não for cumprida — alcance global, não apenas neste fator.')}
+              </p>
+            )}
             {isComposite && (
               <p className="text-xs text-emerald-700/70 mt-0.5">{t('{{n}} subcritério(s)', { n: node.children.length })}</p>
             )}
@@ -353,12 +472,15 @@ export default function Criteria() {
             <button onClick={() => deleteCriterion(c.id)} className="px-2 py-1 text-xs text-red-500 border border-red-200 rounded hover:bg-red-50">{t('Eliminar')}</button>
           </div>
         </div>
+        </div>
 
         {/* Children (indented) */}
         {isComposite && isOpen && (
           <div className="ml-5 pl-3 border-l-2 border-emerald-100 space-y-2">
             {node.children.length > 0 && (
-              <ul className="space-y-2">{node.children.map((ch) => renderNode(ch, depth + 1))}</ul>
+              <ul className="space-y-2">
+                {node.children.map((ch, i) => renderNode(ch, depth + 1, c.id, i, node.children.length))}
+              </ul>
             )}
             {addingUnder === c.id ? (
               <CriterionForm onSave={(nc) => saveNewCriterion(c.id, nc)} onCancel={() => setAddingUnder(null)} />
@@ -406,7 +528,9 @@ export default function Criteria() {
           </p>
         )}
 
-        <ul className="space-y-2">{rootChildren.map((ch) => renderNode(ch, 0))}</ul>
+        <ul className="space-y-2">
+          {rootChildren.map((ch, i) => renderNode(ch, 0, ROOT_ID, i, rootChildren.length))}
+        </ul>
 
         {addingUnder === ROOT_ID ? (
           <CriterionForm onSave={(c) => saveNewCriterion(ROOT_ID, c)} onCancel={() => setAddingUnder(null)} />
