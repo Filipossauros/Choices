@@ -47,6 +47,7 @@ type Action =
   | { type: 'UPDATE_MODEL'; patch: Partial<EvaluationModel> }
   | { type: 'START_EVALUATION'; model: EvaluationModel; label?: string }
   | { type: 'OPEN_EVALUATION'; evaluation: Evaluation }
+  | { type: 'REFRESH_EVALUATION_MODEL'; model: EvaluationModel }
   | { type: 'UPDATE_EVALUATION'; patch: Partial<Evaluation> };
 
 export function createEmptyModel(): EvaluationModel {
@@ -112,6 +113,37 @@ function reducer(state: AppState, action: Action): AppState {
 
     case 'OPEN_EVALUATION':
       return { currentScreen: 'analysis', mode: 'apply', model: null, evaluation: action.evaluation };
+
+    /**
+     * Replace the evaluation's embedded model snapshot with a newer version of
+     * the same model, keeping every performance that still resolves against it.
+     * Without this an evaluation started from an unfinished model could never
+     * be aggregated — the only way out was to discard it and re-enter the data.
+     */
+    case 'REFRESH_EVALUATION_MODEL': {
+      if (!state.evaluation) return state;
+      const model = structuredClone(action.model);
+      const { criteria } = model.valueTree;
+      const performances = state.evaluation.performances.filter((p) => {
+        const crit = criteria[p.criterionId];
+        if (!crit) return false;
+        if (crit.type === 'gate') return true;
+        if (crit.type !== 'qualification') return false;
+        // Continuous scores are positions on the curve, so they survive a
+        // relabelled descriptor; discrete ones must still name a live level.
+        return p.position != null || crit.descriptor.levels.some((l) => l.id === p.value);
+      });
+      return {
+        ...state,
+        evaluation: {
+          ...state.evaluation,
+          model,
+          performances,
+          aggregationResult: undefined,
+          updatedAt: new Date().toISOString(),
+        },
+      };
+    }
 
     case 'UPDATE_EVALUATION':
       if (!state.evaluation) return state;

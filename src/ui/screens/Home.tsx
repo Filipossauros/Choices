@@ -5,6 +5,7 @@ import { repository } from '../../repository';
 import type { DocMeta } from '../../repository';
 import type { EvaluationModel } from '../../domain/types';
 import { MODEL_VERSION } from '../../domain/types';
+import { modelReadiness } from '../../domain/tree';
 import MethodPage from './MethodPage';
 import ManifestPage from './ManifestPage';
 import { IconPencil, IconClipboard, IconArchitecture, IconMonitor, IconImport } from '../components/icons';
@@ -380,7 +381,7 @@ function makeTemplateRisco(): EvaluationModel {
 }
 
 const TEMPLATES: { key: string; Icon: ComponentType<SVGProps<SVGSVGElement>>; label: string; meta: string; factory: () => EvaluationModel }[] = [
-  { key: 'architecture', Icon: IconArchitecture, label: 'Avaliação de arquiteturas de SI', meta: '3 fatores · 5 critérios · 1 porta', factory: makeTemplateArchitecture },
+  { key: 'architecture', Icon: IconArchitecture, label: 'Avaliação de arquiteturas de SI', meta: '3 fatores · 5 critérios · 1 condição eliminatória', factory: makeTemplateArchitecture },
   { key: 'platform', Icon: IconMonitor, label: 'Risco / monitorização de plataforma', meta: 'HealthStatus + 3 métricas contínuas', factory: makeTemplateRisco },
 ];
 
@@ -431,9 +432,35 @@ export default function Home() {
     await repository.deleteModel(id);
     refresh();
   }
+  /**
+   * An evaluation embeds a snapshot of the model, so applying an unfinished one
+   * yields an evaluation that can never be aggregated. Warn before that happens
+   * rather than letting the user discover it after entering every performance.
+   */
   async function applyModel(id: string) {
     const model = await repository.loadModel(id);
-    if (model) dispatch({ type: 'START_EVALUATION', model });
+    if (!model) return;
+    const r = modelReadiness(model);
+    if (!r.ready) {
+      const missing = [
+        !r.hasCriteria ? t('critérios de qualificação') : null,
+        r.hasCriteria && !r.scalesReady
+          ? t('escalas consistentes ({{list}})', { list: r.pendingScales.join(', ') })
+          : null,
+        !r.weightsReady ? t('ponderação de todos os grupos') : null,
+      ].filter(Boolean).join('; ');
+      const ok = confirm(
+        t('«{{label}}» ainda não está pronto para avaliar — falta: {{missing}}.\n\nPode continuar e preencher os desempenhos, mas os resultados só aparecem depois de completar o modelo e atualizar esta avaliação.\n\nContinuar mesmo assim?', {
+          label: model.label,
+          missing,
+        }),
+      );
+      if (!ok) {
+        dispatch({ type: 'EDIT_MODEL', model });
+        return;
+      }
+    }
+    dispatch({ type: 'START_EVALUATION', model });
   }
   async function resumeEvaluation(id: string) {
     const evaluation = await repository.loadEvaluation(id);

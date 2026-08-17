@@ -105,7 +105,7 @@ export default function Report() {
       return {
         iconType: 'fail',
         sub: gate
-          ? t('Porta «{{gate}}» não cumprida — eliminado antes da pontuação.', { gate })
+          ? t('Condição eliminatória «{{gate}}» não cumprida — eliminado antes da pontuação.', { gate })
           : veto
           ? t('Veto em «{{veto}}».', { veto })
           : t('Eliminado antes da pontuação.'),
@@ -270,7 +270,7 @@ export default function Report() {
         head: [['#', t(subj.One), 'V(p)', t('Decisão'), t('Observações')]],
         body: sorted.map((r, i) => {
           const opt = evaluation.options.find((o) => o.id === r.optionId);
-          const gateNote = r.rejectedByGate ? t('Porta: {{label}}', { label: model.valueTree.criteria[r.rejectedByGate]?.label }) : '';
+          const gateNote = r.rejectedByGate ? t('Eliminatório: {{label}}', { label: model.valueTree.criteria[r.rejectedByGate]?.label }) : '';
           const vetoNote = r.vetoedByCriterion ? t('Veto: {{label}}', { label: model.valueTree.criteria[r.vetoedByCriterion]?.label }) : '';
           const userNote = optionNotes[r.optionId] ?? '';
           const obs = [gateNote, vetoNote, userNote].filter(Boolean).join(' | ');
@@ -319,7 +319,7 @@ export default function Report() {
     sectionTitle(2, t('Metodologia'));
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
-    const methodText = t('Este relatório utiliza o Método MACBETH (Measuring Attractiveness by a Categorical Based Evaluation Technique, Bana e Costa & Vansnick, 1994). O método utiliza juízos qualitativos de diferença de atratividade — de Nula a Extrema — entre pares de alternativas para construir escalas cardinais de valor por programação linear. O modelo de agregação é aditivo: V(p) = Σᵢ kᵢ · vᵢ(p), ancorado em Neutro = 0 e Bom = 100. A habilitação corre a montante — qualquer porta falhada reprova a {{one}} antes da agregação multicritério.', { one: t(subj.one) });
+    const methodText = t('Este relatório utiliza o Método MACBETH (Measuring Attractiveness by a Categorical Based Evaluation Technique, Bana e Costa & Vansnick, 1994). O método utiliza juízos qualitativos de diferença de atratividade — de Nula a Extrema — entre pares de alternativas para construir escalas cardinais de valor por programação linear. O modelo de agregação é aditivo: V(p) = Σᵢ kᵢ · vᵢ(p), ancorado em Neutro = 0 e Bom = 100. A habilitação corre a montante — qualquer condição eliminatória não cumprida reprova a {{one}} antes da agregação multicritério.', { one: t(subj.one) });
     const mLines = doc.splitTextToSize(sx(methodText), pageW - 28);
     checkPage(mLines.length * 4.5 + 8);
     doc.text(mLines, 14, y);
@@ -369,7 +369,7 @@ export default function Report() {
     if (gateCrit.length > 0) {
       autoTable(doc, {
         startY: y,
-        head: [[t('Porta (habilitação)'), t('Descrição')]],
+        head: [[t('Condição eliminatória'), t('Descrição')]],
         body: gateCrit.map((c) => [c.label, c.description ?? '']),
         styles: { fontSize: 8 },
         headStyles: { fillColor: [249, 115, 22] },
@@ -598,7 +598,7 @@ export default function Report() {
           <em>Measuring Attractiveness by a Categorical Based Evaluation Technique</em> {t('(Bana e Costa & Vansnick, 1994). Utiliza juízos qualitativos de diferença de atratividade — de Nula a Extrema — entre pares de alternativas para construir escalas cardinais de valor por programação linear.')}
         </p>
         <p className="text-sm text-gray-600 leading-relaxed">
-          {t('O modelo de agregação é aditivo:')} <strong>V(p) = Σᵢ kᵢ · vᵢ(p)</strong>, {t('ancorado em Neutro = 0 e Bom = 100. A habilitação corre a montante — qualquer porta falhada reprova a {{one}} antes da agregação. O valor global é classificado pela escala de decisão configurada.', { one: t(subj.one) })}
+          {t('O modelo de agregação é aditivo:')} <strong>V(p) = Σᵢ kᵢ · vᵢ(p)</strong>, {t('ancorado em Neutro = 0 e Bom = 100. A habilitação corre a montante — qualquer condição eliminatória não cumprida reprova a {{one}} antes da agregação. O valor global é classificado pela escala de decisão configurada.', { one: t(subj.one) })}
         </p>
       </section>
 

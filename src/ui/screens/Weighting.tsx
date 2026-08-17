@@ -137,12 +137,15 @@ function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; on
             <>
               {/* Passo 1 — ranking by importance */}
               <div className="space-y-3">
-                <div>
-                  <p className="text-sm font-semibold text-gray-700">{t('Passo 1 — Ordene os critérios por importância')}</p>
-                  <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                <details className="group/help">
+                  <summary className="text-sm font-semibold text-gray-700 cursor-pointer select-none flex items-center gap-1.5 hover:text-gray-900">
+                    <span className="text-gray-400 text-xs transition-transform group-open/help:rotate-90">▸</span>
+                    {t('Passo 1 — Ordene os critérios por importância')}
+                  </summary>
+                  <p className="text-xs text-gray-500 mt-1.5 leading-relaxed pl-4">
                     {t('Antes de quantificar, ordene os critérios do mais para o menos importante — ou seja, aquele cuja melhoria de Neutro para Bom traria mais valor fica no topo. As perguntas seguintes seguem esta ordem, comparando sempre o critério mais importante com o menos importante, o que torna cada comparação mais natural. (Ordene primeiro; alterar a ordem depois de responder pode baralhar as respostas já dadas.)')}
                   </p>
-                </div>
+                </details>
                 <ol className="space-y-1.5">
                   {orderedChildIds.map((id, i) => (
                     <li key={id} className="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2 bg-white">
@@ -199,7 +202,9 @@ function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; on
                 }
               />
 
-              <details className="border-t border-gray-100 pt-3 group" open={matrixItems.length <= 4}>
+              {/* Collapsed by default: the guided questions above already collect
+                  every judgment; the grid is the power-user view of the same data. */}
+              <details className="border-t border-gray-100 pt-3 group">
                 <summary className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 cursor-pointer select-none flex items-center gap-1.5 hover:text-gray-700">
                   <span className="transition-transform group-open:rotate-90">▸</span> {t('Matriz de juízos')}
                 </summary>
@@ -298,7 +303,13 @@ export default function Weighting() {
   const model = state.model!;
 
   const groups = weightingGroups(model).filter((g) => g.childIds.length > 0);
-  const [openGroups, setOpenGroups] = useState<Set<string>>(() => new Set(groups.map((g) => g.parentId)));
+  // Open only the first group still needing work: expanding every group at once
+  // stacks the same two-step explainer and matrix N times, and a model with a
+  // handful of factors becomes several screens of near-identical content.
+  const [openGroups, setOpenGroups] = useState<Set<string>>(() => {
+    const firstPending = groups.find((g) => !groupConsistent(model, g));
+    return new Set(firstPending ? [firstPending.parentId] : []);
+  });
 
   function toggle(parentId: string) {
     setOpenGroups((prev) => {

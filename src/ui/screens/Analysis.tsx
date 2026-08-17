@@ -1,10 +1,51 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useApp } from '../store';
-import type { Option, Performance, QualificationCriterion } from '../../domain/types';
+import type {
+  Criterion, EvaluationModel, Option, Performance, QualificationCriterion, ValueTreeNode,
+} from '../../domain/types';
+import { modelReadiness } from '../../domain/tree';
 import { v4 as uuidv4 } from 'uuid';
 import ScreenNav from '../components/ScreenNav';
+import ModelNotReady from '../components/ModelNotReady';
 import { IconGate, IconQualification } from '../components/icons';
+
+/** A scored column plus the composite factor it belongs to, in tree order. */
+interface Column {
+  crit: Criterion;
+  groupId: string | null;
+  groupLabel: string | null;
+}
+
+/**
+ * Columns in value-tree order so criteria stay under the factor they were
+ * grouped into — a flat alphabetical list would discard the structure the user
+ * built on the Criteria screen.
+ */
+function tableColumns(model: EvaluationModel): Column[] {
+  const { criteria } = model.valueTree;
+  const out: Column[] = [];
+  (function walk(node: ValueTreeNode, groupId: string | null, groupLabel: string | null) {
+    for (const child of node.children) {
+      const c = criteria[child.criterionId];
+      if (!c) continue;
+      if (c.type === 'composite') walk(child, c.id, c.label);
+      else out.push({ crit: c, groupId, groupLabel });
+    }
+  })(model.valueTree.root, null, null);
+  return out;
+}
+
+/** Consecutive columns sharing a factor, for the spanning header row. */
+function headerSpans(cols: Column[]): { label: string | null; span: number }[] {
+  const spans: { label: string | null; span: number }[] = [];
+  for (const col of cols) {
+    const last = spans[spans.length - 1];
+    if (last && last.label === col.groupLabel && col.groupLabel !== null) last.span++;
+    else spans.push({ label: col.groupLabel, span: 1 });
+  }
+  return spans;
+}
 
 /** Position [0,1] of a descriptor level (0 = least attractive). */
 function levelPos(crit: QualificationCriterion, levelId: string): number {
@@ -41,14 +82,25 @@ export default function Analysis() {
   const subjectColumnHeader = isPositions ? t('Posição / Momento') : t('Proposta');
   const subjectScreenTitle = isPositions ? t('Análise e monitorização') : t('Análise e avaliação');
   const subjectScreenDesc = isPositions
-    ? t('Registe as posições / momentos, verifique a habilitação (portas) e classifique o desempenho em cada critério de qualificação. Uma porta falhada exclui a posição antes da agregação.')
-    : t('Registe as propostas, verifique a habilitação (portas) e classifique o desempenho em cada critério de qualificação. Uma porta falhada reprova a proposta antes da agregação.');
+    ? t('Registe as posições / momentos, responda às condições eliminatórias e classifique o desempenho em cada critério de qualificação. Uma condição eliminatória não cumprida exclui a posição antes da agregação.')
+    : t('Registe as propostas, responda às condições eliminatórias e classifique o desempenho em cada critério de qualificação. Uma condição eliminatória não cumprida reprova a proposta antes da agregação.');
 
+  const columns = tableColumns(model);
+  const spans = headerSpans(columns);
   const qualCriteria = Object.values(model.valueTree.criteria).filter(
     (c) => c.type === 'qualification',
   ) as QualificationCriterion[];
   const gateCriteria = Object.values(model.valueTree.criteria).filter((c) => c.type === 'gate');
   const allCriteria = [...gateCriteria, ...qualCriteria];
+  const readiness = modelReadiness(model);
+
+  // Progress over the whole grid, so the user knows how much is left without
+  // scrolling the table sideways to look for empty cells.
+  const expected = evaluation.options.length * columns.length;
+  const liveIds = new Set(evaluation.options.map((o) => o.id));
+  const filled = evaluation.performances.filter(
+    (p) => liveIds.has(p.optionId) && model.valueTree.criteria[p.criterionId] && (p.value || p.position != null),
+  ).length;
 
   function findPerf(optionId: string, criterionId: string): Performance | undefined {
     return evaluation.performances.find((p) => p.optionId === optionId && p.criterionId === criterionId);
@@ -106,6 +158,10 @@ export default function Analysis() {
         <p className="text-sm text-gray-500">{subjectScreenDesc}</p>
       </div>
 
+      {/* Surfaced here rather than only on Results, so the gap is known before
+          the work of filling the grid, not after. */}
+      {!readiness.ready && <ModelNotReady compact />}
+
       <div className="flex items-center gap-3">
         <input
           value={newLabel}
@@ -120,31 +176,79 @@ export default function Analysis() {
       </div>
 
       {evaluation.options.length === 0 ? (
-        <p className="text-center text-gray-400 italic py-8">{t('Nenhuma {{subject}} registada ainda.', { subject: subjectSingular })}</p>
+        <div className="text-center py-10 px-4 border-2 border-dashed border-gray-200 rounded-xl space-y-1">
+          <p className="text-gray-500 text-sm">{t('Nenhuma {{subject}} registada ainda.', { subject: subjectSingular })}</p>
+          <p className="text-gray-400 text-xs max-w-md mx-auto">
+            {t('Dê um nome a cada alternativa que quer comparar ({{example}}) e classifique-a depois nos {{n}} critérios do modelo.', {
+              example: isPositions ? t('ex.: «Janeiro», «Fevereiro»') : t('ex.: «Proposta A», «Solução do fornecedor X»'),
+              n: columns.length,
+            })}
+          </p>
+        </div>
       ) : (
         <>
-          <div className="overflow-x-auto">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <p className="text-xs text-gray-500">
+              {t('{{filled}} de {{expected}} desempenhos preenchidos', { filled, expected })}
+              {columns.length > 4 && (
+                <span className="text-gray-400"> · {t('deslize a tabela na horizontal para ver todos os critérios')}</span>
+              )}
+            </p>
+            <div className="h-1.5 w-40 rounded-full bg-gray-200 overflow-hidden" aria-hidden="true">
+              <div
+                className={`h-full rounded-full transition-all ${filled >= expected ? 'bg-green-500' : 'bg-blue-500'}`}
+                style={{ width: `${expected ? Math.round((filled / expected) * 100) : 0}%` }}
+              />
+            </div>
+          </div>
+
+          <div className="overflow-x-auto border border-gray-200 rounded-lg">
             <table className="min-w-full text-sm border-collapse">
               <thead>
+                {/* Factor row — keeps the value-tree grouping visible */}
+                {spans.some((s) => s.label) && (
+                  <tr className="bg-gray-100">
+                    <th className="sticky left-0 z-20 bg-gray-100 border-b border-r border-gray-200" />
+                    {spans.map((s, i) => (
+                      <th
+                        key={i}
+                        colSpan={s.span}
+                        className="px-3 py-1.5 text-center text-[11px] font-semibold uppercase tracking-wide text-emerald-800 border-b border-r border-gray-200 last:border-r-0"
+                      >
+                        {s.label ?? ''}
+                      </th>
+                    ))}
+                    <th className="border-b border-gray-200" />
+                  </tr>
+                )}
                 <tr className="bg-gray-50">
-                  <th className="px-3 py-2 text-left font-medium text-gray-600 border border-gray-200 sticky left-0 bg-gray-50">{subjectColumnHeader}</th>
-                  {gateCriteria.map((c) => (
-                    <th key={c.id} className="px-3 py-2 text-center font-medium text-gray-600 border border-gray-200 bg-orange-50" title={t('Porta (habilitação)')}>
-                      <span className="inline-flex items-center gap-1.5"><IconGate className="w-3.5 h-3.5 text-orange-500" /> {c.label}</span>
+                  <th className="px-3 py-2 text-left font-medium text-gray-600 border-b border-r border-gray-200 sticky left-0 z-20 bg-gray-50 min-w-[9rem]">
+                    {subjectColumnHeader}
+                  </th>
+                  {columns.map(({ crit: c }) => (
+                    <th
+                      key={c.id}
+                      className={`px-3 py-2 text-center font-medium text-gray-600 border-b border-r border-gray-200 whitespace-nowrap ${
+                        c.type === 'gate' ? 'bg-orange-50' : ''
+                      }`}
+                      title={c.type === 'gate' ? t('Condição eliminatória') : t('Critério de qualificação')}
+                    >
+                      <span className="inline-flex items-center gap-1.5">
+                        {c.type === 'gate'
+                          ? <IconGate className="w-3.5 h-3.5 text-orange-500" />
+                          : <IconQualification className="w-3.5 h-3.5 text-indigo-500" />}
+                        {c.label}
+                        {c.type === 'qualification' && c.continuous ? t(' (contínuo)') : ''}
+                      </span>
                     </th>
                   ))}
-                  {qualCriteria.map((c) => (
-                    <th key={c.id} className="px-3 py-2 text-center font-medium text-gray-600 border border-gray-200" title={t('Critério de qualificação')}>
-                      <span className="inline-flex items-center gap-1.5"><IconQualification className="w-3.5 h-3.5 text-indigo-500" /> {c.label}{c.continuous ? t(' (contínuo)') : ''}</span>
-                    </th>
-                  ))}
-                  <th className="px-2 py-2 border border-gray-200" />
+                  <th className="px-2 py-2 border-b border-gray-200" />
                 </tr>
               </thead>
               <tbody>
                 {evaluation.options.map((option) => (
-                  <tr key={option.id} className="hover:bg-gray-50">
-                    <td className="px-3 py-2 border border-gray-200 sticky left-0 bg-white">
+                  <tr key={option.id} className="hover:bg-gray-50 group">
+                    <td className="px-3 py-2 border-b border-r border-gray-200 sticky left-0 z-10 bg-white group-hover:bg-gray-50">
                       {editingId === option.id ? (
                         <input
                           autoFocus
@@ -163,31 +267,31 @@ export default function Analysis() {
                       )}
                     </td>
 
-                    {gateCriteria.map((c) => {
-                      const val = findPerf(option.id, c.id)?.value ?? '';
-                      return (
-                        <td key={c.id} className="border border-gray-200 p-1 text-center">
-                          <select
-                            value={val}
-                            onChange={(e) => setPerf(option.id, c.id, e.target.value)}
-                            className={`text-xs border-0 rounded px-2 py-1 font-medium ${
-                              val === 'pass' ? 'bg-green-100 text-green-700' : val === 'fail' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-500'
-                            }`}
-                          >
-                            <option value="">—</option>
-                            <option value="pass">{t('Cumpre')}</option>
-                            <option value="fail">{t('Não cumpre')}</option>
-                          </select>
-                        </td>
-                      );
-                    })}
-
-                    {qualCriteria.map((c) => {
+                    {columns.map(({ crit }) => {
+                      if (crit.type === 'gate') {
+                        const val = findPerf(option.id, crit.id)?.value ?? '';
+                        return (
+                          <td key={crit.id} className="border-b border-r border-gray-200 p-1 text-center">
+                            <select
+                              value={val}
+                              onChange={(e) => setPerf(option.id, crit.id, e.target.value)}
+                              className={`text-xs border-0 rounded px-2 py-1 font-medium ${
+                                val === 'pass' ? 'bg-green-100 text-green-700' : val === 'fail' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-500'
+                              }`}
+                            >
+                              <option value="">—</option>
+                              <option value="pass">{t('Cumpre')}</option>
+                              <option value="fail">{t('Não cumpre')}</option>
+                            </select>
+                          </td>
+                        );
+                      }
+                      const c = crit as QualificationCriterion;
                       const perf = findPerf(option.id, c.id);
                       if (c.continuous) {
                         const pos = perf?.position ?? (perf?.value ? levelPos(c, c.descriptor.levels.find((l) => l.label === perf.value)?.id ?? '') : 0.5);
                         return (
-                          <td key={c.id} className="border border-gray-200 p-2 text-center min-w-[140px]">
+                          <td key={c.id} className="border-b border-r border-gray-200 p-2 text-center min-w-[140px]">
                             <input
                               type="range"
                               min={0}
@@ -205,7 +309,7 @@ export default function Analysis() {
                       }
                       const val = perf?.value ?? '';
                       return (
-                        <td key={c.id} className="border border-gray-200 p-1 text-center">
+                        <td key={c.id} className={`border-b border-r border-gray-200 p-1 text-center ${val ? '' : 'bg-amber-50/40'}`}>
                           <select
                             value={val}
                             onChange={(e) => setPerf(option.id, c.id, e.target.value)}
@@ -224,7 +328,7 @@ export default function Analysis() {
                       );
                     })}
 
-                    <td className="border border-gray-200 px-2">
+                    <td className="border-b border-gray-200 px-2">
                       <button onClick={() => deleteOption(option.id)} className="text-red-400 hover:text-red-600 text-sm">✕</button>
                     </td>
                   </tr>
@@ -236,7 +340,7 @@ export default function Analysis() {
           {/* Habilitação summary */}
           {gateCriteria.length > 0 && (
             <div className="border border-orange-200 bg-orange-50/50 rounded-xl p-4 space-y-2">
-              <h3 className="text-sm font-semibold text-orange-800">{t('Habilitação (Andar 1)')}</h3>
+              <h3 className="text-sm font-semibold text-orange-800">{t('Habilitação — Nível 1 (eliminatório)')}</h3>
               <div className="flex flex-wrap gap-2">
                 {evaluation.options.map((o) => {
                   const statuses = gateCriteria.map((g) => findPerf(o.id, g.id)?.value ?? 'pending');

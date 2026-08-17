@@ -4,6 +4,7 @@ import { useApp } from '../store';
 import { repository } from '../../repository';
 import type {
   Criterion,
+  EvaluationModel,
   QualificationCriterion,
   GateCriterion,
   CompositeCriterion,
@@ -292,8 +293,33 @@ export default function Criteria() {
     setAddingUnder(null);
   }
 
+  /**
+   * Editing a descriptor changes the level ids a derived scale was built on, so
+   * keeping the old scale would leave the model reporting a stale result as
+   * consistent. Drop the scale and its matrix when the level set actually
+   * changed — renaming a label alone is harmless and must not cost the user
+   * their judgments.
+   */
   function saveEditCriterion(c: Criterion) {
-    dispatch({ type: 'UPDATE_MODEL', patch: { valueTree: updateCriterion(model.valueTree, c) } });
+    const before = criteria[c.id];
+    const levelsOf = (x?: Criterion) =>
+      x?.type === 'qualification' ? x.descriptor.levels.map((l) => l.id).join('|') : '';
+    const anchorsOf = (x?: Criterion) =>
+      x?.type === 'qualification' ? `${x.descriptor.neutralIndex}/${x.descriptor.goodIndex}` : '';
+    const structureChanged =
+      levelsOf(before) !== levelsOf(c) || anchorsOf(before) !== anchorsOf(c);
+
+    const patch: Partial<EvaluationModel> = { valueTree: updateCriterion(model.valueTree, c) };
+    if (structureChanged && model.derivedScales.some((s) => s.criterionId === c.id)) {
+      if (!confirm(t('Os níveis de «{{label}}» mudaram, por isso a escala derivada deixa de ser válida e será apagada — terá de a derivar outra vez. Continuar?', { label: c.label }))) {
+        return;
+      }
+      patch.derivedScales = model.derivedScales.filter((s) => s.criterionId !== c.id);
+      patch.judgmentMatrices = model.judgmentMatrices.filter(
+        (m) => !(m.kind === 'scale' && m.criterionId === c.id),
+      );
+    }
+    dispatch({ type: 'UPDATE_MODEL', patch });
     setEditingId(null);
   }
 
@@ -524,7 +550,7 @@ export default function Criteria() {
 
         {rootChildren.length === 0 && (
           <p className="text-sm text-gray-400 italic py-4 text-center">
-            {t('Ainda sem critérios. Adicione um fator composto, um critério de qualificação ou uma porta.')}
+            {t('Ainda sem critérios. Adicione um fator composto, um critério de qualificação ou uma condição eliminatória.')}
           </p>
         )}
 

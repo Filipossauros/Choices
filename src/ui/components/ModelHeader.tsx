@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useApp, type Screen, type Mode } from '../store';
 import { CREATE_SCREENS, APPLY_SCREENS } from '../store';
-import { allGroupsConsistent } from '../../domain/tree';
+import { allGroupsConsistent, modelReadiness } from '../../domain/tree';
+import { sortBands } from '../../domain/decision';
 import type { EvaluationModel, Evaluation } from '../../domain/types';
 import { setLang, type Lang } from '../../i18n';
 import { v4 as uuidv4 } from 'uuid';
@@ -80,8 +81,18 @@ function createStatus(model: EvaluationModel, screen: Screen): CompletionStatus 
   switch (screen) {
     case 'criteria':
       return model.valueTree.root.children.length > 0 ? 'done' : 'none';
-    case 'decision':
-      return model.decisionScale.length > 0 ? 'done' : 'none';
+    case 'decision': {
+      if (model.decisionScale.length === 0) return 'none';
+      // A band whose cut-off was typed rather than derived from a reference
+      // profile is provisional — the screen itself flags it as not defensible,
+      // so the step must not read as finished. The lowest band is the catch-all
+      // and legitimately has no profile of its own.
+      const bands = sortBands(model.decisionScale);
+      const needProfile = bands.slice(0, -1);
+      const grounded = needProfile.filter((b) => b.referenceProfile && !b.manualThreshold);
+      if (needProfile.length === 0) return 'done';
+      return grounded.length === needProfile.length ? 'done' : 'partial';
+    }
     case 'scales': {
       if (qual.length === 0) return 'done';
       const consistent = model.derivedScales.filter(
@@ -109,7 +120,12 @@ function applyStatus(evaluation: Evaluation, screen: Screen): CompletionStatus {
     case 'analysis': {
       if (evaluation.options.length === 0) return 'none';
       const expected = evaluation.options.length * criteriaCount;
-      return evaluation.performances.length >= expected ? 'done' : 'partial';
+      const complete = evaluation.performances.length >= expected;
+      // Fully entered performances still cannot be aggregated while the
+      // embedded model is unfinished — showing "done" there sends the user to
+      // a Results screen that has nothing to show.
+      if (complete && !modelReadiness(model).ready) return 'partial';
+      return complete ? 'done' : 'partial';
     }
     case 'results': {
       const r = evaluation.aggregationResult;

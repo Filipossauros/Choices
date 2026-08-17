@@ -101,6 +101,43 @@ export const en: Record<string, string> = {
   'Qualificação (escala graduada)': 'Qualification (graded scale)',
   'Porta (habilitação binária)': 'Gate (binary eligibility)',
   'Condição eliminatória (sim/não)': 'Eliminatory condition (yes/no)',
+  'Condição eliminatória': 'Eliminatory condition',
+  'Habilitação — Nível 1 (eliminatório)': 'Eligibility — Tier 1 (eliminatory)',
+  'Registe as propostas, responda às condições eliminatórias e classifique o desempenho em cada critério de qualificação. Uma condição eliminatória não cumprida reprova a proposta antes da agregação.':
+    'Register the proposals, answer the eliminatory conditions and rate performance on each qualification criterion. An unmet eliminatory condition rejects the proposal before aggregation.',
+  'Registe as posições / momentos, responda às condições eliminatórias e classifique o desempenho em cada critério de qualificação. Uma condição eliminatória não cumprida exclui a posição antes da agregação.':
+    'Register the positions / moments, answer the eliminatory conditions and rate performance on each qualification criterion. An unmet eliminatory condition excludes the position before aggregation.',
+  '{{filled}} de {{expected}} desempenhos preenchidos': '{{filled}} of {{expected}} performances filled in',
+  'deslize a tabela na horizontal para ver todos os critérios': 'scroll the table sideways to see every criterion',
+  'Dê um nome a cada alternativa que quer comparar ({{example}}) e classifique-a depois nos {{n}} critérios do modelo.':
+    'Name each alternative you want to compare ({{example}}), then rate it on the model’s {{n}} criteria.',
+  'ex.: «Proposta A», «Solução do fornecedor X»': 'e.g. «Proposal A», «Vendor X’s solution»',
+  'ex.: «Janeiro», «Fevereiro»': 'e.g. «January», «February»',
+  // Model readiness / snapshot recovery
+  'Ainda não é possível calcular resultados': 'Results cannot be computed yet',
+  'A avaliação usa uma cópia do modelo tal como estava quando começou. Nessa cópia falta: {{missing}}.':
+    'The evaluation uses a copy of the model as it stood when it began. That copy is missing: {{missing}}.',
+  'Este modelo ainda não produz resultados.': 'This model cannot produce results yet.',
+  'Falta: {{missing}}. Pode registar desempenhos agora, mas os Resultados só ficam disponíveis depois de o modelo estar completo.':
+    'Missing: {{missing}}. You can record performances now, but Results only become available once the model is complete.',
+  'Já existe uma versão concluída deste modelo na biblioteca — pode trazê-la para aqui sem perder os desempenhos já registados.':
+    'A finished version of this model already exists in the library — you can bring it here without losing the performances already recorded.',
+  'A versão na biblioteca também ainda não está completa. Termine-a e volte aqui para a trazer.':
+    'The library version is not complete either. Finish it and come back to bring it in.',
+  'O modelo de origem já não está na biblioteca. Abra-o para o completar e guardar.':
+    'The source model is no longer in the library. Open it to complete and save it.',
+  'Atualizar modelo desta avaliação': 'Update this evaluation’s model',
+  'Traz a versão concluída do modelo para esta avaliação, mantendo os desempenhos já registados.':
+    'Brings the finished model into this evaluation, keeping the performances already recorded.',
+  'Completar o modelo': 'Complete the model',
+  'critérios de qualificação': 'qualification criteria',
+  'escalas consistentes ({{list}})': 'consistent scales ({{list}})',
+  'ponderação de todos os grupos': 'weighting for every group',
+  '«{{label}}» ainda não está pronto para avaliar — falta: {{missing}}.\n\nPode continuar e preencher os desempenhos, mas os resultados só aparecem depois de completar o modelo e atualizar esta avaliação.\n\nContinuar mesmo assim?':
+    '«{{label}}» is not ready to evaluate yet — missing: {{missing}}.\n\nYou can continue and fill in performances, but results only appear once the model is complete and this evaluation is updated.\n\nContinue anyway?',
+  'Os níveis de «{{label}}» mudaram, por isso a escala derivada deixa de ser válida e será apagada — terá de a derivar outra vez. Continuar?':
+    'The levels of «{{label}}» changed, so the derived scale is no longer valid and will be discarded — you will have to derive it again. Continue?',
+  'Responda a pelo menos uma comparação antes de derivar.': 'Answer at least one comparison before deriving.',
   'Elimina a proposta inteira.': 'Eliminates the entire proposal.',
   'Se a resposta for «não cumpre», a proposta é excluída sem chegar a ser pontuada — não é compensada por nenhum outro critério. O alcance é sempre global, mesmo que esta condição esteja dentro de um fator.':
     'If the answer is «does not comply», the proposal is excluded without ever being scored — no other criterion can compensate for it. The scope is always global, even when this condition sits inside a factor.',

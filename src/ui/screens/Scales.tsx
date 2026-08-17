@@ -430,8 +430,15 @@ export default function Scales() {
             <h2 className="font-semibold text-gray-800">{activeCrit.label}</h2>
             <button
               onClick={() => handleDerive(activeCrit.id)}
-              disabled={derivingId === activeCrit.id}
-              className="px-4 py-1.5 text-sm bg-blue-700 text-white rounded hover:bg-blue-800 disabled:opacity-50"
+              // Deriving with no judgments yields a degenerate scale that still
+              // reports itself consistent — block it and say what is missing.
+              disabled={derivingId === activeCrit.id || Object.keys(getMatrix(activeCrit.id).judgments).length === 0}
+              title={
+                Object.keys(getMatrix(activeCrit.id).judgments).length === 0
+                  ? t('Responda a pelo menos uma comparação antes de derivar.')
+                  : undefined
+              }
+              className="px-4 py-1.5 text-sm bg-blue-700 text-white rounded hover:bg-blue-800 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {derivingId === activeCrit.id ? t('A derivar…') : t('Derivar escala')}
             </button>
@@ -454,7 +461,9 @@ export default function Scales() {
             )}
           />
 
-          <details className="border-t border-gray-100 pt-4 group" open={activeCrit.descriptor.levels.length <= 4}>
+          {/* Collapsed by default — the guided questions above collect the same
+              judgments; the grid is the power-user view of them. */}
+          <details className="border-t border-gray-100 pt-4 group">
             <summary className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 cursor-pointer select-none flex items-center gap-1.5 hover:text-gray-700">
               <span className="transition-transform group-open:rotate-90">▸</span> {t('Matriz de juízos')}
             </summary>

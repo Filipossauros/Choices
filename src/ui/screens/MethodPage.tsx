@@ -25,7 +25,7 @@ export default function MethodPage({ onBack }: { onBack: () => void }) {
 
       <Section title={t('Os quatro passos da construção')}>
         <ol className="space-y-2 text-sm text-gray-600 list-decimal pl-5">
-          <li>{t('Critérios. Estruturar a árvore de critérios — fatores compostos que se decompõem em subcritérios, critérios de qualificação (escala graduada) e portas eliminatórias.')}</li>
+          <li>{t('Critérios. Estruturar a árvore de critérios — fatores compostos que se decompõem em subcritérios, critérios de qualificação (escala graduada) e condições eliminatórias.')}</li>
           <li>{t('Escalas. Para cada critério-folha, comparar a atratividade entre níveis e derivar a escala cardinal, ancorada em Neutro = 0 e Bom = 100.')}</li>
           <li>{t('Ponderação. Em cada grupo de irmãos, ponderar por oscilação (swing) os critérios entre si. Os pesos de cada grupo somam 1.')}</li>
           <li>{t('Perfis de decisão. Definir zonas de decisão (limiares) sobre o valor global, idealmente derivadas de perfis de referência.')}</li>
@@ -40,7 +40,7 @@ export default function MethodPage({ onBack }: { onBack: () => void }) {
           V(p) = Σᵢ kᵢ · vᵢ(p)
         </p>
         <p className="text-sm text-gray-600 leading-relaxed mt-2">
-          {t('Com critérios hierárquicos, cada fator composto V[F] é, por sua vez, a média ponderada dos seus filhos. O peso efetivo (global) de uma folha é o produto dos pesos ao longo do caminho até à raiz. As portas correm a montante: uma falha reprova a proposta antes da agregação.')}
+          {t('Com critérios hierárquicos, cada fator composto V[F] é, por sua vez, a média ponderada dos seus filhos. O peso efetivo (global) de uma folha é o produto dos pesos ao longo do caminho até à raiz. As condições eliminatórias correm a montante: uma falha reprova a proposta antes da agregação.')}
         </p>
       </Section>
 
@@ -53,7 +53,7 @@ export default function MethodPage({ onBack }: { onBack: () => void }) {
           t('├── Segurança (fator)'),
           t('│   ├── Autenticação (qualificação)'),
           t('│   ├── Cifra de dados (qualificação)'),
-          t('│   └── Conformidade RGPD (porta — eliminatória)'),
+          t('│   └── Conformidade RGPD (condição eliminatória)'),
           t('├── Interoperabilidade (fator)'),
           t('└── Escolhas tecnológicas (fator)'),
           t('     ├── Maturidade'),

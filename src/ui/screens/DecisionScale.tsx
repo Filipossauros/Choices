@@ -164,7 +164,7 @@ export default function DecisionScale() {
           {t('A pontuação global V(p) ∈ [0, 100] (Neutro = 0, Bom = 100) diz quão boa é cada alternativa. Aqui define-se o que fazer com cada resultado: zonas com nome e ação (ex.: «Aceitar», «Rejeitar», «Aplicar sanção»), separadas por limiares de corte. Cada resultado cai na zona mais alta cujo limiar atinge.')}
         </p>
         <p className="text-xs text-gray-400 leading-relaxed">
-          {t('Para que o limiar seja defensável (e não um número arbitrário), descreve-se uma alternativa-limiar de referência — o pior caso que ainda pertence à zona — e o MACBETH calcula o seu V(p). O corte fica assim ligado a uma situação concreta e rastreável. Os limiares são compensatórios; para mínimos rígidos por critério use o Veto ou uma Porta. O valor manual existe só como recurso provisório ou override assumido.')}
+          {t('Para que o limiar seja defensável (e não um número arbitrário), descreve-se uma alternativa-limiar de referência — o pior caso que ainda pertence à zona — e o MACBETH calcula o seu V(p). O corte fica assim ligado a uma situação concreta e rastreável. Os limiares são compensatórios; para mínimos rígidos por critério use o Veto ou uma condição eliminatória. O valor manual existe só como recurso provisório ou override assumido.')}
         </p>
       </div>
 

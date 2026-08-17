@@ -149,6 +149,39 @@ export function allGroupsConsistent(model: EvaluationModel): boolean {
   return scorable.every((g) => groupConsistent(model, g));
 }
 
+/** What a model still needs before it can score anything. */
+export interface ModelReadiness {
+  /** Every qualification criterion has a consistent scale and every group has weights. */
+  ready: boolean;
+  hasCriteria: boolean;
+  scalesReady: boolean;
+  weightsReady: boolean;
+  /** Labels of qualification criteria whose scale is missing or inconsistent. */
+  pendingScales: string[];
+}
+
+/**
+ * Whether a model can produce results. Evaluations embed a *snapshot* of the
+ * model, so starting one from a model that is not ready produces an evaluation
+ * that can never be aggregated — callers use this to warn before that happens.
+ */
+export function modelReadiness(model: EvaluationModel): ModelReadiness {
+  const quals = qualificationCriteria(model);
+  const pendingScales = quals
+    .filter((c) => !model.derivedScales.some((s) => s.criterionId === c.id && s.consistencyMargin > 0))
+    .map((c) => c.label);
+  const hasCriteria = quals.length > 0;
+  const scalesReady = hasCriteria && pendingScales.length === 0;
+  const weightsReady = allGroupsConsistent(model);
+  return {
+    ready: hasCriteria && scalesReady && weightsReady,
+    hasCriteria,
+    scalesReady,
+    weightsReady,
+    pendingScales,
+  };
+}
+
 /**
  * Effective (global) weight of a group *node itself* — the product of group
  * weights from the root down to `parentId`. ROOT_ID → 1. A single-child group

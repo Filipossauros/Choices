@@ -4,7 +4,8 @@ import { useApp } from '../store';
 import { aggregate } from '../../engine/aggregation';
 import { displayBands, bandRangeLabel } from '../../domain/decision';
 import { subjectNoun } from '../../domain/subject';
-import { effectiveWeights, allGroupsConsistent, weightingGroups } from '../../domain/tree';
+import { effectiveWeights, allGroupsConsistent, weightingGroups, modelReadiness } from '../../domain/tree';
+import ModelNotReady from '../components/ModelNotReady';
 import type { DecisionBand } from '../../domain/types';
 import { ROOT_ID } from '../../domain/types';
 import { IconExport } from '../components/icons';
@@ -35,6 +36,7 @@ export default function Results() {
   const subj = subjectNoun(model);
 
   const weightsReady = allGroupsConsistent(model);
+  const readiness = modelReadiness(model);
   const [whyOptionId, setWhyOptionId] = useState<string | null>(null);
 
   const freshResult = useMemo(() => {
@@ -68,13 +70,7 @@ export default function Results() {
     });
   }
 
-  if (!weightsReady) {
-    return (
-      <div className="max-w-2xl mx-auto py-16 px-4 text-center">
-        <p className="text-gray-500">{t('Complete a ponderação (todos os grupos) no modelo para calcular resultados.')}</p>
-      </div>
-    );
-  }
+  if (!readiness.ready) return <ModelNotReady />;
   if (evaluation.options.length === 0) {
     return (
       <div className="max-w-2xl mx-auto py-16 px-4 text-center">
