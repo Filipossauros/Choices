@@ -3,13 +3,14 @@ import { useTranslation } from 'react-i18next';
 import { useApp } from '../store';
 import type { MacbethJudgment, JudgmentMatrix, DerivedScale, QualificationCriterion } from '../../domain/types';
 import { DEFAULT_ASSESSOR_ID } from '../../domain/types';
-import { deriveScale, scalePoints } from '../../engine/scaling';
+import { deriveScale, scalePoints, levelPosition } from '../../engine/scaling';
 import { sampleCurve } from '../../engine/interpolation';
 import JudgmentMatrixEditor from '../components/JudgmentMatrixEditor';
 import GuidedJudgments from '../components/GuidedJudgments';
 import ScreenNav from '../components/ScreenNav';
 import { ancestorLabels } from '../../domain/tree';
 import { CATEGORIES } from '../../domain/categories';
+import ValueRuler, { defaultLevelValues, judgmentsFromLevelValues, pairReadings, type LevelValues } from '../components/ValueRuler';
 import { v4 as uuidv4 } from 'uuid';
 import {
   LineChart,
@@ -199,14 +200,10 @@ function ScaleFormula({
   // Nodes on the normalized position axis (0 = least attractive, 1 = most),
   // then a smooth monotone-cubic curve sampled densely through them.
   const nodes = scalePoints(criterion.descriptor, scale); // [{x: pos, y: value}] ascending
-  const labelByPos = new Map(
-    levels.map((l) => {
-      const pos = nodes.find((p) =>
-        scale.values.some((v) => v.levelId === l.id && Math.abs(v.value - p.y) < 1e-9),
-      )?.x;
-      return [l.id, pos] as const;
-    }),
-  );
+  // Position each level directly rather than reverse-matching a node by value:
+  // two levels that derive to the same value would otherwise both claim the
+  // same node, producing duplicate axis ticks (and duplicate React keys).
+  const labelByPos = new Map(levels.map((l) => [l.id, levelPosition(criterion.descriptor, l.id)] as const));
   const curve = sampleCurve(nodes, 60).map((p) => ({ pos: p.x, value: p.y }));
 
   // Map a position back to the nearest level label for axis ticks / tooltip
@@ -222,10 +219,11 @@ function ScaleFormula({
     return best;
   };
 
-  const tickPositions = levels
-    .map((l) => labelByPos.get(l.id))
-    .filter((x): x is number => x != null)
-    .sort((a, b) => a - b);
+  const tickPositions = [
+    ...new Set(
+      levels.map((l) => labelByPos.get(l.id)).filter((x): x is number => x != null),
+    ),
+  ].sort((a, b) => a - b);
 
   const CustomTooltip = ({
     active,
@@ -305,6 +303,10 @@ export default function Scales() {
   const [derivingId, setDerivingId] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [activePairKey, setActivePairKey] = useState<string | null>(null);
+  // Ruler mode is a second input surface for the same judgments, kept per
+  // criterion so switching criteria does not carry a stale position map.
+  const [rulerFor, setRulerFor] = useState<string | null>(null);
+  const [rulerValues, setRulerValues] = useState<LevelValues>({});
 
   const qualCriteria = Object.values(model.valueTree.criteria).filter(
     (c) => c.type === 'qualification',
@@ -444,10 +446,33 @@ export default function Scales() {
         const reference = answered[0];
         const referenceJump = reference ? `${reference.from} → ${reference.to}` : '';
 
+        const inRuler = rulerFor === activeCrit.id;
+        /** Enter ruler mode seeded from the derived scale, else an even spread. */
+        function openRuler() {
+          const derived = model.derivedScales.find((s) => s.criterionId === activeCrit!.id);
+          const seed: LevelValues = derived
+            ? Object.fromEntries(derived.values.map((v) => [v.levelId, Math.round(v.value)]))
+            : defaultLevelValues(activeCrit!);
+          setRulerValues(seed);
+          setRulerFor(activeCrit!.id);
+        }
+        /** Positions become judgments — the LP still has the final word. */
+        function applyRuler() {
+          updateMatrix(activeCrit!.id, judgmentsFromLevelValues(activeCrit!, rulerValues));
+          setRulerFor(null);
+          handleDerive(activeCrit!.id);
+        }
+
         return (
         <div className="flex-1 space-y-6 min-w-0">
           <div className="flex items-center justify-between gap-2 flex-wrap">
             <h2 className="font-semibold text-gray-800">{activeCrit.label}</h2>
+            <button
+              onClick={() => (inRuler ? setRulerFor(null) : openRuler())}
+              className="px-3.5 py-1.5 text-sm rounded-full border border-gray-200 text-gray-600 hover:bg-gray-50"
+            >
+              {inRuler ? t('⇄ Modo perguntas') : t('⇄ Modo régua')}
+            </button>
             <button
               onClick={() => handleDerive(activeCrit.id)}
               // Deriving with no judgments yields a degenerate scale that still
@@ -464,6 +489,48 @@ export default function Scales() {
             </button>
           </div>
 
+          {inRuler ? (
+            <>
+              <p className="text-sm text-gray-500 leading-relaxed">
+                <strong className="text-gray-700">{t('Não substitui o método.')}</strong>{' '}
+                {t('Arrastar um nível é outra forma de dar os mesmos juízos: as distâncias são traduzidas em categorias MACBETH e mostradas ao vivo. Neutro e Bom estão fixos em 0 e 100, e nenhum nível pode passar à frente de outro.')}
+              </p>
+              <div className="grid lg:grid-cols-[1fr_22rem] gap-5 items-start">
+                <div className="bg-white border border-gray-200 rounded-2xl p-5">
+                  <ValueRuler criterion={activeCrit} values={rulerValues} onChange={setRulerValues} />
+                </div>
+                <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-2">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                    {t('Juízos MACBETH deduzidos')} <span className="text-indigo-600">· {t('ao vivo')}</span>
+                  </p>
+                  <p className="text-xs text-gray-400 leading-relaxed pb-1">
+                    {t('Todos os pares, não só os adjacentes — é o que o método exige.')}
+                  </p>
+                  {pairReadings(activeCrit, rulerValues).map((r) => (
+                    <div key={r.key} className="flex items-center gap-2.5 rounded-xl border border-gray-100 px-3 py-2">
+                      <span
+                        className="w-1.5 rounded-full bg-indigo-500 shrink-0"
+                        style={{ height: 6 + r.cat * 4 }}
+                        aria-hidden="true"
+                      />
+                      <span className="flex-1 min-w-0 truncate text-xs text-gray-600">{r.from} → {r.to}</span>
+                      <span className="font-mono text-[11px] text-gray-400 tabular-nums">{r.delta}</span>
+                      <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 shrink-0">
+                        {t(r.label)}
+                      </span>
+                    </div>
+                  ))}
+                  <button
+                    onClick={applyRuler}
+                    className="w-full mt-3 px-4 py-2 bg-indigo-600 text-white rounded-full text-sm font-semibold hover:bg-indigo-700"
+                  >
+                    {t('Aplicar e derivar escala')}
+                  </button>
+                </div>
+              </div>
+            </>
+          ) : (
+          <>
           {/* Answers already given, as bars — the scale you are judging against
               stays visible instead of having to be held in memory. */}
           {answered.length > 0 && (
@@ -530,6 +597,8 @@ export default function Scales() {
               activePairKey={activePairKey ?? undefined}
             />
           </details>
+          </>
+          )}
 
           {/* Scale display */}
           {(() => {

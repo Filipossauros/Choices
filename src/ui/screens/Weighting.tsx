@@ -4,7 +4,8 @@ import { useApp } from '../store';
 import type { MacbethJudgment, JudgmentMatrix } from '../../domain/types';
 import { DEFAULT_ASSESSOR_ID, ROOT_ID } from '../../domain/types';
 import { deriveWeights, ALL_NEUTRAL } from '../../engine/weighting';
-import { simulateWeighting } from '../../engine/simulate';
+import { simulateWeighting, judgmentsFromWeights } from '../../engine/simulate';
+import WeightSliders, { weightReadings, type WeightMap } from '../components/WeightSliders';
 import { IconGrip } from '../components/icons';
 import { weightingGroups, weightsForGroup, setGroupWeights, groupConsistent, groupEffectiveWeight, type Group } from '../../domain/tree';
 import JudgmentMatrixEditor from '../components/JudgmentMatrixEditor';
@@ -21,6 +22,9 @@ function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; on
   const [activePairKey, setActivePairKey] = useState<string | null>(null);
   // Judgments seeded by ROC stay flagged until the user reviews them.
   const [simulated, setSimulated] = useState(false);
+  // Direct-weight mode: a second input surface writing the same judgments.
+  const [directMode, setDirectMode] = useState(false);
+  const [draft, setDraft] = useState<WeightMap>({});
 
   const { criteria } = model.valueTree;
   const childCrits = group.childIds.map((id) => criteria[id]).filter(Boolean);
@@ -128,6 +132,25 @@ function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; on
     });
   }
 
+  function openDirect() {
+    const seed: WeightMap = {};
+    const n = orderedChildIds.length || 1;
+    for (const id of orderedChildIds) {
+      seed[id] = weights?.weights.find((w) => w.criterionId === id)?.weight ?? 1 / n;
+    }
+    setDraft(seed);
+    setDirectMode(true);
+  }
+
+  /** Dragged weights become judgments; the LP still derives the final numbers. */
+  async function applyDirect() {
+    updateJudgments(judgmentsFromWeights(orderedChildIds, draft));
+    setDirectMode(false);
+    setSimulated(true);
+    const w = await deriveWeights(orderedChildIds, judgmentsFromWeights(orderedChildIds, draft));
+    dispatch({ type: 'UPDATE_MODEL', patch: setGroupWeights(model, group.parentId, w) });
+  }
+
   async function handleDerive() {
     setDeriving(true);
     try {
@@ -166,6 +189,56 @@ function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; on
             <p className="text-sm text-gray-500">
               {t('Este grupo tem um único critério ponderável — recebe 100% do peso dentro do grupo. Sem comparações a fazer.')}
             </p>
+          ) : directMode ? (
+            <>
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="text-sm text-gray-500 flex-1 min-w-[16rem] leading-relaxed">
+                  <strong className="text-gray-700">{t('Continua a ser o mesmo método.')}</strong>{' '}
+                  {t('Arraste os pesos e veja, ao vivo, que juízos MACBETH isso implica. A soma mantém-se sempre em 1.00.')}
+                </p>
+                <button
+                  onClick={() => setDirectMode(false)}
+                  className="px-3.5 py-1.5 text-sm rounded-full border border-gray-200 text-gray-600 hover:bg-gray-50"
+                >
+                  {t('⇄ Modo perguntas')}
+                </button>
+              </div>
+
+              <div className="grid lg:grid-cols-[1fr_20rem] gap-5 items-start">
+                <div className="bg-white border border-gray-200 rounded-2xl p-5">
+                  <WeightSliders
+                    orderedIds={orderedChildIds}
+                    weights={draft}
+                    labelOf={(id) => criteria[id]?.label ?? id}
+                    onChange={setDraft}
+                  />
+                </div>
+                <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-2">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                    {t('Juízos implicados')} <span className="text-indigo-600">· {t('ao vivo')}</span>
+                  </p>
+                  {weightReadings(orderedChildIds, draft, (id) => criteria[id]?.label ?? id).map((r) => (
+                    <div key={r.key} className="flex items-center gap-2.5 rounded-xl border border-gray-100 px-3 py-2">
+                      <span
+                        className="w-1.5 rounded-full bg-indigo-500 shrink-0"
+                        style={{ height: 6 + r.cat * 4 }}
+                        aria-hidden="true"
+                      />
+                      <span className="flex-1 min-w-0 truncate text-xs text-gray-600">{r.more} &gt; {r.less}</span>
+                      <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 shrink-0">
+                        {t(r.label)}
+                      </span>
+                    </div>
+                  ))}
+                  <button
+                    onClick={applyDirect}
+                    className="w-full mt-3 px-4 py-2 bg-indigo-600 text-white rounded-full text-sm font-semibold hover:bg-indigo-700"
+                  >
+                    {t('Aplicar e calcular pesos')}
+                  </button>
+                </div>
+              </div>
+            </>
           ) : (
             <>
               {/* Passo 1 — ranking by importance */}
@@ -266,6 +339,13 @@ function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; on
                   title={t('Gera um conjunto completo e consistente de juízos a partir da ordem de importância (método ROC).')}
                 >
                   ⚡ {t('Simular a partir da ordem')}
+                </button>
+                <button
+                  onClick={openDirect}
+                  className="px-4 py-2 rounded-full text-sm border border-gray-200 text-gray-600 hover:bg-gray-50"
+                  title={t('Definir os pesos diretamente e ver que juízos MACBETH isso implica.')}
+                >
+                  ⇄ {t('Modo pesos diretos')}
                 </button>
                 {simulated && (
                   <span className="text-[10px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full bg-amber-100 text-amber-700">
