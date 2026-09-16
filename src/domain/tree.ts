@@ -182,6 +182,85 @@ export function modelReadiness(model: EvaluationModel): ModelReadiness {
   };
 }
 
+/** How tightly a single quantity is pinned down by the judgments given. */
+export interface RangeReading {
+  id: string;
+  label: string;
+  /** Value at the maximally-discriminating optimum. */
+  central: number;
+  lo: number;
+  hi: number;
+  /** Width of the admissible range over the width of the whole domain. */
+  slack: number;
+  /** `slack` above this reads as "folgado" — the judgments leave real freedom. */
+  loose: boolean;
+}
+
+export interface Robustness {
+  weights: RangeReading[];
+  scales: RangeReading[];
+  /** 0–1: how much of the possible-model space the judgments pin down. */
+  determination: number;
+}
+
+/**
+ * How much freedom the judgments left open — the model-phase counterpart to
+ * results sensitivity. It reads the admissible ranges the LPs already compute,
+ * so it needs no proposals and belongs in the model-building flow.
+ */
+export function modelRobustness(model: EvaluationModel): Robustness {
+  const { criteria } = model.valueTree;
+  const LOOSE = 0.2;
+
+  const weights: RangeReading[] = [];
+  for (const group of weightingGroups(model)) {
+    const w = weightsForGroup(model, group.parentId);
+    if (!w) continue;
+    for (const cw of w.weights) {
+      const [lo, hi] = cw.admissibleRange ?? [cw.weight, cw.weight];
+      const slack = Math.max(0, hi - lo); // weights live in [0,1], so span = 1
+      weights.push({
+        id: cw.criterionId,
+        label: criteria[cw.criterionId]?.label ?? cw.criterionId,
+        central: cw.weight,
+        lo,
+        hi,
+        slack,
+        loose: slack > LOOSE,
+      });
+    }
+  }
+
+  const scales: RangeReading[] = [];
+  for (const s of model.derivedScales) {
+    const crit = criteria[s.criterionId];
+    if (crit?.type !== 'qualification') continue;
+    for (const v of s.values) {
+      const [lo, hi] = v.admissibleRange ?? [v.value, v.value];
+      // Anchored levels are pinned by construction; reporting them as "firm"
+      // would flatter the score, so skip the two anchors.
+      if (hi - lo < 1e-9) continue;
+      const slack = Math.max(0, hi - lo) / 100; // value scale spans 0–100
+      scales.push({
+        id: v.levelId,
+        label: `${crit.label} · ${crit.descriptor.levels.find((l) => l.id === v.levelId)?.label ?? ''}`,
+        central: v.value,
+        lo,
+        hi,
+        slack,
+        loose: slack > LOOSE,
+      });
+    }
+  }
+
+  const all = [...weights, ...scales];
+  const determination = all.length === 0
+    ? 0
+    : 1 - all.reduce((sum, r) => sum + r.slack, 0) / all.length;
+
+  return { weights, scales, determination: Math.max(0, Math.min(1, determination)) };
+}
+
 /**
  * Effective (global) weight of a group *node itself* — the product of group
  * weights from the root down to `parentId`. ROOT_ID → 1. A single-child group
@@ -260,6 +339,102 @@ export function addChild(tree: ValueTree, parentId: string, criterion: Criterion
 /** Update a criterion's definition in place (no structural change). */
 export function updateCriterion(tree: ValueTree, criterion: Criterion): ValueTree {
   return { ...tree, criteria: { ...tree.criteria, [criterion.id]: criterion } };
+}
+
+/**
+ * Graft another model's whole tree under `parentId` as a single factor —
+ * "Obsolescência tecnológica", built and validated on its own, reused inside a
+ * larger architecture model.
+ *
+ * Every id is regenerated so the imported copy cannot collide with the host's
+ * criteria (or with a second import of the same source). Derived scales travel
+ * with it, remapped to the new ids: re-deriving them in the host would throw
+ * away the reason to reuse the model at all. Weights do NOT travel — the
+ * imported factor's share of the host group is a fresh judgment the user has to
+ * make, and its internal sub-weights are remapped only where they exist.
+ */
+export function insertSubtree(
+  host: EvaluationModel,
+  parentId: string,
+  source: EvaluationModel,
+  newId: () => string,
+): Partial<EvaluationModel> {
+  const idMap = new Map<string, string>();
+  const remap = (id: string) => {
+    if (!idMap.has(id)) idMap.set(id, newId());
+    return idMap.get(id)!;
+  };
+
+  const criteria: Record<string, Criterion> = {};
+  for (const [oldId, crit] of Object.entries(source.valueTree.criteria)) {
+    const c = structuredClone(crit) as Criterion;
+    c.id = remap(oldId);
+    if (c.type === 'qualification') {
+      c.descriptor = {
+        ...c.descriptor,
+        levels: c.descriptor.levels.map((l) => ({ ...l, id: remap(l.id) })),
+      };
+      if (c.vetoLevelId) c.vetoLevelId = remap(c.vetoLevelId);
+    }
+    if ('parentId' in c && c.parentId) c.parentId = remap(c.parentId);
+    criteria[c.id] = c;
+  }
+
+  function cloneNode(n: ValueTreeNode): ValueTreeNode {
+    return { criterionId: remap(n.criterionId), children: n.children.map(cloneNode) };
+  }
+
+  // The source's root is implicit, so wrap its children in a real factor node
+  // carrying the source model's label.
+  const factorId = newId();
+  criteria[factorId] = {
+    id: factorId,
+    label: source.label,
+    description: source.description,
+    type: 'composite',
+  } as Criterion;
+  const factorNode: ValueTreeNode = {
+    criterionId: factorId,
+    children: source.valueTree.root.children.map(cloneNode),
+  };
+
+  const root = mapNode(host.valueTree.root, (n) =>
+    n.criterionId === parentId ? { ...n, children: [...n.children, factorNode] } : n,
+  );
+
+  const derivedScales = [
+    ...host.derivedScales,
+    ...source.derivedScales
+      .filter((s) => idMap.has(s.criterionId))
+      .map((s) => ({
+        ...structuredClone(s),
+        criterionId: remap(s.criterionId),
+        values: s.values.map((v) => ({ ...v, levelId: remap(v.levelId) })),
+      })),
+  ];
+
+  // Sub-weights of composites *inside* the imported tree stay valid once
+  // remapped; the new factor's own group weights are left for the user.
+  const subWeights = { ...(host.subWeights ?? {}) };
+  for (const [oldParent, w] of Object.entries(source.subWeights ?? {})) {
+    if (!idMap.has(oldParent)) continue;
+    subWeights[remap(oldParent)] = {
+      ...structuredClone(w),
+      weights: w.weights.map((cw) => ({ ...cw, criterionId: remap(cw.criterionId) })),
+    };
+  }
+  if (source.weights) {
+    subWeights[factorId] = {
+      ...structuredClone(source.weights),
+      weights: source.weights.weights.map((cw) => ({ ...cw, criterionId: remap(cw.criterionId) })),
+    };
+  }
+
+  return {
+    valueTree: { root, criteria: { ...host.valueTree.criteria, ...criteria } },
+    derivedScales,
+    subWeights,
+  };
 }
 
 /**

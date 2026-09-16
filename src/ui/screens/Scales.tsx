@@ -517,9 +517,9 @@ export default function Scales() {
       </div>
 
       <ScreenNav
-        next="weighting"
-        nextLabel="Ponderação"
-        hint="Derive as escalas de todos os critérios antes de avançar."
+        next="decision"
+        nextLabel="Perfis de decisão"
+        hint="Com escalas e pesos definidos, construa os perfis de decisão (limiares MACBETH)."
         blockedBy={
           qualCriteria.some((c) => !model.derivedScales.find((s) => s.criterionId === c.id && s.consistencyMargin > 0))
             ? 'Derive e valide a escala de todos os critérios antes de avançar.'

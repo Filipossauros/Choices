@@ -568,9 +568,9 @@ export default function Criteria() {
       </div>
 
       <ScreenNav
-        next="scales"
-        nextLabel="Escalas"
-        hint="Defina os critérios antes de avançar."
+        next="weighting"
+        nextLabel="Ponderação"
+        hint="Com a estrutura definida, decida o que pesa mais — antes do trabalho detalhado das escalas."
         blockedBy={totalLeaves === 0 ? 'Adicione pelo menos um critério para continuar.' : undefined}
       />
     </div>

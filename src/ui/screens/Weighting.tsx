@@ -352,9 +352,9 @@ export default function Weighting() {
       </div>
 
       <ScreenNav
-        next="decision"
-        nextLabel="Perfis de decisão"
-        hint="Com escalas e pesos de todos os grupos definidos, construa os perfis de decisão (limiares MACBETH)."
+        next="scales"
+        nextLabel="Escalas"
+        hint="Com os pesos definidos, construa a escala de valor de cada critério."
         blockedBy={!allReady ? 'Calcule pesos consistentes em todos os grupos antes de avançar.' : undefined}
       />
     </div>

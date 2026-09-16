@@ -20,6 +20,7 @@ export type Screen =
   | 'decision'
   | 'scales'
   | 'weighting'
+  | 'robustness'
   | 'summary'
   // aplicação do modelo
   | 'analysis'
@@ -27,7 +28,17 @@ export type Screen =
   | 'sensitivity'
   | 'report';
 
-export const CREATE_SCREENS: Screen[] = ['criteria', 'scales', 'weighting', 'decision', 'summary'];
+/**
+ * Weighting comes before scales: swing weighting only needs each criterion's
+ * Neutro and Bom levels (fixed in Estrutura), never the derived scales, so
+ * asking "what matters most?" — the question people answer immediately — can
+ * precede the long per-criterion elicitation.
+ *
+ * Robustez closes the model phase: it reads the LPs' admissible ranges to show
+ * how much freedom the judgments left, which needs no proposals at all. The
+ * ranking-flip analysis stays in the apply flow, where alternatives exist.
+ */
+export const CREATE_SCREENS: Screen[] = ['criteria', 'weighting', 'scales', 'decision', 'robustness', 'summary'];
 export const APPLY_SCREENS: Screen[] = ['analysis', 'results', 'sensitivity', 'report'];
 
 export type Mode = 'create' | 'apply';

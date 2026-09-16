@@ -384,9 +384,9 @@ export default function DecisionScale() {
       </div>
 
       <ScreenNav
-        next="summary"
-        nextLabel="Resumo"
-        hint="Veja a síntese do modelo (fórmula, pesos) e exporte para JSON / IA."
+        next="robustness"
+        nextLabel="Robustez"
+        hint="Veja quanta liberdade os seus juízos deixaram em aberto antes de fechar o modelo."
         blockedBy={bands.length === 0 ? 'Defina pelo menos uma zona de decisão.' : undefined}
       />
     </div>

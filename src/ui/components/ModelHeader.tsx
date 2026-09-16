@@ -63,10 +63,11 @@ function DarkModeToggle() {
 
 const LABELS: Record<Screen, string> = {
   home: 'Início',
-  criteria: 'Critérios',
+  criteria: 'Estrutura',
   decision: 'Perfis de decisão',
   scales: 'Escalas',
   weighting: 'Ponderação',
+  robustness: 'Robustez',
   summary: 'Resumo',
   analysis: 'Análise e avaliação',
   results: 'Resultados',
@@ -105,6 +106,12 @@ function createStatus(model: EvaluationModel, screen: Screen): CompletionStatus 
       if (qual.length === 0) return 'done';
       if (!model.weights && !model.subWeights) return 'none';
       return allGroupsConsistent(model) ? 'done' : 'partial';
+    case 'robustness': {
+      // Readable as soon as both LPs have run — it only reports the freedom
+      // those judgments left, so there is nothing further to "complete".
+      const r = modelReadiness(model);
+      return r.ready ? 'done' : r.scalesReady || r.weightsReady ? 'partial' : 'none';
+    }
     case 'summary':
       return qual.length > 0 && allGroupsConsistent(model) ? 'done' : 'none';
     default:
