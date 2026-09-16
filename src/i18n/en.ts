@@ -101,6 +101,104 @@ export const en: Record<string, string> = {
   'Qualificação (escala graduada)': 'Qualification (graded scale)',
   'Porta (habilitação binária)': 'Gate (binary eligibility)',
   'Condição eliminatória (sim/não)': 'Eliminatory condition (yes/no)',
+  'O que pesa mais?': 'What matters most?',
+  'Decida a importância relativa antes do trabalho detalhado das escalas. Cada pergunta é uma escolha entre duas melhorias concretas — ou responda depressa simulando a partir da ordem de importância.':
+    'Decide relative importance before the detailed work on scales. Each question is a choice between two concrete improvements — or answer fast by simulating from the importance ranking.',
+  // ── Vocabulary: fator / critério / níveis ──
+  'Estrutura de avaliação': 'Evaluation structure',
+  'Fator — agrupa e reparte peso': 'Factor — groups and shares weight',
+  'Critério — mede desempenho': 'Criterion — measures performance',
+  'Condição eliminatória — exclui à partida': 'Eliminatory condition — excludes upfront',
+  'Níveis de desempenho': 'Performance levels',
+  'Fator — agrupa': 'Factor — groups',
+  'Critério — mede': 'Criterion — measures',
+  Fator: 'Factor',
+  Critério: 'Criterion',
+  Eliminatória: 'Eliminatory',
+  'Reúne outros elementos e reparte peso entre eles. A sua pontuação vem dos filhos. Pode conter outros fatores, sem limite de profundidade.':
+    'Gathers other elements and shares weight between them. Its score comes from its children. It can contain other factors, to any depth.',
+  'O que se avalia. Tem níveis de desempenho ordenados, com duas referências fixas: Neutro = 0 e Bom = 100.':
+    'What gets assessed. It has ordered performance levels with two fixed references: Neutral = 0 and Good = 100.',
+  'Pergunta de sim/não. Se não for cumprida, a proposta é excluída sem ser pontuada — esteja onde estiver na estrutura.':
+    'A yes/no question. If unmet, the proposal is excluded without being scored — wherever it sits in the structure.',
+  'Ainda sem critérios. Adicione um fator, um critério ou uma condição eliminatória.':
+    'No criteria yet. Add a factor, a criterion or an eliminatory condition.',
+  // ── Reusable sub-models ──
+  '↓ Importar modelo como fator': '↓ Import a model as a factor',
+  'Reutilize um modelo inteiro — ex.: «Obsolescência tecnológica» — como um fator deste.':
+    'Reuse a whole model — e.g. «Technological obsolescence» — as a factor of this one.',
+  'Não é possível importar um modelo para dentro de si próprio.': 'A model cannot be imported into itself.',
+  'Esse modelo não tem critérios para importar.': 'That model has no criteria to import.',
+  // ── Weighting: plain-language swing + ROC ──
+  Cenário: 'Scenario',
+  'Imagine uma proposta no mínimo aceitável em todos os critérios — nada de excecional, nada inaceitável. É esse o ponto de partida (valor 0). Só tem orçamento para corrigir um aspeto.':
+    'Picture a proposal at the minimum acceptable level on every criterion — nothing exceptional, nothing unacceptable. That is the starting point (value 0). You can only afford to fix one aspect.',
+  'Qual destas melhorias traria mais valor à proposta?': 'Which of these improvements would add most value to the proposal?',
+  'Quanto valor traria corrigir': 'How much value would it add to fix',
+  ', deixando tudo o resto no mínimo aceitável?': ', leaving everything else at the minimum acceptable level?',
+  '⚡ Simular a partir da ordem': '⚡ Simulate from the ranking',
+  'Gera um conjunto completo e consistente de juízos a partir da ordem de importância (método ROC).':
+    'Generates a complete, consistent set of judgments from the importance ranking (ROC method).',
+  'Isto substitui as respostas já dadas neste grupo por juízos simulados a partir da ordem de importância. Continuar?':
+    'This replaces the answers already given in this group with judgments simulated from the importance ranking. Continue?',
+  'juízos simulados — por confirmar': 'simulated judgments — unconfirmed',
+  'Pesos simulados não são preferências elicitadas: servem para arrancar depressa ou testar hipóteses. Percorra as perguntas acima e ajuste o que não corresponder ao seu juízo antes de dar o modelo por fechado.':
+    'Simulated weights are not elicited preferences: they are there to start fast or test a hypothesis. Walk through the questions above and adjust anything that does not match your judgment before considering the model final.',
+  // ── Scales: anchored question ──
+  'Que ganho representa subir de': 'How much gain is there in moving from',
+  'Comparado com o salto de referência ({{ref}}), este ganho é…':
+    'Compared with the reference step ({{ref}}), this gain is…',
+  'Juízos já dados — julgue por comparação': 'Judgments given so far — judge by comparison',
+  referência: 'reference',
+  'Referência MACBETH — as sete categorias': 'MACBETH reference — the seven categories',
+  'As categorias são ordinais: uma diferença Elevada (C4) tem de ser maior que uma Moderada (C3), e assim por diante. A verificação de consistência confirma que as respostas não se contradizem.':
+    'The categories are ordinal: a High difference (C4) must exceed a Moderate one (C3), and so on. The consistency check confirms the answers do not contradict each other.',
+  // Category ladder
+  Nula: 'None',
+  'Muito baixa': 'Very low',
+  Baixa: 'Low',
+  Moderada: 'Moderate',
+  Elevada: 'High',
+  'Muito elevada': 'Very high',
+  Extrema: 'Extreme',
+  'Nenhuma diferença com relevância prática': 'No practically relevant difference',
+  'Diferença quase imperceptível': 'Barely perceptible difference',
+  'Diferença pequena mas perceptível': 'Small but perceptible difference',
+  'Diferença claramente sentida': 'Clearly felt difference',
+  'Diferença significativa': 'Significant difference',
+  'Diferença muito marcada': 'Very marked difference',
+  'A maior diferença concebível': 'The largest conceivable difference',
+  // ── Robustez ──
+  'Robustez do modelo': 'Model robustness',
+  Robustez: 'Robustness',
+  'Quanta liberdade os seus juízos deixaram em aberto. Cada barra mostra o intervalo de valores que continuam compatíveis com o que respondeu — quanto mais estreito, mais o modelo está determinado. Não precisa de propostas: isto olha só para o modelo.':
+    'How much freedom your judgments left open. Each bar shows the range of values still compatible with your answers — the narrower, the more determined the model. No proposals needed: this looks only at the model.',
+  'Pesos — valor central e gama admissível': 'Weights — central value and admissible range',
+  'Limiares de decisão': 'Decision thresholds',
+  'Níveis de desempenho não ancorados': 'Unanchored performance levels',
+  'Grau de determinação': 'Degree of determination',
+  firme: 'firm',
+  folgado: 'loose',
+  '«{{label}}» tem a gama mais larga: os juízos dados não o fixam bem. Se essa incerteza importar, responda a mais uma comparação que o envolva.':
+    '«{{label}}» has the widest range: your judgments do not pin it down. If that uncertainty matters, answer one more comparison involving it.',
+  'Os limiares derivados de um perfil deslocam-se quando os pesos ou as escalas mudam — reveja-os se a gama dos pesos acima for larga.':
+    'Thresholds derived from a profile shift when weights or scales change — review them if the weight ranges above are wide.',
+  'Neutro e Bom não aparecem: estão fixos em 0 e 100 por construção.':
+    'Neutral and Good do not appear: they are fixed at 0 and 100 by construction.',
+  'Os seus juízos fixam {{pct}}% do espaço de modelos compatíveis. O resto é liberdade que ficou por decidir.':
+    'Your judgments pin down {{pct}}% of the space of compatible models. The rest is freedom left undecided.',
+  'Escalas consistentes': 'Consistent scales',
+  'Grupos ponderados': 'Weighted groups',
+  'Limiares fundamentados': 'Grounded thresholds',
+  todas: 'all', todos: 'all', incompleto: 'incomplete',
+  '{{n}} por derivar': '{{n}} to derive',
+  'Porque é que isto vem antes de aplicar?': 'Why does this come before applying?',
+  'Esta análise olha só para o modelo. A sensibilidade do ranking — a que peso as propostas trocam de posição — precisa de propostas e por isso vive no fluxo de aplicação.':
+    'This analysis looks only at the model. Ranking sensitivity — at which weight proposals swap places — needs proposals and so lives in the apply flow.',
+  'Ainda não há nada para medir': 'Nothing to measure yet',
+  'A robustez lê as gamas admissíveis calculadas na Ponderação e nas Escalas. Complete pelo menos um desses passos e volte aqui.':
+    'Robustness reads the admissible ranges computed in Weighting and Scales. Complete at least one of those steps and come back.',
+  Estrutura: 'Structure',
   'Condição eliminatória': 'Eliminatory condition',
   'Habilitação — Nível 1 (eliminatório)': 'Eligibility — Tier 1 (eliminatory)',
   'Registe as propostas, responda às condições eliminatórias e classifique o desempenho em cada critério de qualificação. Uma condição eliminatória não cumprida reprova a proposta antes da agregação.':
@@ -162,7 +260,6 @@ export const en: Record<string, string> = {
   'Guardar critério': 'Save criterion',
   Cancelar: 'Cancel',
   Eliminar: 'Delete',
-  Fator: 'Factor',
   Qualificação: 'Qualification',
   Porta: 'Gate',
   'Eliminar este fator e todos os seus subcritérios?': 'Delete this factor and all its sub-criteria?',
@@ -193,10 +290,8 @@ export const en: Record<string, string> = {
   Indiferente: 'Indifferent',
   'Muito fraca': 'Very weak',
   Fraca: 'Weak',
-  Moderada: 'Moderate',
   Forte: 'Strong',
   'Muito forte': 'Very strong',
-  Extrema: 'Extreme',
   'C0 — a diferença não tem relevância prática': 'C0 — the difference has no practical relevance',
   'C1 — diferença quase imperceptível': 'C1 — almost imperceptible difference',
   'C2 — diferença pequena mas perceptível': 'C2 — small but perceptible difference',
@@ -214,7 +309,6 @@ export const en: Record<string, string> = {
   'As categorias são ordinais: a diferença C4 (Forte) deve ser maior que C3 (Moderada), e assim por diante. A verificação de consistência confirma que a ordenação cardinal das respostas não contém contradições.':
     'The categories are ordinal: the C4 (Strong) difference must exceed C3 (Moderate), and so on. The consistency check confirms the cardinal ordering of the answers has no contradictions.',
   // Matrix editor
-  Nula: 'None',
   'Preencha a diferença de atratividade entre cada par (linha mais atrativa que coluna). Para juízos intervalares, ajuste o limite superior.':
     'Fill in the attractiveness difference for each pair (row more attractive than column). For interval judgments, adjust the upper bound.',
   'O segundo campo define o limite superior de um juízo intervalar (ex.: Moderada–Forte).':
@@ -368,7 +462,6 @@ export const en: Record<string, string> = {
   'Fórmula de agregação': 'Aggregation formula',
   'Expansão por grupo': 'Expansion by group',
   'Tabela global de critérios': 'Global criteria table',
-  Critério: 'Criterion',
   'Grupo (pai)': 'Group (parent)',
   'Níveis (Bom→Neutro)': 'Levels (Good→Neutral)',
   'Peso efetivo': 'Effective weight',

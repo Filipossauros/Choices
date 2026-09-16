@@ -12,7 +12,7 @@ import type {
   ValueTreeNode,
 } from '../../domain/types';
 import { ROOT_ID } from '../../domain/types';
-import { addChild, updateCriterion, removeNode, findNode, parentOf, reorderChild } from '../../domain/tree';
+import { addChild, updateCriterion, removeNode, findNode, parentOf, reorderChild, insertSubtree } from '../../domain/tree';
 import { v4 as uuidv4 } from 'uuid';
 import ScreenNav from '../components/ScreenNav';
 import { IconGate, IconQualification, IconComposite, IconGrip } from '../components/icons';
@@ -177,15 +177,15 @@ function CriterionForm({
           <div className="flex flex-wrap gap-4">
             <label className={`flex items-center gap-2 ${lockedComposite ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}>
               <input type="radio" checked={type === 'composite'} disabled={lockedComposite && type !== 'composite'} onChange={() => setType('composite')} />
-              <span className="text-sm flex items-center gap-1.5"><IconComposite className="w-4 h-4 text-emerald-600" /> {t('Fator composto (decompõe em subcritérios)')}</span>
+              <span className="text-sm flex items-center gap-1.5"><IconComposite className="w-4 h-4 text-emerald-600" /> {t('Fator — agrupa e reparte peso')}</span>
             </label>
             <label className={`flex items-center gap-2 ${lockedComposite ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}>
               <input type="radio" checked={type === 'qualification'} disabled={lockedComposite} onChange={() => setType('qualification')} />
-              <span className="text-sm flex items-center gap-1.5"><IconQualification className="w-4 h-4 text-indigo-600" /> {t('Qualificação (escala graduada)')}</span>
+              <span className="text-sm flex items-center gap-1.5"><IconQualification className="w-4 h-4 text-indigo-600" /> {t('Critério — mede desempenho')}</span>
             </label>
             <label className={`flex items-center gap-2 ${lockedComposite ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}>
               <input type="radio" checked={type === 'gate'} disabled={lockedComposite} onChange={() => setType('gate')} />
-              <span className="text-sm flex items-center gap-1.5"><IconGate className="w-4 h-4 text-orange-600" /> {t('Condição eliminatória (sim/não)')}</span>
+              <span className="text-sm flex items-center gap-1.5"><IconGate className="w-4 h-4 text-orange-600" /> {t('Condição eliminatória — exclui à partida')}</span>
             </label>
           </div>
           {lockedComposite && (
@@ -223,7 +223,7 @@ function CriterionForm({
 
       {type === 'qualification' && (
         <div className="space-y-3">
-          <p className="text-sm font-medium text-gray-700">{t('Descritor de Desempenho')}</p>
+          <p className="text-sm font-medium text-gray-700">{t('Níveis de desempenho')}</p>
           <LevelEditor
             levels={levels}
             neutralIndex={neutralIndex}
@@ -257,9 +257,9 @@ const TYPE_ICON: Record<CritType, { Icon: typeof IconGate; cls: string }> = {
   composite: { Icon: IconComposite, cls: 'bg-emerald-50 text-emerald-600' },
 };
 const TYPE_TAG: Record<CritType, { label: string; cls: string }> = {
-  composite: { label: 'Fator', cls: 'bg-emerald-100 text-emerald-700' },
-  qualification: { label: 'Qualificação', cls: 'bg-indigo-100 text-indigo-700' },
-  gate: { label: 'Eliminatório', cls: 'bg-orange-100 text-orange-700' },
+  composite: { label: 'Fator', cls: 'bg-indigo-100 text-indigo-700' },
+  qualification: { label: 'Critério', cls: 'bg-sky-100 text-sky-700' },
+  gate: { label: 'Eliminatória', cls: 'bg-rose-100 text-rose-700' },
 };
 
 export default function Criteria() {
@@ -270,6 +270,7 @@ export default function Criteria() {
   const [addingUnder, setAddingUnder] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [modelLabel, setModelLabel] = useState(model.label);
+  const [importing, setImporting] = useState(false);
   // Reordering is confined to siblings of one group: cross-group moves would
   // silently invalidate both groups' weights, so they are rejected on drop.
   const [dragId, setDragId] = useState<string | null>(null);
@@ -321,6 +322,40 @@ export default function Criteria() {
     }
     dispatch({ type: 'UPDATE_MODEL', patch });
     setEditingId(null);
+  }
+
+  /**
+   * Reuse a whole model as one factor of this one — build "Obsolescência
+   * tecnológica" once, drop it into every architecture model. Ids are
+   * regenerated on the way in so the same source can be imported repeatedly,
+   * and derived scales travel with it (re-deriving them here would defeat the
+   * point of reusing a finished model).
+   */
+  async function importAsFactor(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImporting(true);
+    try {
+      const doc = repository.parseDocument(await file.text());
+      const source = doc.kind === 'evaluation' ? doc.model : doc;
+      if (source.id === model.id) {
+        alert(t('Não é possível importar um modelo para dentro de si próprio.'));
+        return;
+      }
+      if (source.valueTree.root.children.length === 0) {
+        alert(t('Esse modelo não tem critérios para importar.'));
+        return;
+      }
+      dispatch({
+        type: 'UPDATE_MODEL',
+        patch: insertSubtree(model, ROOT_ID, source, uuidv4),
+      });
+    } catch (err) {
+      alert(t('Erro ao importar: ') + String(err));
+    } finally {
+      setImporting(false);
+      e.target.value = '';
+    }
   }
 
   function deleteCriterion(id: string) {
@@ -540,9 +575,32 @@ export default function Criteria() {
         </button>
       </div>
 
+      {/* The three types are the vocabulary everything downstream depends on,
+          so they are defined in place rather than left to be inferred. */}
+      <div className="grid sm:grid-cols-3 gap-3">
+        <div className="rounded-2xl p-4 bg-indigo-50">
+          <p className="text-sm font-bold text-indigo-700 mb-1">{t('Fator — agrupa')}</p>
+          <p className="text-xs text-indigo-900/70 leading-relaxed">
+            {t('Reúne outros elementos e reparte peso entre eles. A sua pontuação vem dos filhos. Pode conter outros fatores, sem limite de profundidade.')}
+          </p>
+        </div>
+        <div className="rounded-2xl p-4 bg-sky-50">
+          <p className="text-sm font-bold text-sky-700 mb-1">{t('Critério — mede')}</p>
+          <p className="text-xs text-sky-900/70 leading-relaxed">
+            {t('O que se avalia. Tem níveis de desempenho ordenados, com duas referências fixas: Neutro = 0 e Bom = 100.')}
+          </p>
+        </div>
+        <div className="rounded-2xl p-4 bg-rose-50">
+          <p className="text-sm font-bold text-rose-700 mb-1">{t('Condição eliminatória')}</p>
+          <p className="text-xs text-rose-900/70 leading-relaxed">
+            {t('Pergunta de sim/não. Se não for cumprida, a proposta é excluída sem ser pontuada — esteja onde estiver na estrutura.')}
+          </p>
+        </div>
+      </div>
+
       <div className="space-y-2">
         <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
-          {t('Árvore de critérios')}
+          {t('Estrutura de avaliação')}
           <span className="ml-2 text-gray-400 font-normal normal-case">
             {factorCount > 0 ? t('{{n}} fator(es) · ', { n: factorCount }) : ''}{t('{{n}} folha(s)', { n: totalLeaves })}
           </span>
@@ -550,7 +608,7 @@ export default function Criteria() {
 
         {rootChildren.length === 0 && (
           <p className="text-sm text-gray-400 italic py-4 text-center">
-            {t('Ainda sem critérios. Adicione um fator composto, um critério de qualificação ou uma condição eliminatória.')}
+            {t('Ainda sem critérios. Adicione um fator, um critério ou uma condição eliminatória.')}
           </p>
         )}
 
@@ -561,9 +619,18 @@ export default function Criteria() {
         {addingUnder === ROOT_ID ? (
           <CriterionForm onSave={(c) => saveNewCriterion(ROOT_ID, c)} onCancel={() => setAddingUnder(null)} />
         ) : (
-          <button onClick={() => setAddingUnder(ROOT_ID)} className="w-full py-3 border-2 border-dashed border-gray-200 rounded-lg text-sm text-gray-500 hover:border-blue-300 hover:text-blue-600 transition-colors">
-            {t('+ Adicionar critério ou fator')}
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button onClick={() => setAddingUnder(ROOT_ID)} className="flex-1 min-w-[12rem] py-3 border-2 border-dashed border-gray-200 rounded-xl text-sm text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition-colors">
+              {t('+ Adicionar critério ou fator')}
+            </button>
+            <label
+              className={`py-3 px-4 border-2 border-dashed border-gray-200 rounded-xl text-sm text-gray-500 hover:border-indigo-300 hover:text-indigo-600 transition-colors cursor-pointer text-center ${importing ? 'opacity-50 pointer-events-none' : ''}`}
+              title={t('Reutilize um modelo inteiro — ex.: «Obsolescência tecnológica» — como um fator deste.')}
+            >
+              {importing ? t('A importar…') : t('↓ Importar modelo como fator')}
+              <input type="file" accept=".json" className="hidden" onChange={importAsFactor} />
+            </label>
+          </div>
         )}
       </div>
 

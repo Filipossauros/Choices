@@ -1,6 +1,7 @@
 import { useState, useEffect, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { MacbethJudgment, MacbethCategory } from '../../domain/types';
+import { CATEGORIES } from '../../domain/categories';
 
 /**
  * Guided, pair-by-pair judgment entry — a plain-language alternative to the
@@ -18,21 +19,11 @@ export interface GuidedItem {
   label: string;
 }
 
-export const GUIDE_CATS: {
-  value: MacbethCategory;
-  label: string;
-  bg: string;
-  text: string;
-  hint: string;
-}[] = [
-  { value: 0, label: 'Indiferente', bg: 'bg-gray-100 hover:bg-gray-200 border-gray-300', text: 'text-gray-700', hint: 'C0 — a diferença não tem relevância prática' },
-  { value: 1, label: 'Muito fraca', bg: 'bg-emerald-50 hover:bg-emerald-100 border-emerald-300', text: 'text-emerald-800', hint: 'C1 — diferença quase imperceptível' },
-  { value: 2, label: 'Fraca', bg: 'bg-teal-50 hover:bg-teal-100 border-teal-300', text: 'text-teal-800', hint: 'C2 — diferença pequena mas perceptível' },
-  { value: 3, label: 'Moderada', bg: 'bg-yellow-50 hover:bg-yellow-100 border-yellow-400', text: 'text-yellow-800', hint: 'C3 — diferença claramente sentida' },
-  { value: 4, label: 'Forte', bg: 'bg-orange-50 hover:bg-orange-100 border-orange-400', text: 'text-orange-800', hint: 'C4 — diferença significativa' },
-  { value: 5, label: 'Muito forte', bg: 'bg-red-50 hover:bg-red-100 border-red-400', text: 'text-red-800', hint: 'C5 — diferença muito marcada' },
-  { value: 6, label: 'Extrema', bg: 'bg-red-100 hover:bg-red-200 border-red-600', text: 'text-red-900', hint: 'C6 — diferença máxima concebível' },
-];
+/**
+ * Re-exported from the domain ladder so the guided flow, the matrix and the
+ * direct-input modes all name the categories identically.
+ */
+export const GUIDE_CATS = CATEGORIES;
 
 interface Props {
   items: GuidedItem[];
@@ -140,37 +131,40 @@ export default function GuidedJudgments({ items, judgments, onChange, renderQues
       )}
 
       {/* Question card */}
-      <div className="border border-blue-200 rounded-2xl bg-blue-50 p-5 space-y-4">
-        <p className="text-xs text-blue-600 font-semibold uppercase tracking-wider">{t('Diferença de atratividade')}</p>
-        <div className="text-base font-medium text-gray-800 leading-snug">
+      <div className="border border-gray-200 rounded-2xl bg-white p-5 space-y-4">
+        <div className="text-lg font-bold text-gray-800 leading-snug tracking-tight">
           {renderQuestion(moreItem, lessItem)}
         </div>
 
-        {/* Category buttons */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-          {GUIDE_CATS.map((cat) => {
+        {/* A staircase, not a flat row: the bar heights make the size of each
+            step visible before the label is read, which a list of names alone
+            never conveys. */}
+        <div className="flex items-end gap-1.5 sm:gap-2">
+          {CATEGORIES.map((cat) => {
             const active = currentCat === cat.value;
             return (
               <button
                 key={cat.value}
                 onClick={() => pick(cat.value)}
                 title={t(cat.hint)}
-                className={`flex flex-col items-center gap-0.5 px-3 py-2.5 border rounded-xl text-xs font-semibold transition-all ${cat.bg} ${cat.text} ${
-                  active ? 'ring-2 ring-blue-500 ring-offset-1 scale-105 shadow-sm' : ''
+                aria-pressed={active}
+                className={`flex-1 min-w-0 flex flex-col items-center gap-1.5 px-1 pt-2.5 pb-2 rounded-xl border-[1.5px] transition-colors ${
+                  active ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200 bg-white hover:border-indigo-200'
                 }`}
               >
-                <span className="text-[10px] font-normal opacity-60">C{cat.value}</span>
-                {t(cat.label)}
+                <span
+                  className={`w-full rounded-md ${active ? 'bg-indigo-500' : 'bg-indigo-100'}`}
+                  style={{ height: cat.weight }}
+                  aria-hidden="true"
+                />
+                <span className={`text-[11px] font-bold leading-tight text-center ${active ? 'text-indigo-700' : 'text-gray-700'}`}>
+                  {t(cat.label)}
+                </span>
+                <span className="text-[9px] font-mono text-gray-400">{cat.code}</span>
               </button>
             );
           })}
         </div>
-
-        {currentJ && (
-          <p className="text-xs text-blue-700 font-medium">
-            {t('✓ Resposta registada:')} <strong>{t(GUIDE_CATS.find((c) => c.value === currentCat)?.label ?? '')}</strong>
-          </p>
-        )}
       </div>
 
       {/* Navigation */}
@@ -193,16 +187,16 @@ export default function GuidedJudgments({ items, judgments, onChange, renderQues
 
       {/* MACBETH reference */}
       <details className="text-xs text-gray-500">
-        <summary className="cursor-pointer hover:text-gray-700 font-medium">{t('Referência MACBETH — categorias C0–C6')}</summary>
+        <summary className="cursor-pointer hover:text-gray-700 font-medium">{t('Referência MACBETH — as sete categorias')}</summary>
         <div className="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-1">
           {GUIDE_CATS.map((c) => (
             <span key={c.value} className="px-2 py-1 bg-gray-50 border border-gray-100 rounded-lg">
-              <strong>C{c.value}</strong> — {t(c.label)}
+              <strong>{c.code}</strong> — {t(c.label)}
             </span>
           ))}
         </div>
         <p className="mt-2 text-gray-400 leading-relaxed">
-          {t('As categorias são ordinais: a diferença C4 (Forte) deve ser maior que C3 (Moderada), e assim por diante. A verificação de consistência confirma que a ordenação cardinal das respostas não contém contradições.')}
+          {t('As categorias são ordinais: uma diferença Elevada (C4) tem de ser maior que uma Moderada (C3), e assim por diante. A verificação de consistência confirma que as respostas não se contradizem.')}
         </p>
       </details>
     </div>

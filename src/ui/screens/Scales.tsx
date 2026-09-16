@@ -9,6 +9,7 @@ import JudgmentMatrixEditor from '../components/JudgmentMatrixEditor';
 import GuidedJudgments from '../components/GuidedJudgments';
 import ScreenNav from '../components/ScreenNav';
 import { ancestorLabels } from '../../domain/tree';
+import { CATEGORIES } from '../../domain/categories';
 import { v4 as uuidv4 } from 'uuid';
 import {
   LineChart,
@@ -424,7 +425,26 @@ export default function Scales() {
       </div>
 
       {/* Main area */}
-      {activeCrit && (
+      {activeCrit && (() => {
+        /**
+         * Judging a difference in the abstract is the hard part. Fixing the
+         * first answered pair as an explicit reference turns every later
+         * question into a comparison against something already decided, which
+         * is a far easier judgment to make.
+         */
+        const levels = activeCrit.descriptor.levels;
+        const labelOf = (id: string) => levels.find((l) => l.id === id)?.label ?? '';
+        const answered = Object.entries(getMatrix(activeCrit.id).judgments)
+          .map(([key, j]) => {
+            const [a, b] = key.split('__');
+            const cat = j.kind === 'exact' ? j.category : j.lo;
+            return { key, from: labelOf(b), to: labelOf(a), cat };
+          })
+          .filter((x) => x.from && x.to);
+        const reference = answered[0];
+        const referenceJump = reference ? `${reference.from} → ${reference.to}` : '';
+
+        return (
         <div className="flex-1 space-y-6 min-w-0">
           <div className="flex items-center justify-between gap-2 flex-wrap">
             <h2 className="font-semibold text-gray-800">{activeCrit.label}</h2>
@@ -444,6 +464,37 @@ export default function Scales() {
             </button>
           </div>
 
+          {/* Answers already given, as bars — the scale you are judging against
+              stays visible instead of having to be held in memory. */}
+          {answered.length > 0 && (
+            <div className="bg-white border border-gray-200 rounded-2xl p-4 space-y-2">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                {t('Juízos já dados — julgue por comparação')}
+              </p>
+              {answered.map((a, i) => (
+                <div
+                  key={a.key}
+                  className={`flex items-center gap-3 rounded-xl px-3 py-2 border text-sm ${
+                    i === 0 ? 'border-indigo-300 bg-indigo-50' : 'border-gray-100'
+                  }`}
+                >
+                  <span
+                    className="w-1.5 rounded-full bg-indigo-500 shrink-0"
+                    style={{ height: CATEGORIES[a.cat]?.weight ? 6 + a.cat * 4 : 6 }}
+                    aria-hidden="true"
+                  />
+                  <span className="flex-1 truncate text-gray-600">{a.from} → {a.to}</span>
+                  {i === 0 && (
+                    <span className="text-[9px] font-bold uppercase tracking-wide text-indigo-600">{t('referência')}</span>
+                  )}
+                  <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 shrink-0">
+                    {t(CATEGORIES[a.cat]?.label ?? '')}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+
           <GuidedJudgments
             items={activeCrit.descriptor.levels.map((l) => ({ id: l.id, label: l.label }))}
             judgments={getMatrix(activeCrit.id).judgments}
@@ -452,11 +503,16 @@ export default function Scales() {
             emptyHint="São necessários pelo menos 2 níveis."
             renderQuestion={(more, less) => (
               <>
-                {t('Qual a diferença de atratividade de passar de')}{' '}
-                <span className="inline-block bg-white border border-gray-300 rounded-lg px-2 py-0.5 font-semibold text-gray-700">{less.label}</span>
+                {t('Que ganho representa subir de')}{' '}
+                <span className="inline-block bg-gray-50 border border-gray-200 rounded-lg px-2 py-0.5 font-semibold text-gray-700">{less.label}</span>
                 {' '}{t('para')}{' '}
-                <span className="inline-block bg-white border border-blue-400 rounded-lg px-2 py-0.5 font-semibold text-blue-700">{more.label}</span>
+                <span className="inline-block bg-indigo-50 border border-indigo-300 rounded-lg px-2 py-0.5 font-bold text-indigo-700">{more.label}</span>
                 ?
+                {referenceJump && (
+                  <span className="block text-sm font-normal text-gray-500 mt-2">
+                    {t('Comparado com o salto de referência ({{ref}}), este ganho é…', { ref: referenceJump })}
+                  </span>
+                )}
               </>
             )}
           />
@@ -513,7 +569,8 @@ export default function Scales() {
             );
           })()}
         </div>
-      )}
+        );
+      })()}
       </div>
 
       <ScreenNav

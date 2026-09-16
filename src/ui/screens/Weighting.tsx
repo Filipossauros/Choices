@@ -4,6 +4,8 @@ import { useApp } from '../store';
 import type { MacbethJudgment, JudgmentMatrix } from '../../domain/types';
 import { DEFAULT_ASSESSOR_ID, ROOT_ID } from '../../domain/types';
 import { deriveWeights, ALL_NEUTRAL } from '../../engine/weighting';
+import { simulateWeighting } from '../../engine/simulate';
+import { IconGrip } from '../components/icons';
 import { weightingGroups, weightsForGroup, setGroupWeights, groupConsistent, groupEffectiveWeight, type Group } from '../../domain/tree';
 import JudgmentMatrixEditor from '../components/JudgmentMatrixEditor';
 import GuidedJudgments from '../components/GuidedJudgments';
@@ -17,6 +19,8 @@ function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; on
   const model = state.model!;
   const [deriving, setDeriving] = useState(false);
   const [activePairKey, setActivePairKey] = useState<string | null>(null);
+  // Judgments seeded by ROC stay flagged until the user reviews them.
+  const [simulated, setSimulated] = useState(false);
 
   const { criteria } = model.valueTree;
   const childCrits = group.childIds.map((id) => criteria[id]).filter(Boolean);
@@ -34,6 +38,35 @@ function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; on
       judgments: {},
       updatedAt: new Date().toISOString(),
     };
+
+  /**
+   * The concrete before→after a swing actually means. Naming the two levels
+   * turns an abstract "Neutro to Bom" into something the assessor can picture,
+   * which is the whole difficulty with swing weighting.
+   */
+  function jumpOf(id: string): string {
+    const c = criteria[id];
+    if (c?.type !== 'qualification') return '';
+    const { levels, neutralIndex, goodIndex } = c.descriptor;
+    const from = levels[neutralIndex]?.label;
+    const to = levels[goodIndex]?.label;
+    return from && to ? `${from} → ${to}` : '';
+  }
+
+  /**
+   * Seed every judgment in this group from the importance ranking alone, via
+   * Rank Order Centroid. Marked as suggested until reviewed: a simulated weight
+   * is not an elicited preference, and the audit trail has to keep them apart.
+   */
+  function simulate() {
+    const { judgments } = simulateWeighting(orderedChildIds);
+    if (
+      Object.keys(matrix.judgments).length > 0 &&
+      !confirm(t('Isto substitui as respostas já dadas neste grupo por juízos simulados a partir da ordem de importância. Continuar?'))
+    ) return;
+    updateJudgments(judgments);
+    setSimulated(true);
+  }
 
   function updateJudgments(judgments: Record<string, MacbethJudgment>) {
     const updated: JudgmentMatrix = { ...matrix, judgments, updatedAt: new Date().toISOString() };
@@ -151,27 +184,34 @@ function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; on
                     <li key={id} className="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2 bg-white">
                       <span className="w-5 text-center text-xs font-bold text-blue-700 shrink-0">{t('{{n}}º', { n: i + 1 })}</span>
                       <span className="flex-1 text-sm text-gray-700 truncate" title={criteria[id]?.label}>{criteria[id]?.label ?? id}</span>
-                      <div className="flex flex-col gap-0.5 shrink-0">
-                        <button
-                          onClick={() => moveCriterion(i, -1)}
-                          disabled={i === 0}
-                          className="text-gray-400 hover:text-blue-600 disabled:opacity-20 text-xs leading-none"
-                          aria-label={t('Subir (mais importante)')}
-                        >▲</button>
-                        <button
-                          onClick={() => moveCriterion(i, 1)}
-                          disabled={i === orderedChildIds.length - 1}
-                          className="text-gray-400 hover:text-blue-600 disabled:opacity-20 text-xs leading-none"
-                          aria-label={t('Descer (menos importante)')}
-                        >▼</button>
-                      </div>
+                      <span className="text-xs text-gray-400 shrink-0">{jumpOf(id)}</span>
+                      <span
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+                          e.preventDefault();
+                          moveCriterion(i, e.key === 'ArrowUp' ? -1 : 1);
+                        }}
+                        className="text-gray-300 hover:text-gray-600 cursor-grab shrink-0 focus:outline-none focus:text-indigo-600 focus:ring-2 focus:ring-indigo-300 rounded"
+                        title={t('Arrastar para reordenar (ou ↑/↓ com o teclado)')}
+                        aria-label={t('Reordenar «{{label}}» — posição {{i}} de {{n}}', { label: criteria[id]?.label ?? id, i: i + 1, n: orderedChildIds.length })}
+                      >
+                        <IconGrip className="w-3.5 h-4" />
+                      </span>
                     </li>
                   ))}
                 </ol>
               </div>
 
               {/* Passo 2 — pairwise comparisons */}
-              <p className="text-sm font-semibold text-gray-700 pt-2">{t('Passo 2 — Compare a importância dos pares')}</p>
+              <div className="bg-sky-50 rounded-2xl px-4 py-3 flex gap-3 items-start mt-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-sky-700 shrink-0 pt-0.5 w-16">{t('Cenário')}</span>
+                <p className="text-[13px] text-sky-900/80 leading-relaxed">
+                  {t('Imagine uma proposta no mínimo aceitável em todos os critérios — nada de excecional, nada inaceitável. É esse o ponto de partida (valor 0). Só tem orçamento para corrigir um aspeto.')}
+                </p>
+              </div>
+              <p className="text-sm font-semibold text-gray-700 pt-1">{t('Passo 2 — Compare a importância dos pares')}</p>
               <GuidedJudgments
                 items={matrixItems}
                 judgments={matrix.judgments}
@@ -181,22 +221,23 @@ function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; on
                 renderQuestion={(more, less) =>
                   less.id === ALL_NEUTRAL ? (
                     <>
-                      <span className="block text-sm font-normal text-gray-500 mb-2">
-                        {t('Tudo parte do nível Neutro (a referência, valor 0).')}
-                      </span>
-                      {t('Quão atrativo é levar só')}{' '}
-                      <span className="inline-block bg-white border border-blue-400 rounded-lg px-2 py-0.5 font-semibold text-blue-700">{more.label}</span>
-                      {' '}{t('de Neutro até Bom?')}
+                      {t('Quanto valor traria corrigir')}{' '}
+                      <span className="inline-block bg-indigo-50 border border-indigo-300 rounded-lg px-2 py-0.5 font-bold text-indigo-700">{more.label}</span>
+                      {t(', deixando tudo o resto no mínimo aceitável?')}
                     </>
                   ) : (
                     <>
-                      <span className="block text-sm font-normal text-gray-500 mb-2">
-                        {t('Só pode levar um critério de Neutro até Bom — os restantes ficam em Neutro.')}
+                      {t('Qual destas melhorias traria mais valor à proposta?')}
+                      <span className="grid sm:grid-cols-2 gap-2.5 mt-3 text-sm font-normal">
+                        <span className="border-[1.5px] border-indigo-400 bg-indigo-50 rounded-xl px-3 py-2.5">
+                          <span className="block font-bold text-indigo-800">{more.label}</span>
+                          <span className="block text-xs text-gray-500 mt-1">{jumpOf(more.id)}</span>
+                        </span>
+                        <span className="border-[1.5px] border-gray-200 rounded-xl px-3 py-2.5">
+                          <span className="block font-bold text-gray-700">{less.label}</span>
+                          <span className="block text-xs text-gray-500 mt-1">{jumpOf(less.id)}</span>
+                        </span>
                       </span>
-                      {t('Quanto mais atrativo é escolher')}{' '}
-                      <span className="inline-block bg-white border border-blue-400 rounded-lg px-2 py-0.5 font-semibold text-blue-700">{more.label}</span>
-                      {' '}{t('do que')}{' '}
-                      <span className="inline-block bg-white border border-gray-300 rounded-lg px-2 py-0.5 font-semibold text-gray-700">{less.label}</span>?
                     </>
                   )
                 }
@@ -211,13 +252,33 @@ function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; on
                 <JudgmentMatrixEditor items={matrixItems} judgments={matrix.judgments} onChange={updateJudgments} activePairKey={activePairKey ?? undefined} />
               </details>
 
-              <button
-                onClick={handleDerive}
-                disabled={deriving || Object.keys(matrix.judgments).length === 0}
-                className="px-5 py-2 bg-blue-700 text-white rounded hover:bg-blue-800 disabled:opacity-50"
-              >
-                {deriving ? t('A calcular pesos…') : t('Calcular pesos deste grupo')}
-              </button>
+              <div className="flex flex-wrap items-center gap-2.5">
+                <button
+                  onClick={handleDerive}
+                  disabled={deriving || Object.keys(matrix.judgments).length === 0}
+                  className="px-5 py-2 bg-indigo-600 text-white rounded-full font-semibold text-sm hover:bg-indigo-700 disabled:opacity-40"
+                >
+                  {deriving ? t('A calcular pesos…') : t('Calcular pesos deste grupo')}
+                </button>
+                <button
+                  onClick={simulate}
+                  className="px-4 py-2 rounded-full text-sm font-semibold bg-indigo-50 text-indigo-700 hover:bg-indigo-100"
+                  title={t('Gera um conjunto completo e consistente de juízos a partir da ordem de importância (método ROC).')}
+                >
+                  ⚡ {t('Simular a partir da ordem')}
+                </button>
+                {simulated && (
+                  <span className="text-[10px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full bg-amber-100 text-amber-700">
+                    {t('juízos simulados — por confirmar')}
+                  </span>
+                )}
+              </div>
+
+              {simulated && (
+                <p className="text-xs text-amber-800 bg-amber-50 rounded-xl px-3.5 py-2.5 leading-relaxed">
+                  {t('Pesos simulados não são preferências elicitadas: servem para arrancar depressa ou testar hipóteses. Percorra as perguntas acima e ajuste o que não corresponder ao seu juízo antes de dar o modelo por fechado.')}
+                </p>
+              )}
 
               {weights && (() => {
                 const groupFactor = groupEffectiveWeight(model, group.parentId);
@@ -334,9 +395,9 @@ export default function Weighting() {
   return (
     <div className="max-w-4xl mx-auto py-6 px-4 space-y-6">
       <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-800 space-y-1">
-        <p className="font-medium">{t('Ponderação por Oscilação (Swing Weighting)')}</p>
+        <p className="font-medium">{t('O que pesa mais?')}</p>
         <p>
-          {t('Compare a atratividade de oscilar cada critério de Neutro para Bom. A referência «Tudo-Neutro» é o ponto de partida (valor = 0).')}
+          {t('Decida a importância relativa antes do trabalho detalhado das escalas. Cada pergunta é uma escolha entre duas melhorias concretas — ou responda depressa simulando a partir da ordem de importância.')}
         </p>
         {multiGroup && (
           <p className="text-xs text-blue-600">
