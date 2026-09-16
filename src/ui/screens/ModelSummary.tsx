@@ -44,7 +44,7 @@ export default function ModelSummary() {
           </p>
         </div>
         <div className="flex flex-col gap-2 shrink-0">
-          <button onClick={exportSpecJson} className="px-4 py-2 text-sm font-medium rounded-lg bg-indigo-600 text-white hover:bg-indigo-700">
+          <button onClick={exportSpecJson} className="px-4 py-2 text-sm font-medium rounded-lg bg-accent text-white hover:bg-accent-strong">
             ↓ {t('Exportar especificação (JSON · IA)')}
           </button>
           <button onClick={exportModelJson} className="px-4 py-2 text-sm rounded-lg border border-gray-300 hover:bg-gray-50">
@@ -200,7 +200,7 @@ export default function ModelSummary() {
           {t('Modelo completo. Aplique-o para registar propostas e obter resultados.')}
         </p>
         <button
-          className="ml-auto px-4 py-2 text-sm font-medium rounded-lg bg-green-700 text-white hover:bg-green-800 disabled:opacity-40 disabled:cursor-not-allowed"
+          className="ml-auto px-4 py-2 text-sm font-medium rounded-lg bg-positive text-white hover:bg-positive-strong disabled:opacity-40 disabled:cursor-not-allowed"
           disabled={!ready}
           title={!ready ? t('Conclua escalas e ponderação consistentes antes de aplicar.') : undefined}
           onClick={() => dispatch({ type: 'START_EVALUATION', model })}

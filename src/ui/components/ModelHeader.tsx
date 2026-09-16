@@ -243,7 +243,7 @@ export default function ModelHeader() {
             const active = currentScreen === screen;
             const done = i < activeIndex || status === 'done';
             const dotCls = active
-              ? 'bg-blue-600 text-white ring-4 ring-blue-100'
+              ? 'bg-accent text-white ring-4 ring-blue-100'
               : status === 'done'
               ? 'bg-green-500 text-white'
               : status === 'partial'

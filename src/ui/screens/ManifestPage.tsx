@@ -22,7 +22,7 @@ export default function ManifestPage({ onBack }: { onBack: () => void }) {
         </div>
         <button
           onClick={() => downloadJson('choices-manifesto.json', manifest)}
-          className="px-4 py-2 text-sm font-medium rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 shrink-0"
+          className="px-4 py-2 text-sm font-medium rounded-lg bg-accent text-white hover:bg-accent-strong shrink-0"
         >
           ↓ {t('Exportar manifesto (JSON · IA)')}
         </button>

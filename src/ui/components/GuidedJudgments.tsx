@@ -42,12 +42,16 @@ export default function GuidedJudgments({ items, judgments, onChange, renderQues
   const { t } = useTranslation();
   const [pairIdx, setPairIdx] = useState(0);
   /**
-   * Set once the last unanswered pair is answered, so the run ends somewhere
-   * instead of silently looping back to question 1 — which read as "Pergunta 1
-   * de 3 · 3/3 respondidas" and left the user unsure whether anything had been
-   * recorded. Cleared by navigating back into the questions.
+   * Whether the user has stepped *back into* an already-complete set to change
+   * an answer.
+   *
+   * Completion itself is derived from the judgments rather than latched when
+   * the last question is answered: they can also arrive all at once (the ROC
+   * fill, the direct-weights mode, an imported model), and a latched flag
+   * missed every one of those — leaving the run sitting on "Pergunta 1 de 3"
+   * while reporting 3/3 answered.
    */
-  const [finished, setFinished] = useState(false);
+  const [reviewing, setReviewing] = useState(false);
 
   // Upper-triangle pairs, same order/keys as JudgmentMatrixEditor.
   const pairs: { idA: string; idB: string }[] = [];
@@ -66,8 +70,7 @@ export default function GuidedJudgments({ items, judgments, onChange, renderQues
   const itemsKey = items.map((it) => it.id).join('|');
   useEffect(() => {
     const firstUnanswered = pairs.findIndex((p) => !judgments[`${p.idA}__${p.idB}`]);
-    // Nothing left to ask: land on the completed state, not back at question 1.
-    setFinished(firstUnanswered === -1 && pairs.length > 0);
+    setReviewing(false);
     setPairIdx(firstUnanswered === -1 ? Math.max(0, pairs.length - 1) : firstUnanswered);
   }, [itemsKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -98,13 +101,13 @@ export default function GuidedJudgments({ items, judgments, onChange, renderQues
     onChange(next);
     const nextUnanswered = pairs.findIndex((p, i) => i !== safeIdx && !next[`${p.idA}__${p.idB}`]);
     if (nextUnanswered !== -1) setPairIdx(nextUnanswered);
-    else setFinished(true);
+    else setReviewing(false); // that was the last gap — show the summary
   }
 
   const answered = pairs.filter((p) => judgments[`${p.idA}__${p.idB}`] !== undefined).length;
 
   /** All pairs answered: say so and offer a way back in, rather than re-asking. */
-  if (finished && answered === total) {
+  if (answered === total && !reviewing) {
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between text-xs text-gray-500">
@@ -120,7 +123,7 @@ export default function GuidedJudgments({ items, judgments, onChange, renderQues
           </p>
           <div className="flex flex-wrap gap-2">
             <button
-              onClick={() => { setFinished(false); setPairIdx(0); }}
+              onClick={() => { setReviewing(true); setPairIdx(0); }}
               className="px-3.5 py-1.5 text-sm font-medium rounded-lg border border-green-300 text-green-900 hover:bg-green-100"
             >
               {t('Rever as respostas')}
@@ -135,7 +138,7 @@ export default function GuidedJudgments({ items, judgments, onChange, renderQues
             return (
               <button
                 key={i}
-                onClick={() => { setFinished(false); setPairIdx(i); }}
+                onClick={() => { setReviewing(true); setPairIdx(i); }}
                 className="text-[11px] px-2 py-1 rounded-lg border border-gray-200 text-gray-600 hover:border-indigo-300"
                 title={`${items.find((it) => it.id === p.idA)?.label} vs ${items.find((it) => it.id === p.idB)?.label}`}
               >
@@ -174,7 +177,7 @@ export default function GuidedJudgments({ items, judgments, onChange, renderQues
                 title={`${items.find((it) => it.id === p.idA)?.label} vs ${items.find((it) => it.id === p.idB)?.label}`}
                 className={`w-5 h-5 rounded-full border text-[9px] font-bold transition-all ${
                   active
-                    ? 'bg-blue-600 border-blue-700 text-white scale-110'
+                    ? 'bg-accent border-blue-700 text-white scale-110'
                     : done
                     ? 'bg-green-500 border-green-600 text-white'
                     : 'bg-gray-100 border-gray-300 text-gray-500 hover:bg-gray-200'

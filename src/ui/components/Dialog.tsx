@@ -126,7 +126,7 @@ export function DialogProvider({ children }: { children: ReactNode }) {
                 ref={confirmRef}
                 onClick={() => close(true)}
                 className={`px-4 py-2 text-sm font-semibold rounded-lg text-white ${
-                  request.danger ? 'bg-rose-600 hover:bg-rose-700' : 'bg-indigo-600 hover:bg-indigo-700'
+                  request.danger ? 'bg-danger hover:bg-danger-strong' : 'bg-accent hover:bg-accent-strong'
                 }`}
               >
                 {request.kind === 'alert' ? t('Entendido') : request.confirmLabel ?? t('Continuar')}

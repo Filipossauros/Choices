@@ -2,12 +2,194 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ───────────────────────────────────────────────────────────────────────────
+   Calibre — palette definitions.
+
+   Every colour the app uses is a variable here; tailwind.config.js builds the
+   utilities on top of them. Dark mode is the second block: it redefines the
+   colours, so every utility follows automatically — including the ones with
+   opacity modifiers (`bg-indigo-50/60`) that the old class-name remap could
+   never see.
+
+   Bands keep their meaning across modes rather than inverting wholesale:
+   50–100 are surfaces, 200–300 are borders, 400–900 is text. So in dark mode
+   50–300 get darker and 400–900 get lighter.
+   ──────────────────────────────────────────────────────────────────────────*/
 :root {
+  color-scheme: light;
+
+  --surface: 255 255 255;
+
+  /* Neutrals, tinted very slightly lilac so they sit under the violet accent */
+  --n-50: 245 244 250;
+  --n-100: 238 237 246;
+  --n-200: 231 229 241;
+  --n-300: 207 203 226;
+  --n-400: 142 147 166;
+  --n-500: 110 114 133;
+  --n-600: 93 98 117;
+  --n-700: 69 74 92;
+  --n-800: 51 55 71;
+  --n-900: 35 38 51;
+
+  /* Violet — the signal colour */
+  --v-50: 247 245 255;
+  --v-100: 237 234 255;
+  --v-200: 221 215 250;
+  --v-300: 195 184 245;
+  --v-400: 154 136 240;
+  --v-500: 108 92 231;
+  --v-600: 91 73 222;
+  --v-700: 75 58 196;
+  --v-800: 60 46 156;
+  --v-900: 46 35 120;
+
+  /* Mint — reserved for a positive verdict */
+  --m-50: 240 250 245;
+  --m-100: 212 240 226;
+  --m-200: 178 228 205;
+  --m-300: 132 210 175;
+  --m-400: 79 186 140;
+  --m-500: 42 156 109;
+  --m-600: 20 121 90;
+  --m-700: 13 97 73;
+  --m-800: 10 77 58;
+  --m-900: 7 61 46;
+
+  /* Peach — caution, provisional, unconfirmed */
+  --p-50: 255 249 240;
+  --p-100: 255 231 203;
+  --p-200: 255 213 163;
+  --p-300: 248 188 112;
+  --p-400: 237 160 66;
+  --p-500: 206 129 23;
+  --p-600: 162 104 11;
+  --p-700: 130 83 8;
+  --p-800: 103 66 6;
+  --p-900: 78 50 4;
+
+  /* Rose — contradiction, rejection */
+  --r-50: 255 245 244;
+  --r-100: 255 219 214;
+  --r-200: 255 192 184;
+  --r-300: 248 156 144;
+  --r-400: 238 114 100;
+  --r-500: 214 76 61;
+  --r-600: 176 51 42;
+  --r-700: 142 41 33;
+  --r-800: 113 33 27;
+  --r-900: 87 25 20;
+
+  /* Sky — explanatory asides, distinct from the accent */
+  --s-50: 243 248 255;
+  --s-100: 220 234 255;
+  --s-200: 191 216 251;
+  --s-300: 148 189 245;
+  --s-400: 99 156 236;
+  --s-500: 59 123 218;
+  --s-600: 36 95 166;
+  --s-700: 29 76 134;
+  --s-800: 23 60 107;
+  --s-900: 18 46 82;
+
+  /* Solid fills — these always carry white text, in both modes */
+  --accent: 91 73 222;
+  --accent-strong: 75 58 196;
+  --danger: 176 51 42;
+  --danger-strong: 142 41 33;
+  --caution: 162 104 11;
+  --caution-strong: 130 83 8;
+  --positive: 20 121 90;
+  --positive-strong: 13 97 73;
+
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   /* Digits line up in columns wherever they are compared — scores, weights,
      consistency margins. */
   font-variant-numeric: tabular-nums;
+}
+
+.dark {
+  color-scheme: dark;
+
+  /* A card has to read as sitting *above* the page, so the surface is lighter
+     than the background — the one place the ramp direction genuinely flips. */
+  --surface: 30 29 41;
+
+  --n-50: 22 21 30;
+  --n-100: 38 36 47;
+  --n-200: 50 47 64;
+  --n-300: 67 63 85;
+  --n-400: 142 147 166;
+  --n-500: 163 167 186;
+  --n-600: 194 197 214;
+  --n-700: 217 218 230;
+  --n-800: 235 234 242;
+  --n-900: 245 244 250;
+
+  --v-50: 34 29 58;
+  --v-100: 44 37 80;
+  --v-200: 58 48 104;
+  --v-300: 107 90 184;
+  --v-400: 154 136 240;
+  --v-500: 168 153 243;
+  --v-600: 183 170 246;
+  --v-700: 201 190 248;
+  --v-800: 221 215 250;
+  --v-900: 237 234 255;
+
+  --m-50: 20 40 31;
+  --m-100: 26 59 44;
+  --m-200: 33 80 59;
+  --m-300: 58 138 102;
+  --m-400: 79 186 140;
+  --m-500: 107 203 161;
+  --m-600: 138 216 181;
+  --m-700: 166 227 200;
+  --m-800: 196 238 219;
+  --m-900: 224 247 236;
+
+  --p-50: 44 33 19;
+  --p-100: 62 46 23;
+  --p-200: 84 62 28;
+  --p-300: 154 112 40;
+  --p-400: 237 160 66;
+  --p-500: 242 178 100;
+  --p-600: 246 196 137;
+  --p-700: 249 212 168;
+  --p-800: 252 227 198;
+  --p-900: 255 241 226;
+
+  --r-50: 46 24 21;
+  --r-100: 66 32 28;
+  --r-200: 90 42 36;
+  --r-300: 160 74 62;
+  --r-400: 238 114 100;
+  --r-500: 242 141 128;
+  --r-600: 245 166 156;
+  --r-700: 248 189 181;
+  --r-800: 251 212 207;
+  --r-900: 255 234 231;
+
+  --s-50: 20 32 46;
+  --s-100: 27 45 66;
+  --s-200: 36 59 87;
+  --s-300: 63 106 158;
+  --s-400: 99 156 236;
+  --s-500: 131 178 241;
+  --s-600: 162 198 245;
+  --s-700: 191 216 251;
+  --s-800: 216 231 253;
+  --s-900: 237 244 255;
+
+  --accent: 108 92 231;
+  --accent-strong: 91 73 222;
+  --danger: 192 57 47;
+  --danger-strong: 168 48 40;
+  --caution: 180 117 13;
+  --caution-strong: 154 99 9;
+  --positive: 27 138 104;
+  --positive-strong: 20 121 90;
 }
 
 /* "Calibre": the app builds graduated scales, so a fine graduated rule is the
@@ -31,115 +213,63 @@ body {
 ::-webkit-scrollbar-thumb:hover { @apply bg-gray-400; }
 
 /* ───────────────────────────────────────────────────────────────────────────
-   Dark mode
-   The app's components use light Tailwind utilities throughout. Rather than
-   annotate every element with `dark:` variants, we remap the common surface,
-   border and text utilities under the `.dark` root. Brand accent colours
-   (blue/indigo/emerald/amber/rose used for chips, bars and bands) are left
-   intact so the decision semantics stay legible.
+   Motion
+
+   Everything here is a *consequence* of something the user did: a value that
+   moved because an answer changed, a panel that arrived because a step did.
+   Nothing loops, nothing announces itself, and all of it is off under
+   prefers-reduced-motion — where the change still happens, just immediately.
    ──────────────────────────────────────────────────────────────────────────*/
-.dark {
-  color-scheme: dark;
+@keyframes step-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
-.dark body {
-  background-color: rgb(22 21 30);   /* slate-900 */
-  color: rgb(236 235 243);           /* slate-200 */
+/* A screen arriving after a step change. */
+.step-enter {
+  animation: step-in 260ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+/* A panel appearing in place (a diagnosis, a derived scale). */
+.settle-in {
+  animation: fade-in 200ms ease-out both;
+}
+/* Numbers that recompute: they slide rather than jump, so the eye can follow
+   which one moved. */
+.tick-move {
+  transition: top 420ms cubic-bezier(0.2, 0.8, 0.2, 1),
+              left 420ms cubic-bezier(0.2, 0.8, 0.2, 1),
+              width 420ms cubic-bezier(0.2, 0.8, 0.2, 1),
+              color 200ms ease-out;
 }
 
-/* Surfaces ----------------------------------------------------------------- */
-.dark .bg-white { background-color: rgb(30 29 41) !important; }       /* slate-800 */
-.dark .bg-gray-50 { background-color: rgb(22 21 30) !important; }     /* slate-900 */
-.dark .bg-slate-50 { background-color: rgb(22 21 30) !important; }
-.dark .bg-gray-100 { background-color: rgb(46 44 61) !important; }    /* slate-700 */
-.dark .bg-gray-200 { background-color: rgb(62 59 82) !important; }   /* slate-600 */
-
-/* Tinted surfaces — keep the hue but drop luminance so accents stay readable */
-.dark .bg-indigo-50 { background-color: rgb(46 35 120 / 0.35) !important; }
-.dark .bg-emerald-50 { background-color: rgb(7 61 46 / 0.35) !important; }
-.dark .bg-green-50 { background-color: rgb(7 61 46 / 0.35) !important; }
-.dark .bg-amber-50 { background-color: rgb(78 50 4 / 0.35) !important; }
-.dark .bg-rose-50 { background-color: rgb(87 25 20 / 0.30) !important; }
-.dark .bg-red-50 { background-color: rgb(87 25 20 / 0.30) !important; }
-.dark .bg-blue-50 { background-color: rgb(46 35 120 / 0.35) !important; }
-.dark .bg-blue-100 { background-color: rgb(46 35 120 / 0.55) !important; }
-.dark .bg-green-100 { background-color: rgb(7 61 46 / 0.55) !important; }
-.dark .bg-emerald-100 { background-color: rgb(7 61 46 / 0.55) !important; }
-.dark .bg-amber-100 { background-color: rgb(78 50 4 / 0.55) !important; }
-.dark .bg-rose-100 { background-color: rgb(87 25 20 / 0.50) !important; }
-.dark .bg-indigo-100 { background-color: rgb(46 35 120 / 0.55) !important; }
-.dark .bg-sky-50 { background-color: rgb(31 53 85 / 0.40) !important; }
-.dark .bg-sky-100 { background-color: rgb(31 53 85 / 0.60) !important; }
-.dark .border-sky-200 { border-color: rgb(36 95 166 / 0.45) !important; }
-
-/* Gradient welcome / card backgrounds — neutralise the light gradient stops */
-.dark .bg-gradient-to-br,
-.dark .bg-gradient-to-b {
-  --tw-gradient-from: rgb(30 29 41) var(--tw-gradient-from-position) !important;
-  --tw-gradient-via: rgb(30 29 41) var(--tw-gradient-via-position) !important;
-  --tw-gradient-to: rgb(22 21 30) var(--tw-gradient-to-position) !important;
-  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-via), var(--tw-gradient-to) !important;
-}
-/* The progress bar gradient (blue→green) is intentionally preserved */
-.dark .from-blue-600 {
-  --tw-gradient-from: #6C5CE7 var(--tw-gradient-from-position) !important;
-  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
+@media (prefers-reduced-motion: reduce) {
+  .step-enter,
+  .settle-in {
+    animation: none;
+  }
+  .tick-move {
+    transition: none;
+  }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
-/* Borders ------------------------------------------------------------------ */
-.dark .border-gray-200 { border-color: rgb(46 44 61) !important; }   /* slate-700 */
-.dark .border-gray-100 { border-color: rgb(46 44 61) !important; }
-.dark .border-gray-300 { border-color: rgb(62 59 82) !important; }  /* slate-600 */
-.dark .border-slate-200 { border-color: rgb(46 44 61) !important; }
-.dark .divide-gray-100 > * + * { border-color: rgb(46 44 61) !important; }
-.dark .divide-gray-200 > * + * { border-color: rgb(46 44 61) !important; }
-.dark .border-indigo-100 { border-color: rgb(75 58 196 / 0.5) !important; }
-.dark .border-indigo-100\/70 { border-color: rgb(75 58 196 / 0.4) !important; }
-.dark .border-emerald-100 { border-color: rgb(42 156 109 / 0.4) !important; }
-.dark .border-green-200 { border-color: rgb(42 156 109 / 0.45) !important; }
-.dark .border-emerald-200 { border-color: rgb(42 156 109 / 0.45) !important; }
-.dark .border-amber-200 { border-color: rgb(130 83 8 / 0.45) !important; }
-
-/* Text --------------------------------------------------------------------- */
-.dark .text-gray-900 { color: rgb(244 243 249) !important; }   /* slate-100 */
-.dark .text-gray-800 { color: rgb(236 235 243) !important; }   /* slate-200 */
-.dark .text-gray-700 { color: rgb(201 203 218) !important; }   /* slate-300 */
-.dark .text-gray-600 { color: rgb(162 166 186) !important; }   /* slate-400 */
-.dark .text-gray-500 { color: rgb(162 166 186) !important; }   /* slate-400 */
-.dark .text-gray-400 { color: rgb(116 120 140) !important; }   /* slate-500 */
-.dark .text-gray-300 { color: rgb(62 59 82) !important; }     /* slate-600 */
-
-/* Hover states ------------------------------------------------------------- */
-.dark .hover\:bg-gray-50:hover { background-color: rgb(46 44 61) !important; }
-.dark .hover\:bg-gray-100:hover { background-color: rgb(46 44 61) !important; }
-.dark .hover\:bg-gray-200:hover { background-color: rgb(62 59 82) !important; }
-.dark .hover\:text-gray-700:hover { color: rgb(201 203 218) !important; }
-.dark .hover\:text-gray-800:hover { color: rgb(236 235 243) !important; }
-.dark .hover\:text-gray-900:hover { color: rgb(244 243 249) !important; }
-
-/* Form controls ------------------------------------------------------------ */
-.dark input,
-.dark select,
-.dark textarea {
-  background-color: rgb(22 21 30) !important;   /* slate-900 */
-  color: rgb(236 235 243) !important;
-  border-color: rgb(46 44 61) !important;
+/* Recharts draws into SVG with its own colour props, so it is the one place
+   that still needs telling. These read the same variables as everything else. */
+.recharts-cartesian-grid line { stroke: rgb(var(--n-200)); }
+.recharts-text { fill: rgb(var(--n-400)); }
+.recharts-cartesian-axis-line,
+.recharts-cartesian-axis-tick-line { stroke: rgb(var(--n-300)); }
+.recharts-tooltip-wrapper .recharts-default-tooltip {
+  background-color: rgb(var(--surface)) !important;
+  border-color: rgb(var(--n-200)) !important;
+  color: rgb(var(--n-800)) !important;
+  border-radius: 10px;
 }
-.dark input::placeholder,
-.dark textarea::placeholder { color: rgb(116 120 140) !important; }
-
-/* Recharts ----------------------------------------------------------------- */
-.dark .recharts-cartesian-grid line { stroke: rgb(46 44 61) !important; }
-.dark .recharts-text { fill: rgb(162 166 186) !important; }
-.dark .recharts-cartesian-axis-line,
-.dark .recharts-cartesian-axis-tick-line { stroke: rgb(62 59 82) !important; }
-.dark .recharts-tooltip-wrapper .recharts-default-tooltip {
-  background-color: rgb(30 29 41) !important;
-  border-color: rgb(46 44 61) !important;
-  color: rgb(236 235 243) !important;
-}
-
-/* Dark scrollbar ----------------------------------------------------------- */
-.dark ::-webkit-scrollbar-track { background-color: rgb(22 21 30); }
-.dark ::-webkit-scrollbar-thumb { background-color: rgb(46 44 61); }
-.dark ::-webkit-scrollbar-thumb:hover { background-color: rgb(62 59 82); }

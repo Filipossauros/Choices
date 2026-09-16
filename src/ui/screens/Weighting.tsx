@@ -111,6 +111,11 @@ function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; on
     const { judgments } = simulateWeighting(orderedChildIds);
     updateJudgments(judgments);
     provenanceRef.current = 'simulated';
+    // Derive here rather than leaving it to the effect: filling an already-full
+    // matrix produces the same judgments, so the effect sees no change and
+    // never runs — and the weights would keep whatever provenance they had.
+    lastDerived.current = `${JSON.stringify(judgments)}`;
+    await derive(judgments, 'simulated');
   }
 
   function updateJudgments(judgments: Record<string, MacbethJudgment>) {
@@ -220,6 +225,15 @@ function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; on
     const pairCount = (matrixItems.length * (matrixItems.length - 1)) / 2;
     if (Object.keys(matrix.judgments).length < pairCount) return;
     if (lastDerived.current === judgmentsKey) return;
+    // Reopening a model whose weights are already derived: adopt them instead
+    // of solving again. Re-deriving would produce the same numbers but stamp
+    // them 'elicited', erasing the record that they were simulated and never
+    // confirmed — the exact thing persisting provenance was meant to prevent.
+    if (lastDerived.current === null && weights && weights.consistencyMargin > 0) {
+      lastDerived.current = judgmentsKey;
+      provenanceRef.current = weights.provenance ?? 'elicited';
+      return;
+    }
     lastDerived.current = judgmentsKey;
     void derive(matrix.judgments, provenanceRef.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -316,7 +330,7 @@ function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; on
                   ))}
                   <button
                     onClick={applyDirect}
-                    className="w-full mt-3 px-4 py-2 bg-indigo-600 text-white rounded-full text-sm font-semibold hover:bg-indigo-700"
+                    className="w-full mt-3 px-4 py-2 bg-accent text-white rounded-full text-sm font-semibold hover:bg-accent-strong"
                   >
                     {t('Aplicar e calcular pesos')}
                   </button>
@@ -460,7 +474,7 @@ function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; on
                   </p>
                   <button
                     onClick={confirmWeights}
-                    className="px-3 py-1.5 text-xs font-semibold bg-amber-600 text-white rounded-lg hover:bg-amber-700"
+                    className="px-3 py-1.5 text-xs font-semibold bg-caution text-white rounded-lg hover:bg-caution-strong"
                   >
                     {t('Revi e confirmo estes pesos')}
                   </button>
@@ -577,7 +591,14 @@ export default function Weighting() {
   // stacks the same two-step explainer and matrix N times, and a model with a
   // handful of factors becomes several screens of near-identical content.
   const [openGroups, setOpenGroups] = useState<Set<string>>(() => {
-    const firstPending = groups.find((g) => !groupConsistent(model, g));
+    // Open the first group that still needs the user: unanswered comparisons,
+    // or weights taken from a shortcut and not yet signed off. A collapsed
+    // group showing "por confirmar" is a prompt nobody can act on.
+    const firstPending = groups.find((g) => {
+      if (!groupConsistent(model, g)) return true;
+      const w = weightsForGroup(model, g.parentId);
+      return !!w && w.provenance != null && w.provenance !== 'elicited' && !w.confirmed;
+    });
     return new Set(firstPending ? [firstPending.parentId] : []);
   });
 

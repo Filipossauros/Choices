@@ -182,7 +182,7 @@ export default function JudgmentMatrixEditor({ items, judgments, onChange, readO
                     >
                       {isConflict && (
                         <span
-                          className="absolute -top-1.5 -right-1.5 text-[10px] leading-none bg-red-600 text-white rounded-full w-4 h-4 flex items-center justify-center shadow"
+                          className="absolute -top-1.5 -right-1.5 text-[10px] leading-none bg-danger text-white rounded-full w-4 h-4 flex items-center justify-center shadow"
                           aria-hidden="true"
                         >
                           !
@@ -281,7 +281,7 @@ export default function JudgmentMatrixEditor({ items, judgments, onChange, readO
                     {!readOnly && (
                       <button
                         onClick={() => applyCorrection(pair)}
-                        className="px-2 py-0.5 text-xs bg-red-600 text-white rounded hover:bg-red-700"
+                        className="px-2 py-0.5 text-xs bg-danger text-white rounded hover:bg-danger-strong"
                       >
                         {t('Aplicar')}
                       </button>

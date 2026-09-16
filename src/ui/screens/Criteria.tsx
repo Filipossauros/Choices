@@ -347,7 +347,7 @@ function CriterionForm({
       )}
 
       <div className="flex gap-2 pt-2">
-        <button onClick={handleSave} className="px-4 py-2 bg-blue-700 text-white text-sm rounded hover:bg-blue-800">{t('Guardar critério')}</button>
+        <button onClick={handleSave} className="px-4 py-2 bg-accent text-white text-sm rounded hover:bg-accent-strong">{t('Guardar critério')}</button>
         <button onClick={onCancel} className="px-4 py-2 border border-gray-300 text-sm rounded hover:bg-gray-50">{t('Cancelar')}</button>
       </div>
     </div>

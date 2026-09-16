@@ -202,7 +202,7 @@ export default function Analysis() {
           placeholder={subjectPlaceholder}
           className="flex-1 border border-gray-200 rounded px-3 py-2 text-sm"
         />
-        <button onClick={addOption} className="px-4 py-2 bg-blue-700 text-white text-sm rounded hover:bg-blue-800">
+        <button onClick={addOption} className="px-4 py-2 bg-accent text-white text-sm rounded hover:bg-accent-strong">
           {t('+ Adicionar {{subject}}', { subject: subjectSingular })}
         </button>
       </div>

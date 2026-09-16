@@ -22,7 +22,7 @@ export default function ScreenNav({ next, nextLabel, hint, blockedBy }: Props) {
       {hint && <p className="flex-1 text-xs text-gray-400">{t(hint)}</p>}
       <button
         className="ml-auto flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition-colors
-          bg-blue-700 text-white hover:bg-blue-800
+          bg-accent text-white hover:bg-accent-strong
           disabled:opacity-40 disabled:cursor-not-allowed"
         disabled={!!blockedBy}
         title={blockedBy ? t(blockedBy) : undefined}

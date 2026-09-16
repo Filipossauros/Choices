@@ -550,7 +550,7 @@ export default function Home() {
             {t('Estrutura, ponderação, escalas de valor e perfis de decisão.')}
           </p>
           <div>
-            <button onClick={newModel} className="px-3.5 py-2 text-sm bg-indigo-600 text-white rounded-full hover:bg-indigo-700 font-semibold">
+            <button onClick={newModel} className="px-3.5 py-2 text-sm bg-accent text-white rounded-full hover:bg-accent-strong font-semibold">
               {t('+ Novo modelo')}
             </button>
           </div>

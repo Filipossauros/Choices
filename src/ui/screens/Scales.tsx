@@ -427,6 +427,44 @@ export default function Scales() {
     : qualCriteria[0];
 
   /**
+   * On arrival, derive any criterion that already has a full set of judgments
+   * but no scale — a model opened from a template or an import carries the
+   * answers without the solved scales, and making the user visit each criterion
+   * in turn to trigger a calculation they did not ask for is busywork.
+   * Criteria that already have a scale are left alone, so values placed on the
+   * ruler are not quietly re-solved.
+   */
+  const backfilled = useRef(false);
+  useEffect(() => {
+    if (backfilled.current || qualCriteria.length === 0) return;
+    backfilled.current = true;
+    const pending = qualCriteria.filter((c) => {
+      if (model.derivedScales.some((s) => s.criterionId === c.id)) return false;
+      const n = c.descriptor.levels.length;
+      return Object.keys(getMatrix(c.id).judgments).length >= (n * (n - 1)) / 2 && n > 1;
+    });
+    if (pending.length === 0) return;
+    // One dispatch for all of them. Dispatching per criterion would have each
+    // patch built from the same render's `model`, so every scale but the last
+    // would be dropped on the floor.
+    void (async () => {
+      const solved = await Promise.all(
+        pending.map((c) => deriveScale(c.id, c.descriptor, getMatrix(c.id))),
+      );
+      dispatch({
+        type: 'UPDATE_MODEL',
+        patch: {
+          derivedScales: [
+            ...model.derivedScales.filter((s) => !pending.some((c) => c.id === s.criterionId)),
+            ...solved,
+          ],
+        },
+      });
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /**
    * Derive as soon as this criterion's comparisons are all answered — same
    * reason as the weighting groups: a button sitting below the questions with no
    * visible link to them leaves the screen looking finished while the scale is
@@ -591,7 +629,7 @@ export default function Scales() {
                         <div className="flex flex-wrap items-center gap-2 pt-1">
                           <button
                             onClick={() => fixJudgment(activeCrit.id, first.wide.key, minimumCategoryFor(first))}
-                            className="px-3.5 py-1.5 text-sm font-semibold bg-rose-600 text-white rounded-lg hover:bg-rose-700"
+                            className="px-3.5 py-1.5 text-sm font-semibold bg-danger text-white rounded-lg hover:bg-danger-strong"
                           >
                             {t('Corrigir para «{{cat}}»', { cat: t(CATEGORIES[minimumCategoryFor(first)]?.label ?? '') })}
                           </button>
@@ -613,7 +651,7 @@ export default function Scales() {
                         </p>
                         <button
                           onClick={() => fixJudgment(activeCrit.id, d.fallback!.key, d.fallback!.suggested)}
-                          className="px-3.5 py-1.5 text-sm font-semibold bg-rose-600 text-white rounded-lg hover:bg-rose-700"
+                          className="px-3.5 py-1.5 text-sm font-semibold bg-danger text-white rounded-lg hover:bg-danger-strong"
                         >
                           {t('Aplicar esta correção')}
                         </button>
@@ -662,7 +700,7 @@ export default function Scales() {
                   ))}
                   <button
                     onClick={applyRuler}
-                    className="w-full mt-3 px-4 py-2 bg-indigo-600 text-white rounded-full text-sm font-semibold hover:bg-indigo-700"
+                    className="w-full mt-3 px-4 py-2 bg-accent text-white rounded-full text-sm font-semibold hover:bg-accent-strong"
                   >
                     {t('Aplicar esta escala')}
                   </button>

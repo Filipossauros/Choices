@@ -39,7 +39,7 @@ function RangeBar({
           style={{ left: pct(reading.lo), width: `${width}%` }}
         />
         <span
-          className="absolute top-1/2 w-3 h-3 rounded-full bg-indigo-600 border-2 border-white -translate-x-1/2 -translate-y-1/2"
+          className="absolute top-1/2 w-3 h-3 rounded-full bg-accent border-2 border-white -translate-x-1/2 -translate-y-1/2"
           style={{ left: pct(reading.central) }}
         />
       </span>

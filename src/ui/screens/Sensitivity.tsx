@@ -95,7 +95,7 @@ export default function Sensitivity() {
                 onClick={() => setActiveCriterionId(c.id)}
                 className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${
                   isActive
-                    ? 'bg-blue-700 text-white border-blue-700'
+                    ? 'bg-accent text-white border-blue-700'
                     : 'bg-white text-gray-600 border-gray-300 hover:border-blue-400'
                 }`}
               >

@@ -62,7 +62,7 @@ export default function ModelNotReady({ compact = false }: { compact?: boolean }
       {canRefresh && (
         <button
           onClick={refresh}
-          className="px-3 py-1.5 text-sm font-medium bg-blue-700 text-white rounded-lg hover:bg-blue-800"
+          className="px-3 py-1.5 text-sm font-medium bg-accent text-white rounded-lg hover:bg-accent-strong"
           title={t('Traz a versão concluída do modelo para esta avaliação, mantendo os desempenhos já registados.')}
         >
           {t('Atualizar modelo desta avaliação')}
