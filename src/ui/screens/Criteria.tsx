@@ -471,7 +471,7 @@ export default function Criteria() {
           {showBottom && <div className="absolute -bottom-1 inset-x-0 h-0.5 rounded-full bg-blue-500 z-10" aria-hidden="true" />}
         <div
           className={`flex items-start gap-3 flex-wrap p-3 border rounded-lg hover:border-gray-300 transition-opacity ${
-            isComposite ? 'bg-emerald-50/60 border-emerald-200' : 'bg-white border-gray-200'
+            isComposite ? 'bg-indigo-50 border-indigo-200' : 'bg-white border-gray-200'
           } ${isDragging ? 'opacity-40' : ''}`}
         >
           {/* A span, not a button: form controls are unreliable drag sources in
@@ -522,12 +522,12 @@ export default function Criteria() {
               </p>
             )}
             {isComposite && (
-              <p className="text-xs text-emerald-700/70 mt-0.5">{t('{{n}} subcritério(s)', { n: node.children.length })}</p>
+              <p className="text-xs text-indigo-700/70 mt-0.5">{t('{{n}} subcritério(s)', { n: node.children.length })}</p>
             )}
           </div>
           <div className="flex gap-1 shrink-0 basis-full sm:basis-auto justify-end pl-10 sm:pl-0">
             {isComposite && (
-              <button onClick={() => { setAddingUnder(c.id); setCollapsed((p) => { const n = new Set(p); n.delete(c.id); return n; }); }} className="px-2 py-1 text-xs text-emerald-700 border border-emerald-200 rounded hover:bg-emerald-50">{t('+ subcritério')}</button>
+              <button onClick={() => { setAddingUnder(c.id); setCollapsed((p) => { const n = new Set(p); n.delete(c.id); return n; }); }} className="px-2 py-1 text-xs text-indigo-700 border border-indigo-200 rounded hover:bg-indigo-50">{t('+ subcritério')}</button>
             )}
             <button onClick={() => setEditingId(c.id)} className="px-2 py-1 text-xs border border-gray-200 rounded hover:bg-gray-50">{t('Editar')}</button>
             <button onClick={() => deleteCriterion(c.id)} className="px-2 py-1 text-xs text-red-500 border border-red-200 rounded hover:bg-red-50">{t('Eliminar')}</button>
@@ -537,7 +537,7 @@ export default function Criteria() {
 
         {/* Children (indented) */}
         {isComposite && isOpen && (
-          <div className="ml-5 pl-3 border-l-2 border-emerald-100 space-y-2">
+          <div className="ml-5 pl-3 border-l-2 border-indigo-100 space-y-2">
             {node.children.length > 0 && (
               <ul className="space-y-2">
                 {node.children.map((ch, i) => renderNode(ch, depth + 1, c.id, i, node.children.length))}
@@ -546,7 +546,7 @@ export default function Criteria() {
             {addingUnder === c.id ? (
               <CriterionForm onSave={(nc) => saveNewCriterion(c.id, nc)} onCancel={() => setAddingUnder(null)} />
             ) : (
-              <button onClick={() => setAddingUnder(c.id)} className="w-full py-2 border-2 border-dashed border-emerald-200 rounded-lg text-xs text-emerald-600 hover:border-emerald-300 hover:bg-emerald-50/50 transition-colors">
+              <button onClick={() => setAddingUnder(c.id)} className="w-full py-2 border-2 border-dashed border-indigo-200 rounded-lg text-xs text-indigo-600 hover:border-indigo-300 hover:bg-indigo-50 transition-colors">
                 {t('+ subcritério em «{{label}}»', { label: c.label })}
               </button>
             )}
@@ -580,19 +580,19 @@ export default function Criteria() {
       <div className="grid sm:grid-cols-3 gap-3">
         <div className="rounded-2xl p-4 bg-indigo-50">
           <p className="text-sm font-bold text-indigo-700 mb-1">{t('Fator — agrupa')}</p>
-          <p className="text-xs text-indigo-900/70 leading-relaxed">
+          <p className="text-xs text-gray-600 leading-relaxed">
             {t('Reúne outros elementos e reparte peso entre eles. A sua pontuação vem dos filhos. Pode conter outros fatores, sem limite de profundidade.')}
           </p>
         </div>
         <div className="rounded-2xl p-4 bg-sky-50">
           <p className="text-sm font-bold text-sky-700 mb-1">{t('Critério — mede')}</p>
-          <p className="text-xs text-sky-900/70 leading-relaxed">
+          <p className="text-xs text-gray-600 leading-relaxed">
             {t('O que se avalia. Tem níveis de desempenho ordenados, com duas referências fixas: Neutro = 0 e Bom = 100.')}
           </p>
         </div>
         <div className="rounded-2xl p-4 bg-rose-50">
           <p className="text-sm font-bold text-rose-700 mb-1">{t('Condição eliminatória')}</p>
-          <p className="text-xs text-rose-900/70 leading-relaxed">
+          <p className="text-xs text-gray-600 leading-relaxed">
             {t('Pergunta de sim/não. Se não for cumprida, a proposta é excluída sem ser pontuada — esteja onde estiver na estrutura.')}
           </p>
         </div>

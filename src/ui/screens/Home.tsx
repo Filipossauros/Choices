@@ -8,7 +8,7 @@ import { MODEL_VERSION } from '../../domain/types';
 import { modelReadiness } from '../../domain/tree';
 import MethodPage from './MethodPage';
 import ManifestPage from './ManifestPage';
-import { IconPencil, IconClipboard, IconArchitecture, IconMonitor, IconImport } from '../components/icons';
+import { IconPencil, IconClipboard, IconArchitecture, IconMonitor, IconImport, IconScale, IconExport } from '../components/icons';
 import { v4 as uuidv4 } from 'uuid';
 import type { ComponentType, SVGProps } from 'react';
 
@@ -62,8 +62,8 @@ const BalanceMascot = memo(function BalanceMascot() {
         .wb-night{display:none}
         .dark .wb-night{display:inline}
         .dark .wb-day{display:none}
-        .wb-glass{fill:#9ecbf0}
-        .dark .wb-glass{fill:#33415f}
+        .wb-glass{fill:#DCEAFF}
+        .dark .wb-glass{fill:#2A2545}
         @media (prefers-reduced-motion: reduce){
           .wb-scene *{animation:none !important}
           .wb-mote-c,.wb-steam-c{display:none}
@@ -73,36 +73,36 @@ const BalanceMascot = memo(function BalanceMascot() {
         <defs>
           <clipPath id="wb-winclip"><rect x="18" y="30" width="70" height="88"/></clipPath>
           <linearGradient id="wb-fur" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="#f7b06a"/><stop offset="1" stopColor="#d9692c"/>
+            <stop offset="0" stopColor="#F6C08C"/><stop offset="1" stopColor="#E08A4E"/>
           </linearGradient>
           <linearGradient id="wb-furD" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="#d9692c"/><stop offset="1" stopColor="#a8431a"/>
+            <stop offset="0" stopColor="#E08A4E"/><stop offset="1" stopColor="#C26B34"/>
           </linearGradient>
           <linearGradient id="wb-desk" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="#7c5436"/><stop offset="1" stopColor="#5e3c24"/>
+            <stop offset="0" stopColor="#6E6796"/><stop offset="1" stopColor="#565080"/>
           </linearGradient>
           <linearGradient id="wb-paper" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="#fdfaf0"/><stop offset="1" stopColor="#e7ddc4"/>
+            <stop offset="0" stopColor="#FDFCFF"/><stop offset="1" stopColor="#E3E0F2"/>
           </linearGradient>
           <radialGradient id="wb-pool" cx="0.46" cy="0.38" r="0.58">
-            <stop offset="0" stopColor="#fff3c0" stopOpacity="0.75"/>
-            <stop offset="0.5" stopColor="#ffe08a" stopOpacity="0.28"/>
-            <stop offset="1" stopColor="#ffe08a" stopOpacity="0"/>
+            <stop offset="0" stopColor="#FFE9B8" stopOpacity="0.85"/>
+            <stop offset="0.45" stopColor="#C9BEF7" stopOpacity="0.45"/>
+            <stop offset="1" stopColor="#A594F0" stopOpacity="0"/>
           </radialGradient>
           <radialGradient id="wb-moon" cx="0.5" cy="0.5" r="0.5">
-            <stop offset="0" stopColor="#fdf6d8"/><stop offset="1" stopColor="#cdd6c0" stopOpacity="0.2"/>
+            <stop offset="0" stopColor="#F2EEFF"/><stop offset="1" stopColor="#BDB4E6" stopOpacity="0.2"/>
           </radialGradient>
         </defs>
 
         {/* ── Window (left) — night sky in dark mode, sun in light mode (via .dark CSS) ── */}
-        <rect x="14" y="26" width="78" height="96" rx="3" fill="#26314a"/>
+        <rect x="14" y="26" width="78" height="96" rx="3" fill="#3B3566"/>
         <rect x="18" y="30" width="70" height="88" className="wb-glass"/>
         <g clipPath="url(#wb-winclip)">
           <g className="wb-night">
-            <Halo cx={64} cy={56} fill="#fdf6d8" rings={[[41,0.08],[28,0.16],[18,0.30]]} />
+            <Halo cx={64} cy={56} fill="#F2EEFF" rings={[[41,0.08],[28,0.16],[18,0.30]]} />
             <circle cx="64" cy="56" r="13" fill="url(#wb-moon)"/>
             {STARS.map((s,i)=>(
-              <circle key={i} cx={s.x} cy={s.y} r="1.1" fill="#fdf6d8" opacity="0.85"
+              <circle key={i} cx={s.x} cy={s.y} r="1.1" fill="#F2EEFF" opacity="0.85"
                 className="wb-star" style={{animationDelay:`${s.d}s`}}/>
             ))}
           </g>
@@ -110,28 +110,28 @@ const BalanceMascot = memo(function BalanceMascot() {
             <g className="wb-sunray">
               {[0,45,90,135,180,225,270,315].map(a=>(
                 <line key={a} x1="81" y1="56" x2="88" y2="56"
-                  stroke="#ffd700" strokeWidth="2.5" strokeLinecap="round"
+                  stroke="#F8C96B" strokeWidth="2.5" strokeLinecap="round"
                   transform={`rotate(${a} 64 56)`}/>
               ))}
             </g>
-            <circle cx="64" cy="56" r="12" fill="#ffd700"/>
-            <circle cx="64" cy="56" r="9" fill="#fff176"/>
+            <circle cx="64" cy="56" r="12" fill="#F8C96B"/>
+            <circle cx="64" cy="56" r="9" fill="#FFE3A8"/>
           </g>
         </g>
         {/* Window dividers */}
-        <line x1="53" y1="30" x2="53" y2="118" stroke="#26314a" strokeWidth="3"/>
-        <line x1="18" y1="74" x2="88" y2="74" stroke="#26314a" strokeWidth="3"/>
+        <line x1="53" y1="30" x2="53" y2="118" stroke="#3B3566" strokeWidth="3"/>
+        <line x1="18" y1="74" x2="88" y2="74" stroke="#3B3566" strokeWidth="3"/>
 
         {/* ── Desk lamp (right, articulated) ── */}
-        <rect x="196" y="180" width="34" height="6" rx="2" fill="#2a2230"/>
-        <line x1="213" y1="182" x2="206" y2="120" stroke="#4a3f4a" strokeWidth="4"/>
-        <line x1="206" y1="120" x2="176" y2="92" stroke="#4a3f4a" strokeWidth="4"/>
-        <path d="M176 92 l-20 8 l8 18 l18 -12 z" fill="#5a4a3a"/>
-        <path d="M158 100 l8 18 l-10 4 l-4 -16z" fill="#3a2f2a"/>
+        <rect x="196" y="180" width="34" height="6" rx="2" fill="#3B3566"/>
+        <line x1="213" y1="182" x2="206" y2="120" stroke="#6E6796" strokeWidth="4"/>
+        <line x1="206" y1="120" x2="176" y2="92" stroke="#6E6796" strokeWidth="4"/>
+        <path d="M176 92 l-20 8 l8 18 l18 -12 z" fill="#6E6796"/>
+        <path d="M158 100 l8 18 l-10 4 l-4 -16z" fill="#4A447A"/>
         {/* Lamp glow halos — flicker animates the group's opacity, which multiplies
             the per-ring opacities instead of overriding them */}
         <g className="wb-flicker">
-          <Halo cx={160} cy={110} fill="#fff1bc" rings={[[38,0.07],[26,0.14],[15,0.26],[7,0.88]]} />
+          <Halo cx={160} cy={110} fill="#FFDD9B" rings={[[38,0.16],[26,0.26],[15,0.42],[7,0.95]]} />
         </g>
 
         {/* Light pool on desk */}
@@ -139,18 +139,18 @@ const BalanceMascot = memo(function BalanceMascot() {
 
         {/* Dust motes — `backwards` keeps them at the 0% keyframe (invisible) during the stagger delay */}
         {MOTES.map((m,i)=>(
-          <circle key={i} cx={m.x} cy={m.y} r="1.2" fill="#fff2b0" className="wb-mote-c"
+          <circle key={i} cx={m.x} cy={m.y} r="1.2" fill="#FFE2A6" className="wb-mote-c"
             style={{animation:`wb-mote ${3.5+i*0.4}s ease-in-out ${i*0.5}s infinite backwards`}}/>
         ))}
 
         {/* ── Desk ── */}
         <rect x="0" y="186" width="260" height="94" fill="url(#wb-desk)"/>
-        <rect x="0" y="186" width="260" height="5" fill="#8a6038"/>
+        <rect x="0" y="186" width="260" height="5" fill="#8880AE"/>
 
         {/* Books (left of fox) */}
-        <rect x="20" y="177" width="40" height="9" rx="1" fill="#7a9a6a"/>
-        <rect x="24" y="168" width="36" height="9" rx="1" fill="#c98a4a"/>
-        <rect x="18" y="159" width="42" height="9" rx="1" fill="#9a6a8a"/>
+        <rect x="20" y="177" width="40" height="9" rx="1" fill="#9BD3B8"/>
+        <rect x="24" y="168" width="36" height="9" rx="1" fill="#F3C98E"/>
+        <rect x="18" y="159" width="42" height="9" rx="1" fill="#C4A8DC"/>
 
         {/* Paper stacks */}
         {STACKS.map((st,si)=>
@@ -162,58 +162,58 @@ const BalanceMascot = memo(function BalanceMascot() {
         )}
 
         {/* Plant (far right) */}
-        <rect x="222" y="166" width="22" height="20" rx="2" fill="#b56a47"/>
+        <rect x="222" y="166" width="22" height="20" rx="2" fill="#D9A88E"/>
         <g className="wb-plant">
-          <path d="M233 166 q-14 -18 -6 -32" stroke="#6a9a5a" strokeWidth="3" fill="none"/>
-          <path d="M233 166 q14 -16 6 -30"  stroke="#6a9a5a" strokeWidth="3" fill="none"/>
-          <path d="M233 166 q0 -22 0 -36"   stroke="#6a9a5a" strokeWidth="3" fill="none"/>
+          <path d="M233 166 q-14 -18 -6 -32" stroke="#8CC6A6" strokeWidth="3" fill="none"/>
+          <path d="M233 166 q14 -16 6 -30"  stroke="#8CC6A6" strokeWidth="3" fill="none"/>
+          <path d="M233 166 q0 -22 0 -36"   stroke="#8CC6A6" strokeWidth="3" fill="none"/>
         </g>
 
         {/* ── Fox ── */}
         <g className="wb-breath">
           {/* Left ear */}
           <polygon points="99,134 89,98 113,116" fill="url(#wb-furD)"/>
-          <polygon points="101,110 101,92 111,106" fill="#f7b8a0" opacity="0.6"/>
+          <polygon points="101,110 101,92 111,106" fill="#F9CFC2" opacity="0.6"/>
           {/* Right ear — occasional twitch */}
           <g className="wb-ear">
             <polygon points="141,134 151,98 127,116" fill="url(#wb-furD)"/>
-            <polygon points="139,110 139,92 129,106" fill="#f7b8a0" opacity="0.6"/>
+            <polygon points="139,110 139,92 129,106" fill="#F9CFC2" opacity="0.6"/>
           </g>
           {/* Head */}
           <ellipse cx="120" cy="156" rx="35" ry="31" fill="url(#wb-fur)"/>
           {/* Rim light */}
-          <path d="M90 146 a35 31 0 0 1 60 0" fill="none" stroke="#ffe6b0" strokeWidth="2.4" opacity="0.7"/>
+          <path d="M90 146 a35 31 0 0 1 60 0" fill="none" stroke="#FFF0D6" strokeWidth="2.4" opacity="0.7"/>
           {/* Muzzle */}
-          <ellipse cx="120" cy="168" rx="23" ry="19" fill="#fdf3e2"/>
+          <ellipse cx="120" cy="168" rx="23" ry="19" fill="#FEFAF5"/>
           {/* Tired droopy eyes */}
           <g className="wb-blink">
-            <path d="M99 154 q8 5 16 0"  stroke="#3a2412" strokeWidth="3" fill="none" strokeLinecap="round"/>
-            <path d="M125 154 q8 5 16 0" stroke="#3a2412" strokeWidth="3" fill="none" strokeLinecap="round"/>
+            <path d="M99 154 q8 5 16 0"  stroke="#4A3A52" strokeWidth="3" fill="none" strokeLinecap="round"/>
+            <path d="M125 154 q8 5 16 0" stroke="#4A3A52" strokeWidth="3" fill="none" strokeLinecap="round"/>
           </g>
           {/* Eye bags */}
-          <path d="M101 161 q6 3 12 0" stroke="#cc9999" strokeWidth="1.4" fill="none" opacity="0.6"/>
-          <path d="M127 161 q6 3 12 0" stroke="#cc9999" strokeWidth="1.4" fill="none" opacity="0.6"/>
+          <path d="M101 161 q6 3 12 0" stroke="#C9A8BE" strokeWidth="1.4" fill="none" opacity="0.6"/>
+          <path d="M127 161 q6 3 12 0" stroke="#C9A8BE" strokeWidth="1.4" fill="none" opacity="0.6"/>
           {/* Nose, mouth, tongue */}
-          <ellipse cx="120" cy="166" rx="4" ry="2.6" fill="#3a2412"/>
-          <line x1="120" y1="169" x2="120" y2="173" stroke="#3a2412" strokeWidth="2"/>
-          <path d="M112 175 q8 4 16 0" stroke="#3a2412" strokeWidth="2" fill="none" strokeLinecap="round"/>
-          <ellipse cx="113" cy="177" rx="3" ry="4" fill="#ff8a80"/>
+          <ellipse cx="120" cy="166" rx="4" ry="2.6" fill="#4A3A52"/>
+          <line x1="120" y1="169" x2="120" y2="173" stroke="#4A3A52" strokeWidth="2"/>
+          <path d="M112 175 q8 4 16 0" stroke="#4A3A52" strokeWidth="2" fill="none" strokeLinecap="round"/>
+          <ellipse cx="113" cy="177" rx="3" ry="4" fill="#F5A8A0"/>
         </g>
 
         {/* Coffee cup (in front of fox) */}
         {[0,1,2].map(i=>(
-          <circle key={i} cx={84+(i-1)*5} cy={170} r={2.4} fill="#e8e8e0" className="wb-steam-c"
+          <circle key={i} cx={84+(i-1)*5} cy={170} r={2.4} fill="#E8E4F4" className="wb-steam-c"
             style={{animation:`wb-steam 2.1s ease-out ${i*0.7}s infinite backwards`}}/>
         ))}
-        <rect x="74" y="172" width="20" height="18" rx="2" fill="#cf6a52"/>
-        <path d="M94 176 q8 0 8 6 q0 6 -8 6" fill="none" stroke="#cf6a52" strokeWidth="3"/>
+        <rect x="74" y="172" width="20" height="18" rx="2" fill="#E89A88"/>
+        <path d="M94 176 q8 0 8 6 q0 6 -8 6" fill="none" stroke="#E89A88" strokeWidth="3"/>
 
         {/* ── Firefly / moth circling lamp ── */}
         <g className="wb-flyX" style={{transformOrigin:'160px 112px'}}>
           <g className="wb-flyY" style={{transformOrigin:'160px 112px'}}>
             <g className="wb-glow">
-              <Halo cx={160} cy={112} fill="#fff6a0" rings={[[14,0.09],[9,0.17],[5,0.32]]} />
-              <circle cx="160" cy="112" r="2.5" fill="#fffde0"/>
+              <Halo cx={160} cy={112} fill="#FFE9A8" rings={[[14,0.18],[9,0.3],[5,0.5]]} />
+              <circle cx="160" cy="112" r="2.5" fill="#FFF6DC"/>
               {/* tiny wings */}
               <ellipse cx="155" cy="109" rx="2.8" ry="1.4" fill="#fff" opacity="0.45" transform="rotate(-20 160 112)"/>
               <ellipse cx="165" cy="109" rx="2.8" ry="1.4" fill="#fff" opacity="0.45" transform="rotate(20 160 112)"/>
@@ -509,43 +509,47 @@ export default function Home() {
     <div className="max-w-4xl mx-auto py-10 px-4">
 
       {/* ── Welcome ── */}
-      <div className="relative mb-10 rounded-3xl overflow-hidden bg-gradient-to-br from-indigo-50 via-white to-violet-50 border border-indigo-100/70">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(99,102,241,0.12),transparent_60%)]" />
+      <div className="relative mb-10 rounded-3xl overflow-hidden bg-gradient-to-br from-indigo-50 via-white to-indigo-50/60 border border-indigo-100">
         <div className="relative flex flex-col items-center text-center px-6 py-10">
           <BalanceMascot />
-          <h1 className="text-3xl font-extrabold tracking-tight text-gray-900 mt-3">{t('O que vais decidir hoje?')}</h1>
-          <p className="text-gray-500 text-sm mt-2 max-w-md">
+          <h1 className="text-[2rem] font-extrabold tracking-[-0.035em] text-gray-900 mt-3">
+            {t('O que vais decidir hoje?')}
+          </h1>
+          <p className="text-gray-500 text-sm mt-2 max-w-md leading-relaxed">
             {t('Avaliação multicritério, estruturada e defensável — para qualquer alternativa ou cenário.')}
           </p>
+          {/* The graduated rule: this app builds measured scales, so the scale
+              is the signature. */}
+          <div className="rule-tick w-40 mt-6 text-indigo-400" aria-hidden="true" />
         </div>
       </div>
 
       {/* ── Main action cards ── */}
       <div className="grid sm:grid-cols-2 gap-4 mb-8">
-        <div className="rounded-2xl border-2 border-indigo-100 bg-gradient-to-b from-indigo-50 to-white p-5 flex flex-col">
+        <div className="rounded-2xl border border-indigo-200 bg-indigo-50 p-5 flex flex-col">
           <div className="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-600 grid place-items-center mb-2"><IconPencil className="w-5 h-5" /></div>
           <h2 className="font-bold text-indigo-900 text-base mb-1">{t('Criar modelo de avaliação')}</h2>
           <p className="text-sm text-indigo-700/70 mb-4 flex-1">
-            {t('Definir critérios, escalas de valor, pesos e perfis de decisão.')}
+            {t('Estrutura, ponderação, escalas de valor e perfis de decisão.')}
           </p>
           <div>
-            <button onClick={newModel} className="px-3 py-1.5 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium">
+            <button onClick={newModel} className="px-3.5 py-2 text-sm bg-indigo-600 text-white rounded-full hover:bg-indigo-700 font-semibold">
               {t('+ Novo modelo')}
             </button>
           </div>
         </div>
 
-        <div className="rounded-2xl border-2 border-emerald-100 bg-gradient-to-b from-emerald-50 to-white p-5 flex flex-col">
-          <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 grid place-items-center mb-2"><IconClipboard className="w-5 h-5" /></div>
-          <h2 className="font-bold text-emerald-900 text-base mb-1">{t('Avaliar alternativas')}</h2>
-          <p className="text-sm text-emerald-700/70 mb-4 flex-1">
+        <div className="rounded-2xl border border-gray-200 bg-white p-5 flex flex-col">
+          <div className="w-10 h-10 rounded-xl bg-gray-100 text-gray-600 grid place-items-center mb-2"><IconClipboard className="w-5 h-5" /></div>
+          <h2 className="font-bold text-gray-800 text-base mb-1">{t('Avaliar alternativas')}</h2>
+          <p className="text-sm text-gray-500 mb-4 flex-1">
             {t('Aplicar um modelo a um conjunto concreto de alternativas e obter resultados.')}
           </p>
           <div className="space-y-2">
             {models.length === 0 ? (
               <span className="text-xs text-gray-400 italic">{t('Cria um modelo primeiro.')}</span>
             ) : !pickModel ? (
-              <button onClick={() => setPickModel(true)} className="px-3 py-1.5 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-medium">
+              <button onClick={() => setPickModel(true)} className="px-3.5 py-2 text-sm bg-gray-900 text-white rounded-full hover:bg-gray-800 font-semibold">
                 {t('+ Nova avaliação')}
               </button>
             ) : (
@@ -553,7 +557,7 @@ export default function Home() {
                 autoFocus
                 defaultValue=""
                 onChange={(e) => { if (e.target.value) applyModel(e.target.value); }}
-                className="w-full border border-emerald-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:ring-1 focus:ring-emerald-400"
+                className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:ring-1 focus:ring-indigo-400"
               >
                 <option value="" disabled>{t('Escolher modelo a avaliar…')}</option>
                 {models.map((m) => (
@@ -598,7 +602,7 @@ export default function Home() {
                       <StatusPill updatedAt={m.updatedAt} />
                     </div>
                     <button onClick={() => editModel(m.id)} className="text-xs text-indigo-600 hover:text-indigo-800 font-medium">{t('Editar')}</button>
-                    <button onClick={() => applyModel(m.id)} className="text-xs text-emerald-600 hover:text-emerald-800 font-medium">{t('Avaliar')}</button>
+                    <button onClick={() => applyModel(m.id)} className="text-xs text-gray-700 hover:text-gray-900 font-semibold">{t('Avaliar')}</button>
                     <button onClick={() => deleteModel(m.id)} className="text-gray-300 hover:text-red-400 text-xs">✕</button>
                   </li>
                 ))}
@@ -665,11 +669,13 @@ export default function Home() {
           </div>
 
           <div className="bg-white border border-gray-200 rounded-2xl p-4 space-y-2">
-            <button onClick={() => setView('method')} className="w-full text-left text-sm text-gray-500 hover:text-gray-800 transition-colors py-1">
-              📘 {t('Como funciona o método MACBETH')}
+            <button onClick={() => setView('method')} className="w-full text-left text-sm text-gray-500 hover:text-gray-800 transition-colors py-1.5 flex items-center gap-2.5">
+              <IconScale className="w-4 h-4 text-indigo-500 shrink-0" />
+              {t('Como funciona o método MACBETH')}
             </button>
-            <button onClick={() => setView('manifest')} className="w-full text-left text-sm text-gray-500 hover:text-gray-800 transition-colors py-1">
-              🧩 {t('Manifesto de capacidades (para IA)')}
+            <button onClick={() => setView('manifest')} className="w-full text-left text-sm text-gray-500 hover:text-gray-800 transition-colors py-1.5 flex items-center gap-2.5">
+              <IconExport className="w-4 h-4 text-indigo-500 shrink-0" />
+              {t('Manifesto de capacidades (para IA)')}
             </button>
           </div>
         </div>

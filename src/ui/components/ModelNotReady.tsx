@@ -70,7 +70,7 @@ export default function ModelNotReady({ compact = false }: { compact?: boolean }
       )}
       <button
         onClick={editModel}
-        className="px-3 py-1.5 text-sm font-medium border border-amber-300 text-amber-900 rounded-lg hover:bg-amber-100/60"
+        className="px-3 py-1.5 text-sm font-medium border border-amber-300 text-amber-900 rounded-lg hover:bg-amber-100"
       >
         {t('Completar o modelo')}
       </button>

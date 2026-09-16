@@ -309,7 +309,7 @@ export default function Analysis() {
                       }
                       const val = perf?.value ?? '';
                       return (
-                        <td key={c.id} className={`border-b border-r border-gray-200 p-1 text-center ${val ? '' : 'bg-amber-50/40'}`}>
+                        <td key={c.id} className={`border-b border-r border-gray-200 p-1 text-center ${val ? '' : 'bg-amber-50'}`}>
                           <select
                             value={val}
                             onChange={(e) => setPerf(option.id, c.id, e.target.value)}
