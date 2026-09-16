@@ -9,6 +9,7 @@ import { modelReadiness } from '../../domain/tree';
 import MethodPage from './MethodPage';
 import ManifestPage from './ManifestPage';
 import { IconPencil, IconClipboard, IconArchitecture, IconMonitor, IconImport, IconScale, IconExport } from '../components/icons';
+import { useDialogs } from '../components/Dialog';
 import { v4 as uuidv4 } from 'uuid';
 import type { ComponentType, SVGProps } from 'react';
 
@@ -405,6 +406,7 @@ export default function Home() {
   const [view, setView] = useState<View>('menu');
   const [models, setModels] = useState<DocMeta[]>([]);
   const [evaluations, setEvaluations] = useState<DocMeta[]>([]);
+  const dialogs = useDialogs();
   const [importing, setImporting] = useState(false);
   const [showAllModels, setShowAllModels] = useState(false);
   const [showAllEvals, setShowAllEvals] = useState(false);
@@ -428,7 +430,13 @@ export default function Home() {
     if (model) dispatch({ type: 'EDIT_MODEL', model });
   }
   async function deleteModel(id: string) {
-    if (!confirm(t('Eliminar este modelo?'))) return;
+    const ok = await dialogs.confirm({
+      title: t('Eliminar «{{label}}»?', { label: models.find((m) => m.id === id)?.label ?? '' }),
+      body: t('O modelo e todos os juízos, escalas e pesos que contém são apagados. As avaliações já iniciadas a partir dele mantêm a sua própria cópia.'),
+      confirmLabel: t('Eliminar'),
+      danger: true,
+    });
+    if (!ok) return;
     await repository.deleteModel(id);
     refresh();
   }
@@ -449,12 +457,12 @@ export default function Home() {
           : null,
         !r.weightsReady ? t('ponderação de todos os grupos') : null,
       ].filter(Boolean).join('; ');
-      const ok = confirm(
-        t('«{{label}}» ainda não está pronto para avaliar — falta: {{missing}}.\n\nPode continuar e preencher os desempenhos, mas os resultados só aparecem depois de completar o modelo e atualizar esta avaliação.\n\nContinuar mesmo assim?', {
-          label: model.label,
-          missing,
-        }),
-      );
+      const ok = await dialogs.confirm({
+        title: t('«{{label}}» ainda não está pronto para avaliar', { label: model.label }),
+        body: t('Falta: {{missing}}. Pode começar a registar desempenhos, mas os resultados só aparecem depois de completar o modelo e trazer essa versão para esta avaliação.', { missing }),
+        confirmLabel: t('Começar mesmo assim'),
+        cancelLabel: t('Completar o modelo'),
+      });
       if (!ok) {
         dispatch({ type: 'EDIT_MODEL', model });
         return;
@@ -467,7 +475,13 @@ export default function Home() {
     if (evaluation) dispatch({ type: 'OPEN_EVALUATION', evaluation });
   }
   async function deleteEvaluation(id: string) {
-    if (!confirm(t('Eliminar esta análise?'))) return;
+    const ok = await dialogs.confirm({
+      title: t('Eliminar «{{label}}»?', { label: evaluations.find((e) => e.id === id)?.label ?? '' }),
+      body: t('Os desempenhos registados e os resultados calculados são apagados. O modelo de origem mantém-se.'),
+      confirmLabel: t('Eliminar'),
+      danger: true,
+    });
+    if (!ok) return;
     await repository.deleteEvaluation(id);
     refresh();
   }
@@ -492,7 +506,10 @@ export default function Home() {
         else dispatch({ type: 'START_EVALUATION', model: doc });
       }
     } catch (err) {
-      alert(t('Erro ao importar: ') + String(err));
+      await dialogs.alert({
+        title: t('Não foi possível importar esse ficheiro.'),
+        body: t('Deve ser um JSON exportado por esta aplicação. Detalhe: {{err}}', { err: String(err) }),
+      });
     } finally {
       setImporting(false);
       e.target.value = '';

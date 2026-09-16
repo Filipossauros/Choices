@@ -31,6 +31,18 @@ export function computeSensitivity(
   const rankingChangePoints: number[] = [];
   let prevRanking: string[] | null = null;
 
+  /**
+   * Only options that actually hold a score are plotted and ranked. An option
+   * eliminated by a gate, vetoed, or still missing performances has no V(p);
+   * charting it as 0 would draw a flat line across the decision zones and, worse,
+   * report ranking flips against a value that does not exist.
+   */
+  const scorable = new Set(
+    aggregate(evaluation)
+      .optionResults.filter((r) => !r.hardRejected && r.globalValue != null)
+      .map((r) => r.optionId),
+  );
+
   for (let step = 0; step < steps; step++) {
     const wVal = step / (steps - 1);
 
@@ -49,7 +61,8 @@ export function computeSensitivity(
     const result = aggregate(modified);
     const optionValues: Record<string, number> = {};
     for (const or of result.optionResults) {
-      optionValues[or.optionId] = or.globalValue ?? 0;
+      if (!scorable.has(or.optionId) || or.globalValue == null) continue;
+      optionValues[or.optionId] = or.globalValue;
     }
 
     const ranking = Object.entries(optionValues)

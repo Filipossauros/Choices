@@ -21,6 +21,12 @@ export interface PerformanceLevel {
   id: string;
   label: string;
   description?: string;
+  /**
+   * The level's position on the descriptor's own measurement axis (ms, €, days…).
+   * When *every* level carries one, that axis — not the level index — is what
+   * continuous performances are read against: index spacing would put "≤ 2 dias"
+   * and "> 10 dias" one step apart and make any position between them meaningless.
+   */
   numericValue?: number;
 }
 
@@ -31,6 +37,8 @@ export interface Descriptor {
   neutralIndex: number;
   /** Index into levels[] for the "Good" anchor (value = 100) */
   goodIndex: number;
+  /** Unit of `PerformanceLevel.numericValue`, shown beside numeric entry (e.g. "ms"). */
+  unit?: string;
 }
 
 // ─── Criterion ─────────────────────────────────────────────────────────────
@@ -96,7 +104,12 @@ export interface Option {
 export interface Performance {
   optionId: string;
   criterionId: string;
-  /** gate: 'pass'|'fail'; qualification (discrete): a level id from the descriptor */
+  /**
+   * gate: 'pass'|'fail'. Qualification: a level id from the descriptor — for a
+   * continuous performance, the id of the nearest level, so discrete and
+   * continuous entries are the same kind of reference and survive the same
+   * validity checks.
+   */
   value: string;
   /**
    * Qualification (continuous): normalized position on the descriptor in [0,1],
@@ -104,6 +117,12 @@ export interface Performance {
    * the score is read from the smooth value curve at this position.
    */
   position?: number;
+  /**
+   * Qualification (continuous): the raw reading in the descriptor's own unit,
+   * as the user typed it. `position` is derived from it; keeping the original
+   * means the report can quote "180 ms" rather than "87%".
+   */
+  measured?: number;
 }
 
 // ─── Judgment matrices ─────────────────────────────────────────────────────
@@ -155,10 +174,23 @@ export interface CriterionWeight {
   admissibleRange: [number, number];
 }
 
+/**
+ * Where a set of weights came from. Simulated weights (ROC from a ranking) and
+ * directly-entered ones are legitimate starting points, but they are not
+ * elicited preferences — an audit trail that silently blends them with answered
+ * comparisons would undermine the point of using the method. Persisted with the
+ * weights rather than held in component state, which does not survive a reload.
+ */
+export type WeightProvenance = 'elicited' | 'simulated' | 'direct';
+
 export interface Weights {
   weights: CriterionWeight[];
   consistencyMargin: number;
   derivedAt: string;
+  /** Defaults to 'elicited' when absent (models written before this existed). */
+  provenance?: WeightProvenance;
+  /** True once the user has reviewed simulated/direct weights and accepted them. */
+  confirmed?: boolean;
 }
 
 // ─── Decision scale ────────────────────────────────────────────────────────
@@ -220,6 +252,13 @@ export interface OptionResult {
   criterionScores: Record<string, number | null>;
   vetoedByCriterion?: string;
   rejectedByGate?: string;
+  /**
+   * Qualification criteria with no performance recorded. A non-empty list means
+   * the option has no `globalValue` at all: scoring it over the answered subset
+   * would renormalise the weights and compare it against its peers on a
+   * different model from the one they were scored with.
+   */
+  missingCriteria?: string[];
   /**
    * Gate criteria still unanswered when this result was computed. A non-empty
    * list means the classification is provisional: any of these gates failing

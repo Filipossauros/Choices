@@ -1,5 +1,6 @@
 import { AppProvider, useApp } from './store';
 import ModelHeader from './components/ModelHeader';
+import { DialogProvider } from './components/Dialog';
 import Home from './screens/Home';
 import Criteria from './screens/Criteria';
 import DecisionScale from './screens/DecisionScale';
@@ -43,7 +44,9 @@ function Router() {
 export default function App() {
   return (
     <AppProvider>
-      <Router />
+      <DialogProvider>
+        <Router />
+      </DialogProvider>
     </AppProvider>
   );
 }

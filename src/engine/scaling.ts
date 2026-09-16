@@ -20,6 +20,13 @@ import { solveLP, type LPConstraint, type LPBound } from './lp';
 import { catLo, catHi } from './consistency';
 import { monotoneCubic, type SplinePoint } from './interpolation';
 
+/**
+ * Smallest discrimination margin an admissible scale may have. Positive, so
+ * every ordering the judgments assert stays strict; tiny, so the ranges report
+ * the whole set of scales the answers allow rather than only the sharpest one.
+ */
+const RANGE_EPS = 1e-6;
+
 function safeVar(id: string): string {
   return `v__${id.replace(/[^a-zA-Z0-9]/g, '_')}`;
 }
@@ -190,18 +197,21 @@ export async function deriveScale(
   const consistencyMargin =
     primary.status === 'optimal' ? primary.objectiveValue : -1;
 
-  // Range LPs keep the discrimination margin at its optimum (z fixed at z*):
-  // the admissible range is the variation among maximally-discriminating
-  // scales. Leaving z free would let it collapse to 0, where all category
-  // separations vanish and the ranges degenerate to judgment-violating spans.
-  const rangeBounds =
-    consistencyMargin > 0
-      ? bounds.map((b) =>
-          b.name === 'z'
-            ? ({ name: 'z', type: 'FX', lb: consistencyMargin, ub: consistencyMargin } as LPBound)
-            : b,
-        )
-      : bounds;
+  // ── Admissible ranges ────────────────────────────────────────────────────
+  // How far each level can move while the scale still honours every judgment:
+  // the projection of the admissible polytope onto that level's axis.
+  //
+  // The margin z must stay *positive* but is otherwise free. Both extremes are
+  // wrong: with z unbounded below, it collapses to 0, every "strictly greater"
+  // becomes "greater or equal", and the ranges widen into spans that violate the
+  // judgments; with z pinned at its optimum z*, the maximally-discriminating
+  // scale is essentially unique and every range comes back a single point —
+  // which is what made this whole reading vacuous before. Requiring only
+  // z ≥ EPS keeps every ordering strict while admitting all the scales that
+  // satisfy it, which is exactly the set the user's answers left open.
+  const rangeBounds = bounds.map((b) =>
+    b.name === 'z' ? ({ name: 'z', type: 'DB', lb: RANGE_EPS, ub: 100 } as LPBound) : b,
+  );
 
   // Compute value + admissible range for each level
   const scaleValues: ScaleValue[] = await Promise.all(
@@ -251,12 +261,58 @@ function round2(n: number): number {
   return Math.round(n * 100) / 100;
 }
 
+/**
+ * Build a scale from values the assessor positioned directly, rather than from
+ * the LP's own choice among the admissible scales.
+ *
+ * The direct-input ruler translates positions into the same C0–C6 judgments the
+ * questions produce, and those judgments are consistent with the positions by
+ * construction: bucketing by ratio against the widest gap is satisfied by the
+ * threshold vector sₖ = cutₖ · span. So re-solving adds no validity — it only
+ * substitutes a different admissible scale for the one the user drew, which is
+ * why dragging a level to 80 used to save 76.47 and drift further on every
+ * round trip.
+ *
+ * The LP is still run, for the two things it alone can give: the discrimination
+ * margin, and the admissible range around each value.
+ */
+export async function scaleFromValues(
+  criterionId: string,
+  descriptor: Descriptor,
+  values: Record<string, number>,
+  judgments: Record<string, MacbethJudgment>,
+): Promise<DerivedScale> {
+  const derived = await deriveScale(criterionId, descriptor, { judgments } as JudgmentMatrix);
+  return {
+    ...derived,
+    values: derived.values.map((v) => ({
+      ...v,
+      value: round2(values[v.levelId] ?? v.value),
+    })),
+  };
+}
+
 // ── Continuous scoring ────────────────────────────────────────────────────────
 //
 // A derived scale gives a cardinal value at each discrete descriptor level. To
 // score a *continuous* performance we place the levels on a normalized position
 // axis — 0 = least attractive level, 1 = most attractive — and read the value
 // from a smooth monotone-cubic curve through those points.
+//
+// What that axis *measures* matters. Spacing the levels evenly by index assumes
+// every step is the same size, which for a descriptor like "≤ 2 dias / 3–5 /
+// 6–10 / > 10" is simply false: a position half-way between the last two would
+// correspond to no particular number of days. So when every level carries a
+// `numericValue`, the descriptor's own measurement axis is used instead, and the
+// interpolation finally runs over a quantity that exists.
+
+/** True when every level carries a numeric reading, so the real axis is usable. */
+export function hasNumericAxis(descriptor: Descriptor): boolean {
+  return (
+    descriptor.levels.length > 1 &&
+    descriptor.levels.every((l) => typeof l.numericValue === 'number' && Number.isFinite(l.numericValue))
+  );
+}
 
 /** Normalized position [0,1] of a descriptor level (0 = least attractive). */
 export function levelPosition(descriptor: Descriptor, levelId: string): number {
@@ -264,8 +320,56 @@ export function levelPosition(descriptor: Descriptor, levelId: string): number {
   if (n <= 1) return 0;
   const idx = descriptor.levels.findIndex((l) => l.id === levelId);
   if (idx < 0) return 0;
+  if (hasNumericAxis(descriptor)) {
+    const p = numericPosition(descriptor, descriptor.levels[idx].numericValue!);
+    if (p != null) return p;
+  }
   // descriptor index 0 = most attractive, so invert to get position
   return (n - 1 - idx) / (n - 1);
+}
+
+/**
+ * Where a raw reading in the descriptor's own unit sits on the [0,1] position
+ * axis. Orientation follows the descriptor: levels run best → worst, so a
+ * criterion where lower is better (latency, cost) has a decreasing numeric
+ * series and the mapping is flipped. Readings outside the declared range clamp
+ * to the endpoints — the value curve has nothing to say beyond them.
+ */
+export function numericPosition(descriptor: Descriptor, measured: number): number | null {
+  if (!hasNumericAxis(descriptor)) return null;
+  const nums = descriptor.levels.map((l) => l.numericValue!);
+  const lo = Math.min(...nums);
+  const hi = Math.max(...nums);
+  if (hi <= lo) return null;
+  const t = (measured - lo) / (hi - lo);
+  const bestIsHigher = nums[0] >= nums[nums.length - 1];
+  return Math.max(0, Math.min(1, bestIsHigher ? t : 1 - t));
+}
+
+/** The reading in the descriptor's unit that a [0,1] position corresponds to. */
+export function positionToNumeric(descriptor: Descriptor, position: number): number | null {
+  if (!hasNumericAxis(descriptor)) return null;
+  const nums = descriptor.levels.map((l) => l.numericValue!);
+  const lo = Math.min(...nums);
+  const hi = Math.max(...nums);
+  if (hi <= lo) return null;
+  const bestIsHigher = nums[0] >= nums[nums.length - 1];
+  const t = bestIsHigher ? position : 1 - position;
+  return lo + t * (hi - lo);
+}
+
+/** Descriptor level nearest to a [0,1] position — the label to show beside it. */
+export function nearestLevelId(descriptor: Descriptor, position: number): string | null {
+  let best: string | null = null;
+  let bestD = Infinity;
+  for (const l of descriptor.levels) {
+    const d = Math.abs(levelPosition(descriptor, l.id) - position);
+    if (d < bestD) {
+      bestD = d;
+      best = l.id;
+    }
+  }
+  return best;
 }
 
 /** (position, value) nodes for a derived scale, ascending by position. */

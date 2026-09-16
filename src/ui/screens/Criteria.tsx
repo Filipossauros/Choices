@@ -15,9 +15,20 @@ import { ROOT_ID } from '../../domain/types';
 import { addChild, updateCriterion, removeNode, findNode, parentOf, reorderChild, insertSubtree } from '../../domain/tree';
 import { v4 as uuidv4 } from 'uuid';
 import ScreenNav from '../components/ScreenNav';
+import { useDialogs } from '../components/Dialog';
 import { IconGate, IconQualification, IconComposite, IconGrip } from '../components/icons';
 
-const DEFAULT_LEVELS = ['Excelente', 'Bom', 'Suficiente', 'Neutro', 'Insuficiente'];
+/**
+ * Three blank levels, not five adjectives.
+ *
+ * The old default — "Excelente / Bom / Suficiente / Neutro / Insuficiente" —
+ * taught the wrong habit twice over: a MACBETH descriptor describes concrete
+ * performance ("< 200 ms", "25–50 k€"), not a Likert rating; and two of those
+ * labels collided with the *anchor* names sitting right beside them, so a level
+ * called "Bom" could perfectly well not be the level marked Bom.
+ */
+const DEFAULT_LEVEL_COUNT = 3;
+const LEVEL_PLACEHOLDERS = ['ex.: < 200 ms', 'ex.: 200–500 ms', 'ex.: > 500 ms'];
 
 type CritType = 'gate' | 'qualification' | 'composite';
 
@@ -26,24 +37,28 @@ function LevelEditor({
   neutralIndex,
   goodIndex,
   vetoLevelId,
+  unit,
   onChange,
+  onUnitChange,
 }: {
   levels: PerformanceLevel[];
   neutralIndex: number;
   goodIndex: number;
   vetoLevelId?: string;
+  unit?: string;
   onChange: (levels: PerformanceLevel[], neutralIndex: number, goodIndex: number, vetoLevelId?: string) => void;
+  onUnitChange: (unit: string) => void;
 }) {
   const { t } = useTranslation();
   function addLevel() {
-    onChange([...levels, { id: uuidv4(), label: t('Novo nível') }], neutralIndex, goodIndex, vetoLevelId);
+    onChange([...levels, { id: uuidv4(), label: '' }], neutralIndex, goodIndex, vetoLevelId);
   }
   function removeLevel(i: number) {
     const next = levels.filter((_, j) => j !== i);
     onChange(next, Math.min(neutralIndex, next.length - 1), Math.min(goodIndex, next.length - 1), vetoLevelId);
   }
-  function updateLabel(i: number, label: string) {
-    onChange(levels.map((l, j) => (j === i ? { ...l, label } : l)), neutralIndex, goodIndex, vetoLevelId);
+  function patchLevel(i: number, patch: Partial<PerformanceLevel>) {
+    onChange(levels.map((l, j) => (j === i ? { ...l, ...patch } : l)), neutralIndex, goodIndex, vetoLevelId);
   }
   function move(i: number, dir: -1 | 1) {
     const j = i + dir;
@@ -55,20 +70,49 @@ function LevelEditor({
     onChange(next, ni, gi, vetoLevelId);
   }
 
+  const numericCount = levels.filter((l) => typeof l.numericValue === 'number' && Number.isFinite(l.numericValue)).length;
+  const numericComplete = levels.length > 1 && numericCount === levels.length;
+
   return (
     <div className="space-y-2">
-      <p className="text-xs text-gray-400 italic">{t('Ordenados do mais para o menos atrativo (↑ = melhor)')}</p>
+      <div className="flex items-center gap-2 flex-wrap">
+        <p className="text-xs text-gray-400 italic flex-1 min-w-[12rem]">
+          {t('Do mais para o menos atrativo (↑ = melhor). Descreva o desempenho concreto, não uma nota.')}
+        </p>
+        <label className="flex items-center gap-1.5 text-xs text-gray-500">
+          {t('Unidade (opcional)')}
+          <input
+            value={unit ?? ''}
+            onChange={(e) => onUnitChange(e.target.value)}
+            placeholder={t('ms, €, dias…')}
+            className="w-24 border border-gray-200 rounded px-2 py-1 text-xs"
+          />
+        </label>
+      </div>
       {levels.map((level, i) => (
         <div key={level.id} className="flex flex-wrap items-center gap-x-2 gap-y-1.5 border-b border-gray-100 pb-2 last:border-0 last:pb-0 sm:border-0 sm:pb-0">
           <div className="flex flex-col gap-0.5">
-            <button onClick={() => move(i, -1)} disabled={i === 0} className="text-gray-300 hover:text-gray-600 disabled:opacity-20 text-xs leading-none">▲</button>
-            <button onClick={() => move(i, 1)} disabled={i === levels.length - 1} className="text-gray-300 hover:text-gray-600 disabled:opacity-20 text-xs leading-none">▼</button>
+            <button onClick={() => move(i, -1)} disabled={i === 0} className="text-gray-300 hover:text-gray-600 disabled:opacity-20 text-xs leading-none" aria-label={t('Subir nível')}>▲</button>
+            <button onClick={() => move(i, 1)} disabled={i === levels.length - 1} className="text-gray-300 hover:text-gray-600 disabled:opacity-20 text-xs leading-none" aria-label={t('Descer nível')}>▼</button>
           </div>
           <input
             value={level.label}
-            onChange={(e) => updateLabel(i, e.target.value)}
+            onChange={(e) => patchLevel(i, { label: e.target.value })}
             className="flex-1 min-w-[7rem] border border-gray-200 rounded px-2 py-1 text-sm"
-            placeholder={t('Descrição do nível')}
+            placeholder={t(LEVEL_PLACEHOLDERS[i] ?? 'Descrição do nível')}
+            aria-label={t('Nível {{n}}', { n: i + 1 })}
+          />
+          <input
+            type="number"
+            value={level.numericValue ?? ''}
+            onChange={(e) => {
+              const raw = e.target.value;
+              patchLevel(i, { numericValue: raw === '' ? undefined : Number(raw) });
+            }}
+            className="w-20 border border-gray-200 rounded px-2 py-1 text-sm text-center"
+            placeholder={t('valor')}
+            title={t('Leitura deste nível na escala de medida (opcional, mas necessária para desempenho contínuo)')}
+            aria-label={t('Valor numérico do nível {{n}}', { n: i + 1 })}
           />
           {/* On mobile these anchors wrap to their own line under the input */}
           <div className="flex items-center gap-3 basis-full sm:basis-auto pl-7 sm:pl-0">
@@ -84,13 +128,20 @@ function LevelEditor({
               <input type="checkbox" checked={vetoLevelId === level.id} onChange={(e) => onChange(levels, neutralIndex, goodIndex, e.target.checked ? level.id : undefined)} />
               {t('Veto')}
             </label>
-            <button onClick={() => removeLevel(i)} className="text-red-400 hover:text-red-600 text-sm px-1 ml-auto sm:ml-0" aria-label={t('Remover nível')}>✕</button>
+            <button onClick={() => removeLevel(i)} className="text-red-400 hover:text-red-600 text-sm px-1 ml-auto sm:ml-0" aria-label={t('Remover nível {{n}}', { n: i + 1 })}>✕</button>
           </div>
         </div>
       ))}
-      <button onClick={addLevel} className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1">
-        {t('+ Adicionar nível')}
-      </button>
+      <div className="flex items-center gap-3 flex-wrap">
+        <button onClick={addLevel} className="text-sm text-blue-600 hover:text-blue-800">
+          {t('+ Adicionar nível')}
+        </button>
+        {numericCount > 0 && !numericComplete && (
+          <span className="text-xs text-amber-700">
+            {t('Faltam {{n}} valores numéricos para o eixo de medida ficar completo.', { n: levels.length - numericCount })}
+          </span>
+        )}
+      </div>
     </div>
   );
 }
@@ -112,12 +163,26 @@ function CriterionForm({
 
   const initQ = initial?.type === 'qualification' ? initial : null;
   const [levels, setLevels] = useState<PerformanceLevel[]>(
-    initQ?.descriptor.levels ?? DEFAULT_LEVELS.map((l) => ({ id: uuidv4(), label: l })),
+    initQ?.descriptor.levels ??
+      Array.from({ length: DEFAULT_LEVEL_COUNT }, () => ({ id: uuidv4(), label: '' })),
   );
-  const [neutralIndex, setNeutralIndex] = useState(initQ?.descriptor.neutralIndex ?? 3);
-  const [goodIndex, setGoodIndex] = useState(initQ?.descriptor.goodIndex ?? 1);
+  const [neutralIndex, setNeutralIndex] = useState(initQ?.descriptor.neutralIndex ?? DEFAULT_LEVEL_COUNT - 1);
+  const [goodIndex, setGoodIndex] = useState(initQ?.descriptor.goodIndex ?? 0);
+  const [unit, setUnit] = useState<string>(initQ?.descriptor.unit ?? '');
   const [vetoLevelId, setVetoLevelId] = useState<string | undefined>(initQ?.vetoLevelId);
   const [continuous, setContinuous] = useState<boolean>(initQ?.continuous ?? false);
+
+  /**
+   * Continuous scoring reads a value off the curve at a position along the
+   * descriptor, so that position has to mean something. Without a reading on
+   * every level the only axis available is the level *index*, which spaces
+   * "≤ 2 dias" and "> 10 dias" one step apart — so the option is withheld
+   * rather than offered and quietly misused.
+   */
+  const numericAxisReady =
+    levels.length > 1 &&
+    levels.every((l) => typeof l.numericValue === 'number' && Number.isFinite(l.numericValue)) &&
+    new Set(levels.map((l) => l.numericValue)).size > 1;
 
   /**
    * Escape hatch from the eliminatory type: a yes/no question that should merely
@@ -137,23 +202,40 @@ function CriterionForm({
     setContinuous(false);
   }
 
+  const [error, setError] = useState<string | null>(null);
+
   function handleSave() {
-    if (!label.trim()) return alert(t('Introduza um nome para o critério.'));
+    setError(null);
+    if (!label.trim()) return setError(t('Dê um nome ao critério.'));
     const id = initial?.id ?? uuidv4();
     if (type === 'gate') {
       onSave({ id, label: label.trim(), description, type: 'gate' } as GateCriterion);
     } else if (type === 'composite') {
       onSave({ id, label: label.trim(), description, type: 'composite' } as CompositeCriterion);
     } else {
-      if (levels.length < 2) return alert(t('São necessários pelo menos 2 níveis.'));
+      if (levels.length < 2) return setError(t('São necessários pelo menos 2 níveis de desempenho.'));
+      if (levels.some((l) => !l.label.trim())) {
+        return setError(t('Descreva todos os níveis — cada um deve dizer que desempenho representa.'));
+      }
+      if (neutralIndex === goodIndex) {
+        return setError(t('Neutro e Bom têm de ser níveis diferentes: são as duas referências da escala.'));
+      }
+      if (goodIndex > neutralIndex) {
+        return setError(t('«Bom» tem de ser mais atrativo do que «Neutro» — coloque-o acima na lista.'));
+      }
       onSave({
         id,
         label: label.trim(),
         description,
         type: 'qualification',
-        descriptor: { levels, neutralIndex, goodIndex },
+        descriptor: {
+          levels: levels.map((l) => ({ ...l, label: l.label.trim() })),
+          neutralIndex,
+          goodIndex,
+          ...(unit.trim() ? { unit: unit.trim() } : {}),
+        },
         vetoLevelId,
-        continuous,
+        continuous: continuous && numericAxisReady,
       } as QualificationCriterion);
     }
   }
@@ -229,6 +311,8 @@ function CriterionForm({
             neutralIndex={neutralIndex}
             goodIndex={goodIndex}
             vetoLevelId={vetoLevelId}
+            unit={unit}
+            onUnitChange={setUnit}
             onChange={(l, ni, gi, veto) => {
               setLevels(l);
               setNeutralIndex(ni);
@@ -236,11 +320,30 @@ function CriterionForm({
               setVetoLevelId(veto);
             }}
           />
-          <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
-            <input type="checkbox" checked={continuous} onChange={(e) => setContinuous(e.target.checked)} />
-            {t('Permitir desempenho contínuo (posição entre níveis, lida da curva suave)')}
+          <label className={`flex items-start gap-2 text-sm ${numericAxisReady ? 'text-gray-600 cursor-pointer' : 'text-gray-400 cursor-not-allowed'}`}>
+            <input
+              type="checkbox"
+              className="mt-0.5"
+              checked={continuous && numericAxisReady}
+              disabled={!numericAxisReady}
+              onChange={(e) => setContinuous(e.target.checked)}
+            />
+            <span>
+              {t('Permitir desempenho contínuo — registar a medição exata em vez de escolher um nível')}
+              {!numericAxisReady && (
+                <span className="block text-xs text-gray-400 mt-0.5">
+                  {t('Precisa de um valor numérico em cada nível: é esse eixo que dá sentido a uma posição entre dois níveis.')}
+                </span>
+              )}
+            </span>
           </label>
         </div>
+      )}
+
+      {error && (
+        <p role="alert" className="text-sm text-rose-700 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">
+          {error}
+        </p>
       )}
 
       <div className="flex gap-2 pt-2">
@@ -275,6 +378,7 @@ export default function Criteria() {
   // silently invalidate both groups' weights, so they are rejected on drop.
   const [dragId, setDragId] = useState<string | null>(null);
   const [dropAt, setDropAt] = useState<{ id: string; edge: 'top' | 'bottom' } | null>(null);
+  const dialogs = useDialogs();
 
   const criteria = model.valueTree.criteria;
   const totalLeaves = Object.values(criteria).filter((c) => c.type !== 'composite').length;
@@ -301,7 +405,7 @@ export default function Criteria() {
    * changed — renaming a label alone is harmless and must not cost the user
    * their judgments.
    */
-  function saveEditCriterion(c: Criterion) {
+  async function saveEditCriterion(c: Criterion) {
     const before = criteria[c.id];
     const levelsOf = (x?: Criterion) =>
       x?.type === 'qualification' ? x.descriptor.levels.map((l) => l.id).join('|') : '';
@@ -312,9 +416,13 @@ export default function Criteria() {
 
     const patch: Partial<EvaluationModel> = { valueTree: updateCriterion(model.valueTree, c) };
     if (structureChanged && model.derivedScales.some((s) => s.criterionId === c.id)) {
-      if (!confirm(t('Os níveis de «{{label}}» mudaram, por isso a escala derivada deixa de ser válida e será apagada — terá de a derivar outra vez. Continuar?', { label: c.label }))) {
-        return;
-      }
+      const ok = await dialogs.confirm({
+        title: t('A escala de «{{label}}» vai ser apagada', { label: c.label }),
+        body: t('Os níveis mudaram, por isso a escala derivada deixa de corresponder ao descritor — mantê-la faria o modelo pontuar com valores que já não descrevem nada. Terá de responder outra vez às comparações deste critério.'),
+        confirmLabel: t('Guardar e apagar a escala'),
+        danger: true,
+      });
+      if (!ok) return;
       patch.derivedScales = model.derivedScales.filter((s) => s.criterionId !== c.id);
       patch.judgmentMatrices = model.judgmentMatrices.filter(
         (m) => !(m.kind === 'scale' && m.criterionId === c.id),
@@ -339,11 +447,14 @@ export default function Criteria() {
       const doc = repository.parseDocument(await file.text());
       const source = doc.kind === 'evaluation' ? doc.model : doc;
       if (source.id === model.id) {
-        alert(t('Não é possível importar um modelo para dentro de si próprio.'));
+        await dialogs.alert({
+          title: t('Não é possível importar um modelo para dentro de si próprio.'),
+          body: t('Escolha um modelo diferente, ou exporte este primeiro e importe a cópia.'),
+        });
         return;
       }
       if (source.valueTree.root.children.length === 0) {
-        alert(t('Esse modelo não tem critérios para importar.'));
+        await dialogs.alert({ title: t('Esse modelo não tem critérios para importar.') });
         return;
       }
       dispatch({
@@ -351,17 +462,26 @@ export default function Criteria() {
         patch: insertSubtree(model, ROOT_ID, source, uuidv4),
       });
     } catch (err) {
-      alert(t('Erro ao importar: ') + String(err));
+      await dialogs.alert({ title: t('Não foi possível importar esse ficheiro.'), body: String(err) });
     } finally {
       setImporting(false);
       e.target.value = '';
     }
   }
 
-  function deleteCriterion(id: string) {
+  async function deleteCriterion(id: string) {
     const node = findNode(model.valueTree, id);
     const hasChildren = node && node.children.length > 0;
-    if (!confirm(hasChildren ? t('Eliminar este fator e todos os seus subcritérios?') : t('Eliminar este critério?'))) return;
+    const crit = criteria[id];
+    const ok = await dialogs.confirm({
+      title: hasChildren
+        ? t('Eliminar «{{label}}» e os seus {{n}} subcritérios?', { label: crit?.label ?? '', n: node!.children.length })
+        : t('Eliminar «{{label}}»?', { label: crit?.label ?? '' }),
+      body: t('As escalas, juízos e pesos associados são apagados com ele. Não é possível anular.'),
+      confirmLabel: t('Eliminar'),
+      danger: true,
+    });
+    if (!ok) return;
     const tree = removeNode(model.valueTree, id);
     // Drop now-orphaned scales / matrices / sub-weights for removed criteria.
     const liveIds = new Set(Object.keys(tree.criteria));
@@ -562,8 +682,9 @@ export default function Criteria() {
     <div className="max-w-3xl mx-auto py-6 px-4 space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 space-y-1">
-          <label className="block text-xs text-gray-500 font-medium">{t('Designação do modelo')}</label>
+          <label htmlFor="model-label" className="block text-xs text-gray-500 font-medium">{t('Designação do modelo')}</label>
           <input
+            id="model-label"
             value={modelLabel}
             onChange={(e) => setModelLabel(e.target.value)}
             onBlur={commitLabel}

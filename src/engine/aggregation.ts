@@ -16,6 +16,7 @@ import type {
   AggregationResult,
   GateResult,
   GateVerdict,
+  ValueTree,
   ValueTreeNode,
   QualificationCriterion,
   DecisionBand,
@@ -30,13 +31,32 @@ const round2 = (n: number) => Math.round(n * 100) / 100;
 /** A function giving the value of a qualification leaf, or null if unscored. */
 type LeafScore = (criterionId: string, crit: QualificationCriterion) => number | null;
 
+/** True when the subtree under `node` contains at least one qualification leaf. */
+function hasScorableLeaf(node: ValueTreeNode, criteria: ValueTree['criteria']): boolean {
+  const crit = criteria[node.criterionId];
+  if (crit?.type === 'qualification') return true;
+  if (crit?.type === 'gate') return false;
+  return node.children.some((c) => hasScorableLeaf(c, criteria));
+}
+
 /**
  * Recursively aggregate the value tree under the additive MACBETH model.
  *
  * Leaf qualification criteria are scored by `leafScore`; composite (and root)
- * nodes are the weighted average of their non-gate children using the group's
+ * nodes are the weighted average of their scorable children using the group's
  * weights (`model.weights` for root, `model.subWeights[id]` for composites).
  * Gate criteria do not contribute to the value (handled separately as Tier 1).
+ *
+ * **A group with an unscored descendant has no value at all.** Averaging over
+ * the answered subset would renormalise the weights, so an option missing its
+ * heaviest criterion would be scored on a lighter model than its peers and the
+ * two numbers would not be comparable — while still looking like a ranking. The
+ * unscored leaves come back in `missing` so the caller can say what to fill in.
+ *
+ * Renormalisation over *structure* is still fine and still happens: a factor
+ * containing nothing but gates can never contribute, so it is excluded from its
+ * group before the weights are applied. That exclusion is the same for every
+ * option, which is exactly what makes it harmless.
  *
  * Returns the global V(p) plus the value of every internal/leaf node (useful
  * for showing composite-factor scores), all on the [0,100] scale.
@@ -44,9 +64,10 @@ type LeafScore = (criterionId: string, crit: QualificationCriterion) => number |
 export function treeValue(
   model: EvaluationModel,
   leafScore: LeafScore,
-): { global: number | null; nodeScores: Record<string, number | null> } {
+): { global: number | null; nodeScores: Record<string, number | null>; missing: string[] } {
   const { criteria } = model.valueTree;
   const nodeScores: Record<string, number | null> = {};
+  const missing: string[] = [];
 
   function visit(node: ValueTreeNode): number | null {
     const id = node.criterionId;
@@ -56,31 +77,38 @@ export function treeValue(
     if (crit?.type === 'qualification') {
       const s = leafScore(id, crit);
       nodeScores[id] = s;
+      if (s === null) missing.push(id);
       return s;
     }
 
-    // Root or composite — weighted average of non-gate children.
+    // Root or composite — weighted average of the children that can hold a value.
     const w = weightsForGroup(model, id);
     const wmap = new Map((w?.weights ?? []).map((x) => [x.criterionId, x.weight]));
-    const nonGate = node.children.filter((c) => criteria[c.criterionId]?.type !== 'gate');
+    const scorable = node.children.filter((c) => hasScorableLeaf(c, criteria));
 
     let weightedSum = 0;
     let totalWeight = 0;
-    for (const child of nonGate) {
+    let incomplete = false;
+    for (const child of scorable) {
+      // Visit every child even after one comes back null: `missing` is meant to
+      // list everything still to answer, not just the first gap found.
       const v = visit(child);
-      if (v === null) continue;
+      if (v === null) {
+        incomplete = true;
+        continue;
+      }
       // A single-child group weights its lone child at 1 (trivially 100%).
-      const cw = nonGate.length === 1 ? 1 : wmap.get(child.criterionId) ?? 0;
+      const cw = scorable.length === 1 ? 1 : wmap.get(child.criterionId) ?? 0;
       weightedSum += cw * v;
       totalWeight += cw;
     }
-    const val = totalWeight > 0 ? weightedSum / totalWeight : null;
+    const val = incomplete || totalWeight <= 0 ? null : weightedSum / totalWeight;
     if (id !== ROOT_ID) nodeScores[id] = val;
     return val;
   }
 
   const global = visit(model.valueTree.root);
-  return { global, nodeScores };
+  return { global, nodeScores, missing };
 }
 
 /**
@@ -223,9 +251,11 @@ export function aggregate(evaluation: Evaluation): AggregationResult {
       return null;
     };
 
-    const { global, nodeScores } = treeValue(model, leafScore);
+    const { global, nodeScores, missing } = treeValue(model, leafScore);
 
     // Veto: a qualification leaf scoring below its veto level rejects upstream.
+    // Checked before completeness: a triggered veto is decisive on its own, so
+    // an option can be rejected without every other criterion being answered.
     let vetoedByCriterion: string | undefined;
     for (const [critId, crit] of Object.entries(criteria)) {
       if (crit.type !== 'qualification' || !crit.vetoLevelId) continue;
@@ -250,14 +280,28 @@ export function aggregate(evaluation: Evaluation): AggregationResult {
       };
     }
 
-    const globalValue = global === null ? null : round2(global);
-    const band = globalValue !== null ? classify(globalValue, decisionScale) : null;
-
     // Unanswered gates make the classification provisional — any of them
     // failing later would hard-reject the option regardless of its score.
     const pendingGates = gateResults
       .filter((g) => g.verdict === 'pending')
       .map((g) => g.criterionId);
+
+    // Unscored qualification criteria mean no value at all, not a partial one.
+    if (missing.length > 0) {
+      return {
+        optionId: option.id,
+        globalValue: null,
+        bandId: null,
+        hardRejected: false,
+        gateResults,
+        criterionScores: nodeScores,
+        missingCriteria: missing,
+        ...(pendingGates.length > 0 ? { pendingGates } : {}),
+      };
+    }
+
+    const globalValue = global === null ? null : round2(global);
+    const band = globalValue !== null ? classify(globalValue, decisionScale) : null;
 
     return {
       optionId: option.id,

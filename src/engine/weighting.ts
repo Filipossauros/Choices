@@ -20,6 +20,9 @@ import { catLo, catHi } from './consistency';
 
 export const ALL_NEUTRAL = 'all_neutral_ref';
 
+/** Smallest admissible discrimination margin — see scaling.ts for the rationale. */
+const RANGE_EPS = 1e-9;
+
 function safeVar(id: string): string {
   return `w__${id.replace(/[^a-zA-Z0-9]/g, '_')}`;
 }
@@ -176,16 +179,16 @@ export async function deriveWeights(
 
   const consistencyMargin = result.status === 'optimal' ? result.objectiveValue : -1;
 
-  // Range LPs keep z at its optimum — same rationale as scaling.ts: with z
-  // free the separations collapse and the ranges degenerate.
-  const rangeBounds =
-    consistencyMargin > 0
-      ? bounds.map((b) =>
-          b.name === 'z'
-            ? ({ name: 'z', type: 'FX', lb: consistencyMargin, ub: consistencyMargin } as LPBound)
-            : b,
-        )
-      : bounds;
+  // Admissible ranges: over every weight vector compatible with the judgments
+  // (and with Σw = 1), how far can this one weight go? Same rationale as
+  // scaling.ts — z must stay positive so each stated ordering remains strict,
+  // but pinning it at z* would make the solution essentially unique and report
+  // every weight as exactly determined. Note that the *other* weights are left
+  // free here, unlike a scale value: under Σw = 1, fixing them would pin this
+  // one arithmetically and the range would be a point by construction.
+  const rangeBounds = bounds.map((b) =>
+    b.name === 'z' ? ({ name: 'z', type: 'DB', lb: RANGE_EPS, ub: 1 } as LPBound) : b,
+  );
 
   // Compute central weight + admissible [min, max] for each criterion via parallel LPs
   const weights: CriterionWeight[] = await Promise.all(

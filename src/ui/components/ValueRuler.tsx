@@ -68,6 +68,40 @@ export function judgmentsFromLevelValues(
   return out;
 }
 
+/**
+ * The span a level can be dragged through without changing a single judgment.
+ *
+ * Categories come from bucketed ratios, so a level has slack: moving it a little
+ * re-renders the number but asserts exactly the same thing. Showing that slack
+ * turns "is 38 the right number?" — which nobody can answer — into "anywhere in
+ * here says the same thing", which is the honest precision of the method.
+ *
+ * Found by scanning rather than solved: the mapping is a step function of one
+ * variable, so walking outwards from the current value until the judgment record
+ * changes is exact, and at ~1 unit per step it costs nothing at this size.
+ */
+export function stabilityRange(
+  criterion: QualificationCriterion,
+  values: LevelValues,
+  levelId: string,
+): [number, number] {
+  const current = values[levelId] ?? 0;
+  const key = JSON.stringify(judgmentsFromLevelValues(criterion, values));
+  const unchangedAt = (v: number) =>
+    JSON.stringify(judgmentsFromLevelValues(criterion, { ...values, [levelId]: v })) === key;
+
+  const levels = criterion.descriptor.levels;
+  const index = levels.findIndex((l) => l.id === levelId);
+  const upper = index > 0 ? (values[levels[index - 1].id] ?? current) - 1 : current + 200;
+  const lower = index < levels.length - 1 ? (values[levels[index + 1].id] ?? current) + 1 : current - 200;
+
+  let lo = current;
+  while (lo - 1 >= lower && unchangedAt(lo - 1)) lo -= 1;
+  let hi = current;
+  while (hi + 1 <= upper && unchangedAt(hi + 1)) hi += 1;
+  return [lo, hi];
+}
+
 export default function ValueRuler({
   criterion,
   values,
@@ -155,6 +189,24 @@ export default function ValueRuler({
           </div>
         ))}
 
+        {/* Stability bands: where each level can go without changing a judgment. */}
+        {levels.map((level) => {
+          if (anchorIds.has(level.id)) return null;
+          const [lo, hi] = stabilityRange(criterion, values, level.id);
+          if (hi <= lo) return null;
+          const top = toPct(hi);
+          const height = toPct(lo) - top;
+          return (
+            <div
+              key={`band-${level.id}`}
+              className="absolute left-[2.6rem] w-1.5 rounded-full bg-indigo-100 border border-indigo-200"
+              style={{ top: `${top}%`, height: `${height}%` }}
+              aria-hidden="true"
+              title={t('Entre {{lo}} e {{hi}} os juízos não mudam', { lo, hi })}
+            />
+          );
+        })}
+
         {levels.map((level, i) => {
           const v = values[level.id] ?? 0;
           const isAnchor = anchorIds.has(level.id);
@@ -186,6 +238,14 @@ export default function ValueRuler({
                 {v}
                 {isAnchor && (isGood ? ` · ${t('Bom')}` : ` · ${t('Neutro')}`)}
               </span>
+              {!isAnchor && (() => {
+                const [lo, hi] = stabilityRange(criterion, values, level.id);
+                return hi > lo ? (
+                  <span className="font-mono text-[10px] text-gray-400 tabular-nums whitespace-nowrap">
+                    [{lo} – {hi}]
+                  </span>
+                ) : null;
+              })()}
             </div>
           );
         })}

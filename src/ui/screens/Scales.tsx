@@ -1,9 +1,15 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useApp } from '../store';
-import type { MacbethJudgment, JudgmentMatrix, DerivedScale, QualificationCriterion } from '../../domain/types';
+import type {
+  MacbethJudgment, MacbethCategory, JudgmentMatrix, DerivedScale, QualificationCriterion,
+} from '../../domain/types';
 import { DEFAULT_ASSESSOR_ID } from '../../domain/types';
-import { deriveScale, scalePoints, levelPosition } from '../../engine/scaling';
+
+/** Lower bound of a judgment's category — what an interval asserts at minimum. */
+const catOf = (j: MacbethJudgment): MacbethCategory => (j.kind === 'exact' ? j.category : j.lo);
+import { deriveScale, scaleFromValues, scalePoints, levelPosition } from '../../engine/scaling';
+import { diagnoseScale, minimumCategoryFor, type ScaleDiagnosis } from '../../engine/diagnose';
 import { sampleCurve } from '../../engine/interpolation';
 import JudgmentMatrixEditor from '../components/JudgmentMatrixEditor';
 import GuidedJudgments from '../components/GuidedJudgments';
@@ -307,6 +313,9 @@ export default function Scales() {
   // criterion so switching criteria does not carry a stale position map.
   const [rulerFor, setRulerFor] = useState<string | null>(null);
   const [rulerValues, setRulerValues] = useState<LevelValues>({});
+  // Why the current criterion's matrix is inconsistent, in terms of the answers
+  // given — recomputed whenever a derivation comes back with margin ≤ 0.
+  const [diagnosis, setDiagnosis] = useState<Record<string, ScaleDiagnosis>>({});
 
   const qualCriteria = Object.values(model.valueTree.criteria).filter(
     (c) => c.type === 'qualification',
@@ -354,6 +363,18 @@ export default function Scales() {
     });
   }
 
+  function storeScale(criterionId: string, scale: DerivedScale) {
+    dispatch({
+      type: 'UPDATE_MODEL',
+      patch: {
+        derivedScales: [
+          ...model.derivedScales.filter((s) => s.criterionId !== criterionId),
+          scale,
+        ],
+      },
+    });
+  }
+
   async function handleDerive(criterionId: string) {
     const crit = model.valueTree.criteria[criterionId];
     if (crit?.type !== 'qualification') return;
@@ -361,18 +382,40 @@ export default function Scales() {
     setDerivingId(criterionId);
     try {
       const scale = await deriveScale(criterionId, crit.descriptor, matrix);
-      dispatch({
-        type: 'UPDATE_MODEL',
-        patch: {
-          derivedScales: [
-            ...model.derivedScales.filter((s) => s.criterionId !== criterionId),
-            scale,
-          ],
-        },
-      });
+      storeScale(criterionId, scale);
+      // An inconsistent matrix is where the assessor most needs help, so work
+      // out *which* answers disagree instead of only reporting that some do.
+      if (scale.consistencyMargin <= 0) {
+        const d = await diagnoseScale(crit.descriptor, matrix.judgments);
+        setDiagnosis((prev) => ({ ...prev, [criterionId]: d }));
+      } else {
+        setDiagnosis((prev) => {
+          const next = { ...prev };
+          delete next[criterionId];
+          return next;
+        });
+      }
     } finally {
       setDerivingId(null);
     }
+  }
+
+  /** Overwrite one judgment and re-derive — the one-click conflict resolution. */
+  async function fixJudgment(criterionId: string, key: string, category: MacbethCategory) {
+    const matrix = getMatrix(criterionId);
+    updateMatrix(criterionId, { ...matrix.judgments, [key]: { kind: 'exact', category } });
+    const crit = model.valueTree.criteria[criterionId];
+    if (crit?.type !== 'qualification') return;
+    const next = { ...matrix.judgments, [key]: { kind: 'exact' as const, category } };
+    const scale = await deriveScale(criterionId, crit.descriptor, { ...matrix, judgments: next });
+    storeScale(criterionId, scale);
+    const d = scale.consistencyMargin > 0 ? null : await diagnoseScale(crit.descriptor, next);
+    setDiagnosis((prev) => {
+      const out = { ...prev };
+      if (d) out[criterionId] = d;
+      else delete out[criterionId];
+      return out;
+    });
   }
 
   function getScale(criterionId: string): DerivedScale | undefined {
@@ -456,11 +499,23 @@ export default function Scales() {
           setRulerValues(seed);
           setRulerFor(activeCrit!.id);
         }
-        /** Positions become judgments — the LP still has the final word. */
-        function applyRuler() {
-          updateMatrix(activeCrit!.id, judgmentsFromLevelValues(activeCrit!, rulerValues));
+        /**
+         * The positions are the scale. They are translated into the same C0–C6
+         * judgments the questions produce and stored alongside, but the numbers
+         * kept are the ones the assessor placed — the LP is used for the margin
+         * and the admissible ranges, not to pick a different admissible scale.
+         */
+        async function applyRuler() {
+          const crit = activeCrit!;
+          const judgments = judgmentsFromLevelValues(crit, rulerValues);
+          updateMatrix(crit.id, judgments);
           setRulerFor(null);
-          handleDerive(activeCrit!.id);
+          setDerivingId(crit.id);
+          try {
+            storeScale(crit.id, await scaleFromValues(crit.id, crit.descriptor, rulerValues, judgments));
+          } finally {
+            setDerivingId(null);
+          }
         }
 
         return (
@@ -492,8 +547,8 @@ export default function Scales() {
           {inRuler ? (
             <>
               <p className="text-sm text-gray-500 leading-relaxed">
-                <strong className="text-gray-700">{t('Não substitui o método.')}</strong>{' '}
-                {t('Arrastar um nível é outra forma de dar os mesmos juízos: as distâncias são traduzidas em categorias MACBETH e mostradas ao vivo. Neutro e Bom estão fixos em 0 e 100, e nenhum nível pode passar à frente de outro.')}
+                <strong className="text-gray-700">{t('Os valores que colocar são os que ficam.')}</strong>{' '}
+                {t('Cada posição implica um juízo MACBETH (à direita) e a escala resultante é, por construção, coerente com esses juízos. A faixa clara ao lado de cada nível é o troço em que o pode arrastar sem mudar nenhum juízo. Neutro e Bom estão fixos em 0 e 100, e nenhum nível pode passar à frente de outro.')}
               </p>
               <div className="grid lg:grid-cols-[1fr_22rem] gap-5 items-start">
                 <div className="bg-white border border-gray-200 rounded-2xl p-5">
@@ -524,7 +579,7 @@ export default function Scales() {
                     onClick={applyRuler}
                     className="w-full mt-3 px-4 py-2 bg-indigo-600 text-white rounded-full text-sm font-semibold hover:bg-indigo-700"
                   >
-                    {t('Aplicar e derivar escala')}
+                    {t('Aplicar esta escala')}
                   </button>
                 </div>
               </div>
@@ -600,27 +655,101 @@ export default function Scales() {
           </>
           )}
 
-          {/* Scale display */}
+          {/* Scale display — or, when the answers contradict, why they do ── */}
           {(() => {
             const scale = getScale(activeCrit.id);
             if (!scale) return null;
+
+            /**
+             * An inconsistent matrix has no scale. Showing one anyway — every
+             * level at 0.0, a chart with a 0–4 axis, labels stacked on top of
+             * each other — presents the absence of a result as a result. The
+             * diagnosis replaces it until the answers agree.
+             */
+            if (scale.consistencyMargin <= 0) {
+              const d = diagnosis[activeCrit.id];
+              const labelOfLevel = (id: string) => levels.find((l) => l.id === id)?.label ?? id;
+              const first = d?.conflicts[0];
+              return (
+                <div className="space-y-4">
+                  <div className="bg-rose-50 border border-rose-200 rounded-2xl p-5 space-y-3">
+                    <div className="flex items-start gap-3">
+                      <span className="text-rose-600 text-lg leading-none mt-0.5" aria-hidden="true">⚠</span>
+                      <div className="flex-1 min-w-0 space-y-2">
+                        {first ? (
+                          <>
+                            <p className="font-bold text-rose-900 text-sm">{t('Duas respostas contradizem-se')}</p>
+                            <p className="text-[13px] text-rose-900/90 leading-relaxed">
+                              {t('Disse que o salto de')}{' '}
+                              <strong>{labelOfLevel(first.narrow.fromId)} → {labelOfLevel(first.narrow.toId)}</strong>{' '}
+                              {t('é')} <strong>{t(CATEGORIES[catOf(first.narrow.judgment)]?.label ?? '')}</strong>,{' '}
+                              {t('mas o salto de')}{' '}
+                              <strong>{labelOfLevel(first.wide.fromId)} → {labelOfLevel(first.wide.toId)}</strong>{' '}
+                              — {t('que contém o primeiro e ainda mais')} — {t('é apenas')}{' '}
+                              <strong>{t(CATEGORIES[catOf(first.wide.judgment)]?.label ?? '')}</strong>.{' '}
+                              {t('Um salto maior não pode valer menos do que um dos seus troços.')}
+                            </p>
+                            <div className="flex flex-wrap items-center gap-2 pt-1">
+                              <button
+                                onClick={() => fixJudgment(activeCrit.id, first.wide.key, minimumCategoryFor(first))}
+                                className="px-3.5 py-1.5 text-sm font-semibold bg-rose-600 text-white rounded-lg hover:bg-rose-700"
+                              >
+                                {t('Corrigir para «{{cat}}»', { cat: t(CATEGORIES[minimumCategoryFor(first)]?.label ?? '') })}
+                              </button>
+                              <span className="text-xs text-rose-800/70">
+                                {t('A correção sugerida é a que menos se afasta do que respondeu.')}
+                              </span>
+                            </div>
+                          </>
+                        ) : d?.fallback ? (
+                          <>
+                            <p className="font-bold text-rose-900 text-sm">{t('As respostas não são compatíveis entre si')}</p>
+                            <p className="text-[13px] text-rose-900/90 leading-relaxed">
+                              {t('A contradição envolve várias respostas ao mesmo tempo, por isso não há um par único a apontar. Alterar')}{' '}
+                              <strong>
+                                {labelOfLevel(d.fallback.key.split('__')[1])} → {labelOfLevel(d.fallback.key.split('__')[0])}
+                              </strong>{' '}
+                              {t('para')} <strong>{t(CATEGORIES[d.fallback.suggested]?.label ?? '')}</strong>{' '}
+                              {t('resolve-a.')}
+                            </p>
+                            <button
+                              onClick={() => fixJudgment(activeCrit.id, d.fallback!.key, d.fallback!.suggested)}
+                              className="px-3.5 py-1.5 text-sm font-semibold bg-rose-600 text-white rounded-lg hover:bg-rose-700"
+                            >
+                              {t('Aplicar esta correção')}
+                            </button>
+                          </>
+                        ) : (
+                          <p className="text-[13px] text-rose-900/90">
+                            {t('As respostas contêm uma contradição. Reveja-as acima: um salto maior não pode valer menos do que um salto que ele contenha.')}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="border-2 border-dashed border-gray-200 rounded-2xl px-5 py-7 text-center space-y-1">
+                    <p className="text-sm font-semibold text-gray-600">
+                      {t('A escala aparece aqui quando as respostas forem coerentes.')}
+                    </p>
+                    <p className="text-xs text-gray-400">
+                      {t('Não é mostrado nenhum valor até lá — um zero em todos os níveis não é uma escala, é a ausência de uma.')}
+                    </p>
+                  </div>
+                </div>
+              );
+            }
+
             return (
               <div className="border border-gray-200 rounded-xl p-5 bg-white space-y-6">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-gray-700">{t('Escala Derivada')}</h3>
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${scale.consistencyMargin > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
-                    {t('margem: {{m}}', { m: scale.consistencyMargin.toFixed(3) })}
+                  <h3 className="text-sm font-semibold text-gray-700">{t('Escala derivada')}</h3>
+                  <span
+                    className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700"
+                    title={t('Margem de discriminação z = {{m}} — quanto maior, mais folgadamente as respostas se separam umas das outras.', { m: scale.consistencyMargin.toFixed(3) })}
+                  >
+                    ✓ {t('coerente')}
                   </span>
                 </div>
-
-                {scale.consistencyMargin <= 0 && (
-                  <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-xs text-red-700">
-                    <span className="mt-0.5 shrink-0">⚠</span>
-                    <span>
-                      {t('Escala inconsistente — os juízos contêm contradições cardinais. Revise a matriz acima: corrija pares de diferença de atratividade que violem a ordenação cardinal (p.ex. uma diferença «Forte» numa distância menor do que uma «Fraca»).')}
-                    </span>
-                  </div>
-                )}
 
                 {/* Ruler / Thermometer */}
                 <div>

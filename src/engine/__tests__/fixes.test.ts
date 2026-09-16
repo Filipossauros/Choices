@@ -131,10 +131,21 @@ describe('scaling — interval and boundedness fixes', () => {
     expect(val('M')).toBeLessThanOrEqual(100);
   });
 
-  it('admissible ranges are computed at z* — no degenerate [0,100] span', async () => {
-    // G-M and M-N both C2, G-N C4: symmetric, so at maximum discrimination
-    // v(M) is pinned at 50. With z left free (the old bug) the range came back
-    // as the judgment-violating [0, 100].
+  /**
+   * The admissible range answers "how far could this value move and still honour
+   * everything I said?". Two earlier formulations both got it wrong: with z
+   * unbounded below it collapsed to 0, turning every strict ordering weak and
+   * widening the ranges past what the judgments allow; with z pinned at z* the
+   * maximally-discriminating scale is essentially unique and every range came
+   * back a single point, which is what made the Robustez screen vacuous.
+   *
+   * What the ranges must actually do is *respond to evidence*: more
+   * discriminating answers, narrower range. That is what these two pin down —
+   * not a particular number, which would only re-encode a tie-break convention.
+   */
+  it('reports a real interval that contains the maximally-discriminating value', async () => {
+    // G-M and M-N in the same category: the judgments say the two steps are
+    // comparable, not that they are equal, so v(M) is genuinely loose here.
     const scale = await deriveScale('c1', descriptor3(), matrix({
       G__M: exact(2),
       M__N: exact(2),
@@ -142,12 +153,30 @@ describe('scaling — interval and boundedness fixes', () => {
     }));
     expect(scale.consistencyMargin).toBeGreaterThan(0);
     const mid = scale.values.find((v) => v.levelId === 'M')!;
-    expect(mid.value).toBe(50);
+    expect(mid.value).toBe(50); // max-z still picks the symmetric scale
     const [lo, hi] = mid.admissibleRange;
-    expect(lo).toBeGreaterThan(0);
-    expect(hi).toBeLessThan(100);
+    expect(hi).toBeGreaterThan(lo); // not the degenerate point-range
     expect(lo).toBeLessThanOrEqual(mid.value);
     expect(hi).toBeGreaterThanOrEqual(mid.value);
+    // The anchors are fixed by construction and must stay pinned.
+    const good = scale.values.find((v) => v.levelId === 'G')!;
+    expect(good.admissibleRange).toEqual([100, 100]);
+  });
+
+  it('narrows the range when the judgments discriminate more', async () => {
+    const loose = await deriveScale('c1', descriptor3(), matrix({
+      G__M: exact(2), M__N: exact(2), G__N: exact(4),
+    }));
+    // Saying the upper step is *much* bigger than the lower one pins the middle
+    // level far more tightly than saying they are in the same category.
+    const tight = await deriveScale('c1', descriptor3(), matrix({
+      G__M: exact(5), M__N: exact(1), G__N: exact(6),
+    }));
+    const width = (s: typeof loose) => {
+      const [lo, hi] = s.values.find((v) => v.levelId === 'M')!.admissibleRange;
+      return hi - lo;
+    };
+    expect(width(tight)).toBeLessThan(width(loose));
   });
 
   it('a partial matrix that never chains to the anchors stays bounded and ordered', async () => {

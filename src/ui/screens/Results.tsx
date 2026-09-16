@@ -92,14 +92,27 @@ export default function Results() {
     return bandId ? bandMap.get(bandId) : undefined;
   }
 
-  const sorted = [...result.optionResults].sort(
-    (a, b) => (b.globalValue ?? -Infinity) - (a.globalValue ?? -Infinity),
-  );
+  const labelOf = (id: string) => evaluation.options.find((o) => o.id === id)?.label ?? id;
+  const critLabel = (id: string) => model.valueTree.criteria[id]?.label ?? id;
 
-  const chartData = sorted.map((r) => ({
-    name: evaluation.options.find((o) => o.id === r.optionId)?.label ?? r.optionId,
-    value: r.globalValue ?? 0,
-    color: r.hardRejected ? REJECT_COLOR : bandOf(r.bandId)?.color ?? REJECT_COLOR,
+  // Three groups, not one list. An option with no value cannot be *ranked*: it
+  // has nothing to compare. Sorting it in at −∞ (or, worse, scoring it over the
+  // criteria that happen to be answered) puts a number next to it that means
+  // something different from every other number in the column.
+  const ranked = result.optionResults
+    .filter((r) => !r.hardRejected && r.globalValue != null)
+    .sort((a, b) => b.globalValue! - a.globalValue!);
+  const incomplete = result.optionResults.filter(
+    (r) => !r.hardRejected && r.globalValue == null,
+  );
+  const rejected = result.optionResults.filter((r) => r.hardRejected);
+  // Column order for the per-criterion table: ranked first, then the rest.
+  const sorted = [...ranked, ...incomplete, ...rejected];
+
+  const chartData = ranked.map((r) => ({
+    name: labelOf(r.optionId),
+    value: r.globalValue!,
+    color: bandOf(r.bandId)?.color ?? REJECT_COLOR,
     optionId: r.optionId,
   }));
 
@@ -115,8 +128,8 @@ export default function Results() {
     ? topGroups.flatMap((g) => g.childIds)
     : qualCriteria.map((c) => c.id);
 
-  const whyResult = result.optionResults.find((r) => r.optionId === (whyOptionId ?? sorted[0]?.optionId));
-  const activeWhyId = whyOptionId ?? sorted[0]?.optionId ?? null;
+  const whyResult = result.optionResults.find((r) => r.optionId === (whyOptionId ?? ranked[0]?.optionId));
+  const activeWhyId = whyOptionId ?? ranked[0]?.optionId ?? null;
 
   // ── Explainability: strengths, shortfalls, and the best lever to the next band ──
   const scaleMap = new Map(model.derivedScales.map((s) => [s.criterionId, s] as const));
@@ -195,13 +208,45 @@ export default function Results() {
         </div>
       </div>
 
+      {/* ── Incomplete options: named, explained, and actionable ── */}
+      {incomplete.length > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex items-start gap-3">
+          <span className="text-amber-600 mt-0.5 shrink-0" aria-hidden="true">⚠</span>
+          <div className="flex-1 min-w-0 space-y-2">
+            <p className="text-sm text-amber-900">
+              <strong>
+                {incomplete.length === 1
+                  ? t('1 {{one}} fora do ranking por estar incompleta.', { one: t(subj.one) })
+                  : t('{{n}} {{many}} fora do ranking por estarem incompletas.', { n: incomplete.length, many: t(subj.many) })}
+              </strong>{' '}
+              {t('Uma pontuação parcial repartiria os pesos só pelos critérios respondidos, o que a tornaria incomparável com as restantes — por isso não é calculada.')}
+            </p>
+            <ul className="text-xs text-amber-800 space-y-0.5">
+              {incomplete.map((r) => (
+                <li key={r.optionId}>
+                  <strong>{labelOf(r.optionId)}</strong> — {t('falta classificar:')}{' '}
+                  {(r.missingCriteria ?? []).map(critLabel).join(', ')}
+                </li>
+              ))}
+            </ul>
+            <button
+              onClick={() => dispatch({ type: 'SET_SCREEN', screen: 'analysis' })}
+              className="px-3 py-1.5 text-sm font-medium bg-amber-600 text-white rounded-lg hover:bg-amber-700"
+            >
+              {t('Completar no separador «Análise» →')}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ── Ranking cards (one row each) ── */}
       <div className="space-y-2.5">
         {sorted.map((r) => {
-          const option = evaluation.options.find((o) => o.id === r.optionId);
           const band = bandOf(r.bandId);
           const rejected = r.hardRejected;
-          const accent = rejected ? '#dc2626' : band?.color ?? '#94a3b8';
+          const isIncomplete = !rejected && r.globalValue == null;
+          const rank = ranked.findIndex((x) => x.optionId === r.optionId);
+          const accent = rejected ? '#dc2626' : isIncomplete ? '#94a3b8' : band?.color ?? '#94a3b8';
           const isWhy = activeWhyId === r.optionId;
 
           return (
@@ -211,16 +256,20 @@ export default function Results() {
               style={{ borderColor: accent + '55', borderLeftWidth: '4px', borderLeftColor: accent }}
             >
               <div className="flex items-center gap-3">
+                <span className="font-mono text-sm font-bold text-gray-400 shrink-0 w-7">
+                  {rank >= 0 ? `#${rank + 1}` : '—'}
+                </span>
                 <span className="text-sm font-bold text-gray-800 flex-1 min-w-0 truncate">
-                  {option?.label ?? r.optionId}
+                  {labelOf(r.optionId)}
                 </span>
                 <span
-                  className="font-mono text-base font-bold tabular-nums shrink-0"
-                  style={{ color: rejected ? '#9ca3af' : '#334155' }}
+                  className={`font-mono text-base font-bold tabular-nums shrink-0 ${
+                    rejected || isIncomplete ? 'text-gray-400' : 'text-gray-800'
+                  }`}
                 >
-                  {rejected ? '—' : r.globalValue?.toFixed(1) ?? '—'}
+                  {rejected || isIncomplete ? '—' : r.globalValue!.toFixed(1)}
                 </span>
-                {!rejected && (r.pendingGates?.length ?? 0) > 0 && (
+                {!rejected && !isIncomplete && (r.pendingGates?.length ?? 0) > 0 && (
                   <span
                     className="text-[10px] font-semibold rounded-full px-2 py-0.5 shrink-0 whitespace-nowrap bg-amber-100 text-amber-700"
                     title={t('Há critérios de habilitação por responder — se algum falhar, a opção é eliminada independentemente da pontuação.')}
@@ -230,25 +279,41 @@ export default function Results() {
                 )}
                 <span
                   className="text-xs font-bold rounded-lg px-2.5 py-1 shrink-0 whitespace-nowrap"
-                  style={{ backgroundColor: accent + '22', color: accent }}
+                  style={
+                    isIncomplete
+                      ? undefined
+                      : { backgroundColor: accent + '22', color: accent }
+                  }
                 >
-                  {rejected ? t('Reprovado') : band?.label ?? '—'}
+                  {rejected ? (
+                    t('Reprovado')
+                  ) : isIncomplete ? (
+                    <span className="border border-gray-300 text-gray-500 rounded-lg px-2 py-1 -mx-2.5 -my-1">
+                      {t('sem pontuação')}
+                    </span>
+                  ) : (
+                    band?.label ?? '—'
+                  )}
                 </span>
               </div>
-              {!rejected && (r.pendingGates?.length ?? 0) > 0 && (
+              {!rejected && !isIncomplete && (r.pendingGates?.length ?? 0) > 0 && (
                 <p className="text-xs text-amber-600 mt-1.5">
                   {t('Habilitação pendente: {{gates}} — classificação provisória.', {
-                    gates: r.pendingGates!.map((g) => `«${model.valueTree.criteria[g]?.label ?? g}»`).join(', '),
+                    gates: r.pendingGates!.map((g) => `«${critLabel(g)}»`).join(', '),
                   })}
                 </p>
               )}
               {rejected ? (
                 <p className="text-xs text-red-600 mt-1.5">
                   {r.rejectedByGate
-                    ? t('Critério de habilitação «{{gate}}» não cumprido — eliminado antes da pontuação.', { gate: model.valueTree.criteria[r.rejectedByGate]?.label ?? '' })
+                    ? t('Critério de habilitação «{{gate}}» não cumprido — eliminado antes da pontuação.', { gate: critLabel(r.rejectedByGate) })
                     : r.vetoedByCriterion
-                    ? t('Veto: «{{crit}}».', { crit: model.valueTree.criteria[r.vetoedByCriterion]?.label ?? '' })
+                    ? t('Veto: «{{crit}}».', { crit: critLabel(r.vetoedByCriterion) })
                     : t('Eliminado antes da pontuação.')}
+                </p>
+              ) : isIncomplete ? (
+                <p className="text-xs text-gray-500 mt-1.5">
+                  {t('Por classificar: {{list}}', { list: (r.missingCriteria ?? []).map(critLabel).join(', ') })}
                 </p>
               ) : (
                 <button
@@ -320,12 +385,26 @@ export default function Results() {
                   <th className="px-3 py-1.5 text-left text-gray-600 font-medium border border-gray-200">
                     {t('Critério')} <span className="text-gray-400 font-normal">{t('(peso)')}</span>
                   </th>
-                  {sorted.map((r, rank) => (
-                    <th key={r.optionId} className="px-3 py-1.5 text-center text-gray-600 font-medium border border-gray-200">
-                      <span className="text-gray-400 text-xs mr-1">#{rank + 1}</span>
-                      {evaluation.options.find((o) => o.id === r.optionId)?.label ?? r.optionId}
-                    </th>
-                  ))}
+                  {sorted.map((r) => {
+                    const rank = ranked.findIndex((x) => x.optionId === r.optionId);
+                    const note = r.hardRejected
+                      ? t('reprovado')
+                      : r.globalValue == null
+                      ? t('incompleto')
+                      : null;
+                    return (
+                      <th
+                        key={r.optionId}
+                        className={`px-3 py-1.5 text-center font-medium border border-gray-200 ${
+                          note ? 'text-gray-400' : 'text-gray-600'
+                        }`}
+                      >
+                        {rank >= 0 && <span className="text-gray-400 text-xs mr-1">#{rank + 1}</span>}
+                        {labelOf(r.optionId)}
+                        {note && <span className="block text-[10px] font-normal">· {note}</span>}
+                      </th>
+                    );
+                  })}
                 </tr>
               </thead>
               <tbody>
@@ -340,10 +419,18 @@ export default function Results() {
                       {sorted.map((r) => {
                         const score = r.criterionScores[c.id];
                         const contrib = w != null && score != null ? w * score : null;
+                        // An empty cell on an incomplete option is the reason it
+                        // has no score — say so instead of leaving a bare dash.
+                        const isGap = score == null && (r.missingCriteria ?? []).includes(c.id);
                         return (
-                          <td key={r.optionId} className="px-3 py-1.5 border border-gray-200 text-center font-mono text-sm"
-                            title={contrib != null ? t('Contribuição: {{c}}', { c: contrib.toFixed(2) }) : undefined}>
-                            {score !== null && score !== undefined ? score.toFixed(1) : '—'}
+                          <td
+                            key={r.optionId}
+                            className={`px-3 py-1.5 border border-gray-200 text-center font-mono text-sm ${
+                              isGap ? 'bg-amber-50 text-amber-700 text-[11px]' : ''
+                            }`}
+                            title={contrib != null ? t('Contribuição: {{c}}', { c: contrib.toFixed(2) }) : undefined}
+                          >
+                            {score != null ? score.toFixed(1) : isGap ? t('por classificar') : '—'}
                           </td>
                         );
                       })}
@@ -365,7 +452,7 @@ export default function Results() {
       )}
 
       {/* ── Notes ── */}
-      {sorted.some((r) => !r.hardRejected) && (
+      {ranked.length > 0 && (
         <div className="border border-gray-200 rounded-xl p-4 bg-white space-y-3">
           <h3 className="text-sm font-semibold text-gray-700">{t('Observações por {{one}}', { one: t(subj.one) })}</h3>
           <div className="space-y-2">

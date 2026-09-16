@@ -5,9 +5,13 @@ import type {
   Criterion, EvaluationModel, Option, Performance, QualificationCriterion, ValueTreeNode,
 } from '../../domain/types';
 import { modelReadiness } from '../../domain/tree';
+import {
+  levelPosition, nearestLevelId, hasNumericAxis, numericPosition, positionToNumeric,
+} from '../../engine/scaling';
 import { v4 as uuidv4 } from 'uuid';
 import ScreenNav from '../components/ScreenNav';
 import ModelNotReady from '../components/ModelNotReady';
+import { useDialogs } from '../components/Dialog';
 import { IconGate, IconQualification } from '../components/icons';
 
 /** A scored column plus the composite factor it belongs to, in tree order. */
@@ -47,25 +51,10 @@ function headerSpans(cols: Column[]): { label: string | null; span: number }[] {
   return spans;
 }
 
-/** Position [0,1] of a descriptor level (0 = least attractive). */
-function levelPos(crit: QualificationCriterion, levelId: string): number {
-  const levels = crit.descriptor.levels;
-  const n = levels.length;
-  if (n <= 1) return 0;
-  const idx = levels.findIndex((l) => l.id === levelId);
-  return idx < 0 ? 0 : (n - 1 - idx) / (n - 1);
-}
-
-/** Nearest level label for a continuous position. */
-function nearestLevel(crit: QualificationCriterion, position: number): string {
-  const levels = crit.descriptor.levels;
-  let best = levels[0];
-  let bestD = Infinity;
-  for (const l of levels) {
-    const d = Math.abs(levelPos(crit, l.id) - position);
-    if (d < bestD) { bestD = d; best = l; }
-  }
-  return best?.label ?? '';
+/** Nearest level label for a continuous position, for the "≈" hint. */
+function nearestLevelLabel(crit: QualificationCriterion, position: number): string {
+  const id = nearestLevelId(crit.descriptor, position);
+  return crit.descriptor.levels.find((l) => l.id === id)?.label ?? '';
 }
 
 export default function Analysis() {
@@ -75,6 +64,7 @@ export default function Analysis() {
   const model = evaluation.model;
   const [newLabel, setNewLabel] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
+  const dialogs = useDialogs();
 
   const isPositions = model.subjectKind === 'positions';
   const subjectSingular = isPositions ? t('posição') : t('proposta');
@@ -106,17 +96,53 @@ export default function Analysis() {
     return evaluation.performances.find((p) => p.optionId === optionId && p.criterionId === criterionId);
   }
 
+  /**
+   * Options that cannot be scored yet, with the criteria still to classify.
+   * Surfaced here rather than only on Results: a gap found after the grid is
+   * closed costs a round trip, and the table's amber cells only show the gap for
+   * whichever columns happen to be on screen.
+   */
+  const unscored = evaluation.options
+    .map((o) => ({
+      id: o.id,
+      label: o.label,
+      missing: qualCriteria.filter((c) => {
+        const p = findPerf(o.id, c.id);
+        return !p || (!p.value && p.position == null);
+      }),
+    }))
+    .filter((u) => u.missing.length > 0);
+
   function setPerf(optionId: string, criterionId: string, value: string) {
     const rest = evaluation.performances.filter((p) => !(p.optionId === optionId && p.criterionId === criterionId));
     const updated: Performance[] = value ? [...rest, { optionId, criterionId, value }] : rest;
     dispatch({ type: 'UPDATE_EVALUATION', patch: { performances: updated } });
   }
 
-  function setPosition(optionId: string, criterionId: string, crit: QualificationCriterion, position: number) {
+  /**
+   * Record a continuous performance. `value` holds the *id* of the nearest
+   * level — the same kind of reference a discrete entry stores — so both survive
+   * the same validity checks when the model behind an evaluation is refreshed.
+   * (It used to store the level's label here and an id there, which only held
+   * together because `position` short-circuited the check.)
+   */
+  function setPosition(
+    optionId: string,
+    criterionId: string,
+    crit: QualificationCriterion,
+    position: number,
+    measured?: number,
+  ) {
     const rest = evaluation.performances.filter((p) => !(p.optionId === optionId && p.criterionId === criterionId));
+    const value = nearestLevelId(crit.descriptor, position) ?? crit.descriptor.levels[0]?.id ?? '';
     dispatch({
       type: 'UPDATE_EVALUATION',
-      patch: { performances: [...rest, { optionId, criterionId, value: nearestLevel(crit, position), position }] },
+      patch: {
+        performances: [
+          ...rest,
+          { optionId, criterionId, value, position, ...(measured != null ? { measured } : {}) },
+        ],
+      },
     });
   }
 
@@ -127,8 +153,14 @@ export default function Analysis() {
     setNewLabel('');
   }
 
-  function deleteOption(id: string) {
-    if (!confirm(t('Eliminar esta {{subject}}?', { subject: subjectSingular }))) return;
+  async function deleteOption(id: string) {
+    const ok = await dialogs.confirm({
+      title: t('Eliminar «{{label}}»?', { label: evaluation.options.find((o) => o.id === id)?.label ?? '' }),
+      body: t('Os desempenhos já registados para esta {{subject}} são apagados.', { subject: subjectSingular }),
+      confirmLabel: t('Eliminar'),
+      danger: true,
+    });
+    if (!ok) return;
     dispatch({
       type: 'UPDATE_EVALUATION',
       patch: {
@@ -289,20 +321,53 @@ export default function Analysis() {
                       const c = crit as QualificationCriterion;
                       const perf = findPerf(option.id, c.id);
                       if (c.continuous) {
-                        const pos = perf?.position ?? (perf?.value ? levelPos(c, c.descriptor.levels.find((l) => l.label === perf.value)?.id ?? '') : 0.5);
+                        const pos = perf?.position ?? (perf?.value ? levelPosition(c.descriptor, perf.value) : 0.5);
+                        // With a measurement axis declared, ask for the reading
+                        // itself. "180 ms" is something the assessor can look up;
+                        // "87% along the descriptor" is something they'd have to
+                        // invent.
+                        if (hasNumericAxis(c.descriptor)) {
+                          const shown = perf?.measured ?? (perf ? positionToNumeric(c.descriptor, pos) : null);
+                          return (
+                            <td key={c.id} className={`border-b border-r border-gray-200 p-1.5 text-center min-w-[120px] ${perf ? '' : 'bg-amber-50'}`}>
+                              <div className="flex items-center gap-1 justify-center">
+                                <input
+                                  type="number"
+                                  value={shown ?? ''}
+                                  placeholder="—"
+                                  aria-label={t('{{crit}} de {{option}}', { crit: c.label, option: option.label })}
+                                  onChange={(e) => {
+                                    const raw = e.target.value;
+                                    if (raw === '') return setPerf(option.id, c.id, '');
+                                    const n = Number(raw);
+                                    if (!Number.isFinite(n)) return;
+                                    const p = numericPosition(c.descriptor, n);
+                                    if (p != null) setPosition(option.id, c.id, c, p, n);
+                                  }}
+                                  className="w-20 text-sm text-center border border-gray-200 rounded px-1 py-0.5"
+                                />
+                                {c.descriptor.unit && <span className="text-[10px] text-gray-400">{c.descriptor.unit}</span>}
+                              </div>
+                              {perf && (
+                                <div className="text-[10px] text-gray-400 mt-0.5">≈ {nearestLevelLabel(c, pos)}</div>
+                              )}
+                            </td>
+                          );
+                        }
                         return (
-                          <td key={c.id} className="border-b border-r border-gray-200 p-2 text-center min-w-[140px]">
+                          <td key={c.id} className={`border-b border-r border-gray-200 p-2 text-center min-w-[140px] ${perf ? '' : 'bg-amber-50'}`}>
                             <input
                               type="range"
                               min={0}
                               max={1}
                               step={0.01}
                               value={pos}
+                              aria-label={t('{{crit}} de {{option}}', { crit: c.label, option: option.label })}
                               onChange={(e) => setPosition(option.id, c.id, c, Number(e.target.value))}
                               className="w-full accent-blue-600"
                             />
                             <div className="text-[10px] text-gray-500 mt-0.5">
-                              {perf ? `${(pos * 100).toFixed(0)}% · ≈ ${nearestLevel(c, pos)}` : t('por definir')}
+                              {perf ? `${(pos * 100).toFixed(0)}% · ≈ ${nearestLevelLabel(c, pos)}` : t('por definir')}
                             </div>
                           </td>
                         );
@@ -312,15 +377,14 @@ export default function Analysis() {
                         <td key={c.id} className={`border-b border-r border-gray-200 p-1 text-center ${val ? '' : 'bg-amber-50'}`}>
                           <select
                             value={val}
+                            aria-label={t('{{crit}} de {{option}}', { crit: c.label, option: option.label })}
                             onChange={(e) => setPerf(option.id, c.id, e.target.value)}
                             className="text-xs border-0 bg-transparent focus:ring-1 focus:ring-blue-400 cursor-pointer"
                           >
                             <option value="">—</option>
-                            {c.descriptor.levels.map((level, idx) => (
+                            {c.descriptor.levels.map((level) => (
                               <option key={level.id} value={level.id}>
                                 {level.label}
-                                {c.descriptor.neutralIndex === idx ? t(' (Neutro)') : ''}
-                                {c.descriptor.goodIndex === idx ? t(' (Bom)') : ''}
                               </option>
                             ))}
                           </select>
@@ -336,6 +400,24 @@ export default function Analysis() {
               </tbody>
             </table>
           </div>
+
+          {unscored.length > 0 && (
+            <div className="border border-amber-200 bg-amber-50 rounded-xl p-4 space-y-1.5">
+              <h3 className="text-sm font-semibold text-amber-900">
+                {t('Ainda por classificar — sem isto não há pontuação')}
+              </h3>
+              <p className="text-xs text-amber-800/80">
+                {t('Uma pontuação sobre parte dos critérios repartiria os pesos apenas por esses, deixando de ser comparável com as restantes.')}
+              </p>
+              <ul className="text-xs text-amber-900 space-y-0.5 pt-1">
+                {unscored.map((u) => (
+                  <li key={u.id}>
+                    <strong>{u.label}</strong> — {u.missing.map((m) => m.label).join(', ')}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           {/* Habilitação summary */}
           {gateCriteria.length > 0 && (
@@ -367,7 +449,18 @@ export default function Analysis() {
         next="results"
         nextLabel="Resultados"
         hint="Registe as propostas e o seu desempenho antes de agregar."
-        blockedBy={evaluation.options.length === 0 ? t('Adicione pelo menos uma {{subject}} para continuar.', { subject: subjectSingular }) : undefined}
+        blockedBy={
+          evaluation.options.length === 0
+            ? t('Adicione pelo menos uma {{subject}} para continuar.', { subject: subjectSingular })
+            : unscored.length > 0
+            ? t('{{list}} — sem todos os critérios classificados não é possível pontuar ({{n}} por preencher).', {
+                list: unscored
+                  .map((u) => `${u.label}: ${u.missing.map((m) => m.label).join(', ')}`)
+                  .join(' · '),
+                n: unscored.reduce((s, u) => s + u.missing.length, 0),
+              })
+            : undefined
+        }
       />
     </div>
   );
