@@ -767,4 +767,221 @@ export const en: Record<string, string> = {
     'Compose a HealthStatus factor from technical metrics and a Risk factor that weights it against criticality, duration and responsibility.',
   'root(Risco) → {HealthStatus→{Latência, Taxa de erros, Saturação}, Criticidade, Duração, Responsabilidade}; perfis: Nenhuma ação/Advertência/Sanção.':
     'root(Risk) → {HealthStatus→{Latency, Error rate, Saturation}, Criticality, Duration, Responsibility}; profiles: No action/Warning/Sanction.',
+  // ── Completeness, diagnosis and provenance (2026 review) ────────────────
+  '1 {{one}} fora do ranking por estar incompleta.': '1 {{one}} left out of the ranking because it is incomplete.',
+  '{{n}} {{many}} fora do ranking por estarem incompletas.': '{{n}} {{many}} left out of the ranking because they are incomplete.',
+  'Uma pontuação parcial repartiria os pesos só pelos critérios respondidos, o que a tornaria incomparável com as restantes — por isso não é calculada.':
+    'A partial score would share the weights out over the answered criteria alone, making it incomparable with the others — so it is not calculated.',
+  'Uma pontuação sobre parte dos critérios repartiria os pesos apenas por esses, deixando de ser comparável com as restantes.':
+    'Scoring over some of the criteria would share the weights out over those alone, so it would no longer be comparable with the others.',
+  'falta classificar:': 'still to classify:',
+  'Completar no separador «Análise» →': 'Complete under “Proposals” →',
+  'Por classificar: {{list}}': 'Still to classify: {{list}}',
+  'por classificar': 'to classify',
+  'sem pontuação': 'no score',
+  'reprovado': 'rejected',
+  'Ainda por classificar — sem isto não há pontuação': 'Still to classify — without this there is no score',
+  '{{list}} — sem todos os critérios classificados não é possível pontuar ({{n}} por preencher).':
+    '{{list}} — every criterion has to be classified before anything can be scored ({{n}} left).',
+  'Condição eliminatória «{{gate}}» não cumprida — eliminado antes da pontuação.':
+    'Eliminating condition “{{gate}}” not met — excluded before scoring.',
+
+  'Duas respostas contradizem-se': 'Two answers contradict each other',
+  'Disse que o salto de': 'You said the jump from',
+  'é': 'is',
+  'mas o salto de': 'but the jump from',
+  'que contém o primeiro e ainda mais': 'which contains the first one and more',
+  'é apenas': 'is only',
+  'Um salto maior não pode valer menos do que um dos seus troços.':
+    'A bigger jump cannot be worth less than one of its own parts.',
+  'Corrigir para «{{cat}}»': 'Correct to “{{cat}}”',
+  'A correção sugerida é a que menos se afasta do que respondeu.':
+    'The suggested correction is the one that departs least from your answer.',
+  'As respostas não são compatíveis entre si': 'The answers are not compatible with each other',
+  'A contradição envolve várias respostas ao mesmo tempo, por isso não há um par único a apontar. Alterar':
+    'The contradiction involves several answers at once, so there is no single pair to point at. Changing',
+  'resolve-a.': 'resolves it.',
+  'Aplicar esta correção': 'Apply this correction',
+  'As respostas contêm uma contradição. Reveja-as abaixo: um salto maior não pode valer menos do que um salto que ele contenha.':
+    'The answers contain a contradiction. Review them below: a bigger jump cannot be worth less than a jump it contains.',
+  'A escala aparece aqui quando as respostas forem coerentes.':
+    'The scale appears here once the answers agree.',
+  'Não é mostrado nenhum valor até lá — um zero em todos os níveis não é uma escala, é a ausência de uma.':
+    'No value is shown until then — a zero on every level is not a scale, it is the absence of one.',
+  'Escala derivada': 'Derived scale',
+  'coerente': 'consistent',
+  'contradição': 'contradiction',
+  'Margem de discriminação z = {{m}}': 'Discrimination margin z = {{m}}',
+  'Margem de discriminação z = {{m}} — quanto maior, mais folgadamente as respostas se separam umas das outras.':
+    'Discrimination margin z = {{m}} — the larger it is, the more room the answers leave between each other.',
+
+  'Pesos simulados a partir da ordem — por confirmar.': 'Weights simulated from the ranking — unconfirmed.',
+  'Pesos definidos à mão — por confirmar.': 'Weights set by hand — unconfirmed.',
+  'Não são preferências elicitadas: servem para arrancar depressa ou testar hipóteses. Percorra as perguntas acima e ajuste o que não corresponder ao seu juízo.':
+    'These are not elicited preferences: they exist to start quickly or test a hypothesis. Work through the questions above and adjust anything that does not match your judgement.',
+  'Revi e confirmo estes pesos': 'I have reviewed and confirm these weights',
+  'por confirmar': 'unconfirmed',
+  'pesos por confirmar': 'weights unconfirmed',
+  'Substituir as respostas já dadas neste grupo?': 'Replace the answers already given in this group?',
+  'Os juízos passam a ser gerados a partir da ordem de importância (método ROC). Ficam marcados como simulados até os confirmar.':
+    'The judgements will be generated from the importance ranking (ROC method). They stay marked as simulated until you confirm them.',
+  'Substituir': 'Replace',
+
+  // ── Weighting wording ───────────────────────────────────────────────────
+  'Parta de uma proposta neutra em tudo — nem boa nem má em nenhum critério, valor 0. Pode melhorar um só critério até ao nível «Bom». Qual das duas melhorias vale mais, e quanto mais?':
+    'Start from a proposal that is neutral in everything — neither good nor bad on any criterion, value 0. You can improve one criterion only, up to “Good”. Which of the two improvements is worth more, and how much more?',
+  'Quanto': 'How much',
+  'mais': 'more',
+  'vale a melhoria da esquerda do que a da direita?': 'is the improvement on the left worth than the one on the right?',
+  'Se acha que vale menos, é a ordem do passo 1 que está errada — troque-os lá.':
+    'If you think it is worth less, it is the ranking in step 1 that is wrong — swap them there.',
+  'Partindo de uma proposta neutra em tudo, quanto valor traria melhorar':
+    'Starting from a proposal that is neutral in everything, how much value would it add to improve',
+  ' até «Bom»?': ' to “Good”?',
+  'todos os seus critérios de Neutro → Bom': 'all its criteria from Neutral → Good',
+  'Proposta neutra (ref.)': 'All-neutral proposal (ref.)',
+  'Sem botão «calcular»: os pesos derivam-se assim que as respostas estiverem completas.':
+    'No “calculate” button: the weights derive themselves once the answers are complete.',
+  'A calcular os pesos…': 'Calculating the weights…',
+  'Preencher a partir da ordem': 'Fill in from the ranking',
+  'Definir pesos à mão': 'Set weights by hand',
+  'Definir os pesos diretamente e ver que juízos MACBETH isso implica.':
+    'Set the weights directly and see which MACBETH judgements that implies.',
+  'Pesos — atualizados a cada resposta': 'Weights — updated with every answer',
+  'A faixa clara é o intervalo de pesos ainda compatível com as respostas dadas — quanto mais larga, mais falta decidir.':
+    'The pale band is the range of weights still compatible with the answers given — the wider it is, the more is left to decide.',
+  '{{a}} de {{n}} respondidas': '{{a}} of {{n}} answered',
+  'Continua a ser o mesmo método.': 'It is still the same method.',
+  'Arraste os pesos e veja, ao vivo, que juízos MACBETH isso implica. A soma mantém-se sempre em 1.00.':
+    'Drag the weights and watch, live, which MACBETH judgements that implies. The total always stays at 1.00.',
+  'Juízos implicados': 'Implied judgements',
+  'Aplicar e calcular pesos': 'Apply and calculate weights',
+  'Peso de «{{label}}»': 'Weight of “{{label}}”',
+
+  // ── Guided run completion ───────────────────────────────────────────────
+  '{{total}} de {{total}} comparações': '{{total}} of {{total}} comparisons',
+  'completo': 'complete',
+  'Respondeu a todas as comparações.': 'You have answered every comparison.',
+  'Rever as respostas': 'Review the answers',
+  '{{a}} de {{n}} comparações': '{{a}} of {{n}} comparisons',
+
+  // ── Scales ──────────────────────────────────────────────────────────────
+  'A escala calcula-se sozinha quando as comparações estiverem completas.':
+    'The scale calculates itself once the comparisons are complete.',
+  'A calcular a escala…': 'Calculating the scale…',
+  'Os valores que colocar são os que ficam.': 'The values you place are the ones that stay.',
+  'Cada posição implica um juízo MACBETH (à direita) e a escala resultante é, por construção, coerente com esses juízos. A faixa clara ao lado de cada nível é o troço em que o pode arrastar sem mudar nenhum juízo. Neutro e Bom estão fixos em 0 e 100, e nenhum nível pode passar à frente de outro.':
+    'Each position implies a MACBETH judgement (on the right), and the resulting scale is consistent with those judgements by construction. The pale band beside each level is the stretch you can drag it through without changing any judgement. Neutral and Good are fixed at 0 and 100, and no level may pass another.',
+  'Aplicar esta escala': 'Apply this scale',
+  'Entre {{lo}} e {{hi}} os juízos não mudam': 'Between {{lo}} and {{hi}} the judgements do not change',
+  'Juízos MACBETH deduzidos': 'MACBETH judgements implied',
+  'Todos os pares, não só os adjacentes — é o que o método exige.':
+    'Every pair, not only the adjacent ones — that is what the method requires.',
+  'ao vivo': 'live',
+  'PERFORMANCE': 'PERFORMANCE',
+  '⇄ Modo régua': '⇄ Ruler mode',
+  '⇄ Modo perguntas': '⇄ Question mode',
+  'Posição de «{{label}}»': 'Position of “{{label}}”',
+  '{{a}} de {{n}} derivadas': '{{a}} of {{n}} derived',
+  '{{n}} com contradição': '{{n}} with a contradiction',
+
+  // ── Criterion form ──────────────────────────────────────────────────────
+  'Dê um nome ao critério.': 'Give the criterion a name.',
+  'São necessários pelo menos 2 níveis de desempenho.': 'At least 2 performance levels are needed.',
+  'Descreva todos os níveis — cada um deve dizer que desempenho representa.':
+    'Describe every level — each one should say what performance it stands for.',
+  'Neutro e Bom têm de ser níveis diferentes: são as duas referências da escala.':
+    'Neutral and Good have to be different levels: they are the scale’s two references.',
+  '«Bom» tem de ser mais atrativo do que «Neutro» — coloque-o acima na lista.':
+    '“Good” has to be more attractive than “Neutral” — move it higher up the list.',
+  'Do mais para o menos atrativo (↑ = melhor). Descreva o desempenho concreto, não uma nota.':
+    'Most to least attractive (↑ = better). Describe the concrete performance, not a grade.',
+  'Unidade (opcional)': 'Unit (optional)',
+  'ms, €, dias…': 'ms, €, days…',
+  'valor': 'value',
+  'Nível {{n}}': 'Level {{n}}',
+  'Valor numérico do nível {{n}}': 'Numeric value of level {{n}}',
+  'Leitura deste nível na escala de medida (opcional, mas necessária para desempenho contínuo)':
+    'This level’s reading on the measurement scale (optional, but required for continuous performance)',
+  'Remover nível {{n}}': 'Remove level {{n}}',
+  'Subir nível': 'Move level up',
+  'Descer nível': 'Move level down',
+  'Faltam {{n}} valores numéricos para o eixo de medida ficar completo.':
+    '{{n}} numeric values still missing before the measurement axis is complete.',
+  'Permitir desempenho contínuo — registar a medição exata em vez de escolher um nível':
+    'Allow continuous performance — record the exact measurement instead of picking a level',
+  'Precisa de um valor numérico em cada nível: é esse eixo que dá sentido a uma posição entre dois níveis.':
+    'Needs a numeric value on every level: that axis is what gives a position between two levels any meaning.',
+  '{{crit}} de {{option}}': '{{crit}} for {{option}}',
+
+  // ── Dialogs ─────────────────────────────────────────────────────────────
+  'Continuar': 'Continue',
+  'Entendido': 'Got it',
+  'Eliminar «{{label}}»?': 'Delete “{{label}}”?',
+  'Eliminar «{{label}}» e os seus {{n}} subcritérios?': 'Delete “{{label}}” and its {{n}} sub-criteria?',
+  'As escalas, juízos e pesos associados são apagados com ele. Não é possível anular.':
+    'The scales, judgements and weights attached to it are deleted with it. This cannot be undone.',
+  'A escala de «{{label}}» vai ser apagada': 'The scale for “{{label}}” will be deleted',
+  'Os níveis mudaram, por isso a escala derivada deixa de corresponder ao descritor — mantê-la faria o modelo pontuar com valores que já não descrevem nada. Terá de responder outra vez às comparações deste critério.':
+    'The levels changed, so the derived scale no longer matches the descriptor — keeping it would have the model score with values that describe nothing. You will have to answer this criterion’s comparisons again.',
+  'Guardar e apagar a escala': 'Save and delete the scale',
+  'Não foi possível importar esse ficheiro.': 'That file could not be imported.',
+  'Deve ser um JSON exportado por esta aplicação. Detalhe: {{err}}':
+    'It must be a JSON file exported by this application. Detail: {{err}}',
+  'Escolha um modelo diferente, ou exporte este primeiro e importe a cópia.':
+    'Choose a different model, or export this one first and import the copy.',
+  'O modelo e todos os juízos, escalas e pesos que contém são apagados. As avaliações já iniciadas a partir dele mantêm a sua própria cópia.':
+    'The model and every judgement, scale and weight in it are deleted. Evaluations already started from it keep their own copy.',
+  'Os desempenhos registados e os resultados calculados são apagados. O modelo de origem mantém-se.':
+    'The recorded performances and calculated results are deleted. The source model stays.',
+  'Os desempenhos já registados para esta {{subject}} são apagados.':
+    'The performances already recorded for this {{subject}} are deleted.',
+  '«{{label}}» ainda não está pronto para avaliar': '“{{label}}” is not ready to evaluate yet',
+  'Falta: {{missing}}. Pode começar a registar desempenhos, mas os resultados só aparecem depois de completar o modelo e trazer essa versão para esta avaliação.':
+    'Missing: {{missing}}. You can start recording performances, but results only appear once the model is complete and that version is brought into this evaluation.',
+  'Começar mesmo assim': 'Start anyway',
+
+  // ── Decision zones ──────────────────────────────────────────────────────
+  'Nada pode cair em «{{base}}»: a zona acima corta em {{c}} e a pior pontuação possível neste modelo é {{w}}. Suba o limiar de «{{above}}» ou remova a zona base.':
+    'Nothing can land in “{{base}}”: the zone above cuts at {{c}} and the worst possible score in this model is {{w}}. Raise the “{{above}}” cut-off or remove the base zone.',
+  'base': 'base',
+  'manual': 'manual',
+  '{{n}} zonas · {{g}} fundamentadas': '{{n}} zones · {{g}} grounded',
+
+  // ── Rail detail lines ───────────────────────────────────────────────────
+  '{{n}} fator(es)': '{{n}} factor(s)',
+  '{{n}} critério(s)': '{{n}} criterion(s)',
+  '{{n}} eliminatória(s)': '{{n}} eliminating condition(s)',
+  'nada a ponderar': 'nothing to weight',
+  'coerente · {{n}} grupo(s)': 'consistent · {{n}} group(s)',
+  'precisa de escalas e pesos': 'needs scales and weights',
+  '{{p}}% determinado': '{{p}}% determined',
+  'modelo incompleto': 'model incomplete',
+  'pronto a aplicar': 'ready to apply',
+  'nenhuma registada': 'none recorded',
+  '{{n}} registadas · {{m}} incompleta(s)': '{{n}} recorded · {{m}} incomplete',
+  '{{n}} registadas · completas': '{{n}} recorded · complete',
+  'nada pontuável': 'nothing scorable',
+  '1.º: {{label}}': '1st: {{label}}',
+  'precisa de resultados': 'needs results',
+  'PDF · CSV · JSON': 'PDF · CSV · JSON',
+  'guardado há {{n}} s': 'saved {{n}} s ago',
+  'guardado há {{n}} min': 'saved {{n}} min ago',
+  'guardado às {{time}}': 'saved at {{time}}',
+  'local': 'local',
+  // ── Long-form copy (method page, report, manifest) ──────────────────────
+  'Estrutura, ponderação, escalas de valor e perfis de decisão.':
+    'Structure, weighting, value scales and decision profiles.',
+  'Eliminatório: {{label}}': 'Eliminating: {{label}}',
+  'Critérios. Estruturar a árvore de critérios — fatores compostos que se decompõem em subcritérios, critérios de qualificação (escala graduada) e condições eliminatórias.':
+    'Criteria. Structure the criteria tree — composite factors that break down into sub-criteria, qualification criteria (graduated scale) and eliminating conditions.',
+  'Com critérios hierárquicos, cada fator composto V[F] é, por sua vez, a média ponderada dos seus filhos. O peso efetivo (global) de uma folha é o produto dos pesos ao longo do caminho até à raiz. As condições eliminatórias correm a montante: uma falha reprova a proposta antes da agregação.':
+    'With hierarchical criteria, each composite factor V[F] is itself the weighted average of its children. A leaf’s effective (global) weight is the product of the weights along its path to the root. Eliminating conditions run upstream: a failure rejects the proposal before aggregation.',
+  'Para que o limiar seja defensável (e não um número arbitrário), descreve-se uma alternativa-limiar de referência — o pior caso que ainda pertence à zona — e o MACBETH calcula o seu V(p). O corte fica assim ligado a uma situação concreta e rastreável. Os limiares são compensatórios; para mínimos rígidos por critério use o Veto ou uma condição eliminatória. O valor manual existe só como recurso provisório ou override assumido.':
+    'For a cut-off to be defensible rather than an arbitrary number, you describe a reference threshold alternative — the worst case that still belongs in the zone — and MACBETH computes its V(p). The cut-off is then tied to a concrete, traceable situation. Cut-offs are compensatory; for hard per-criterion minimums use a Veto or an eliminating condition. The manual value exists only as a provisional fallback or a deliberate override.',
+  'Este relatório utiliza o Método MACBETH (Measuring Attractiveness by a Categorical Based Evaluation Technique, Bana e Costa & Vansnick, 1994). O método utiliza juízos qualitativos de diferença de atratividade — de Nula a Extrema — entre pares de alternativas para construir escalas cardinais de valor por programação linear. O modelo de agregação é aditivo: V(p) = Σᵢ kᵢ · vᵢ(p), ancorado em Neutro = 0 e Bom = 100. A habilitação corre a montante — qualquer condição eliminatória não cumprida reprova a {{one}} antes da agregação multicritério.':
+    'This report uses the MACBETH method (Measuring Attractiveness by a Categorical Based Evaluation Technique, Bana e Costa & Vansnick, 1994). The method takes qualitative judgements of attractiveness difference — from Null to Extreme — between pairs of alternatives and builds cardinal value scales by linear programming. The aggregation model is additive: V(p) = Σᵢ kᵢ · vᵢ(p), anchored at Neutral = 0 and Good = 100. Eligibility runs upstream — any eliminating condition not met rejects the {{one}} before multicriteria aggregation.',
+  'ancorado em Neutro = 0 e Bom = 100. A habilitação corre a montante — qualquer condição eliminatória não cumprida reprova a {{one}} antes da agregação. O valor global é classificado pela escala de decisão configurada.':
+    'anchored at Neutral = 0 and Good = 100. Eligibility runs upstream — any eliminating condition not met rejects the {{one}} before aggregation. The global value is then classified by the configured decision scale.',
+  '│   └── Conformidade RGPD (condição eliminatória)': '│   └── GDPR compliance (eliminating condition)',
 };

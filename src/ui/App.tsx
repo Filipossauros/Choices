@@ -1,5 +1,5 @@
 import { AppProvider, useApp } from './store';
-import ModelHeader from './components/ModelHeader';
+import StepRail from './components/StepRail';
 import { DialogProvider } from './components/Dialog';
 import Home from './screens/Home';
 import Criteria from './screens/Criteria';
@@ -23,19 +23,25 @@ function Router() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <ModelHeader />
-      <main className="flex-1">
-        {atHome && <Home />}
-        {!atHome && inCreate && currentScreen === 'criteria' && <Criteria />}
-        {!atHome && inCreate && currentScreen === 'decision' && <DecisionScale />}
-        {!atHome && inCreate && currentScreen === 'scales' && <Scales />}
-        {!atHome && inCreate && currentScreen === 'weighting' && <Weighting />}
-        {!atHome && inCreate && currentScreen === 'robustness' && <Robustness />}
-        {!atHome && inCreate && currentScreen === 'summary' && <ModelSummary />}
-        {!atHome && inApply && currentScreen === 'analysis' && <Analysis />}
-        {!atHome && inApply && currentScreen === 'results' && <Results />}
-        {!atHome && inApply && currentScreen === 'sensitivity' && <Sensitivity />}
-        {!atHome && inApply && currentScreen === 'report' && <Report />}
+      <StepRail />
+      {/* The rail is fixed, so the content is inset by its width from lg up. */}
+      <main className={`flex-1 ${atHome ? '' : 'lg:pl-[232px]'}`}>
+        {/* Keyed on the screen so a step change remounts and plays the entrance:
+            a new screen arriving with a short rise reads as *moving through* a
+            sequence, where an instant swap reads as the page being replaced. */}
+        <div key={currentScreen} className="step-enter">
+          {atHome && <Home />}
+          {!atHome && inCreate && currentScreen === 'criteria' && <Criteria />}
+          {!atHome && inCreate && currentScreen === 'decision' && <DecisionScale />}
+          {!atHome && inCreate && currentScreen === 'scales' && <Scales />}
+          {!atHome && inCreate && currentScreen === 'weighting' && <Weighting />}
+          {!atHome && inCreate && currentScreen === 'robustness' && <Robustness />}
+          {!atHome && inCreate && currentScreen === 'summary' && <ModelSummary />}
+          {!atHome && inApply && currentScreen === 'analysis' && <Analysis />}
+          {!atHome && inApply && currentScreen === 'results' && <Results />}
+          {!atHome && inApply && currentScreen === 'sensitivity' && <Sensitivity />}
+          {!atHome && inApply && currentScreen === 'report' && <Report />}
+        </div>
       </main>
     </div>
   );

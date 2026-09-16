@@ -5,9 +5,6 @@ import type {
   MacbethJudgment, MacbethCategory, JudgmentMatrix, DerivedScale, QualificationCriterion,
 } from '../../domain/types';
 import { DEFAULT_ASSESSOR_ID } from '../../domain/types';
-
-/** Lower bound of a judgment's category — what an interval asserts at minimum. */
-const catOf = (j: MacbethJudgment): MacbethCategory => (j.kind === 'exact' ? j.category : j.lo);
 import { deriveScale, scaleFromValues, scalePoints, levelPosition } from '../../engine/scaling';
 import { diagnoseScale, minimumCategoryFor, type ScaleDiagnosis } from '../../engine/diagnose';
 import { sampleCurve } from '../../engine/interpolation';
@@ -29,6 +26,9 @@ import {
   ReferenceDot,
   ResponsiveContainer,
 } from 'recharts';
+
+/** Lower bound of a judgment's category — what an interval asserts at minimum. */
+const catOf = (j: MacbethJudgment): MacbethCategory => (j.kind === 'exact' ? j.category : j.lo);
 
 // ── Scale ruler ───────────────────────────────────────────────────────────────
 
@@ -79,20 +79,20 @@ function ScaleRuler({
       xmlns="http://www.w3.org/2000/svg"
     >
       {/* ── Column headers ── */}
-      <text x={LABEL_X} y={HDR_Y} fontSize="9" fill="#9ca3af" fontWeight="600" letterSpacing="0.8">
+      <text x={LABEL_X} y={HDR_Y} fontSize="9" fill="currentColor" className="text-gray-400" fontWeight="600" letterSpacing="0.8">
         {t('PERFORMANCE')}
       </text>
-      <text x={VAL_X} y={HDR_Y} fontSize="9" fill="#9ca3af" fontWeight="600" textAnchor="end" letterSpacing="0.8">
+      <text x={VAL_X} y={HDR_Y} fontSize="9" fill="currentColor" className="text-gray-400" fontWeight="600" textAnchor="end" letterSpacing="0.8">
         {t('PONTOS')}
       </text>
-      <text x={RANGE_X} y={HDR_Y} fontSize="9" fill="#e5e7eb" letterSpacing="0">
+      <text x={RANGE_X} y={HDR_Y} fontSize="9" letterSpacing="0" fill="currentColor" className="text-gray-300">
         {t('intervalo')}
       </text>
       {/* Header separator */}
-      <line x1={AX} y1={SEP_Y} x2={VIEW_W - 4} y2={SEP_Y} stroke="#f3f4f6" strokeWidth={1} />
+      <line x1={AX} y1={SEP_Y} x2={VIEW_W - 4} y2={SEP_Y} strokeWidth={1} className="stroke-gray-100" />
 
       {/* ── Axis ── */}
-      <line x1={AX} y1={PAD_TOP} x2={AX} y2={PAD_TOP + H} stroke="#d1d5db" strokeWidth={1.5} />
+      <line x1={AX} y1={PAD_TOP} x2={AX} y2={PAD_TOP + H} strokeWidth={1.5} className="stroke-gray-300" />
 
       {sorted.map((sv, i) => {
         const iy = yOf(sv.value);
@@ -100,8 +100,10 @@ function ScaleRuler({
         const isNeutral = sv.levelId === neutralId;
         const isGood = sv.levelId === goodId;
         const tickLen = isNeutral || isGood ? 14 : 8;
-        const tickStroke = isGood ? '#16a34a' : isNeutral ? '#2563eb' : '#94a3b8';
-        const labelFill = isGood ? '#15803d' : isNeutral ? '#1d4ed8' : '#374151';
+        // Classes, not hex: an SVG fill is exactly the kind of thing a
+        // class-name remap never reached, and these have to follow the palette.
+        const tickClass = isGood ? 'stroke-green-500' : isNeutral ? 'stroke-indigo-500' : 'stroke-gray-400';
+        const labelClass = isGood ? 'text-green-700' : isNeutral ? 'text-indigo-700' : 'text-gray-700';
 
         const next = sorted[i + 1];
         const gapVal = next ? sv.value - next.value : null;
@@ -110,73 +112,88 @@ function ScaleRuler({
 
         return (
           <g key={sv.levelId}>
-            {/* ── Tick ── */}
-            <line
-              x1={AX} y1={iy}
-              x2={AX + tickLen} y2={iy}
-              stroke={tickStroke}
-              strokeWidth={isNeutral || isGood ? 2.5 : 1.5}
-            />
-
-            {/* ── Level label (Performance column) ── */}
-            <text
-              x={LABEL_X} y={iy + 4}
-              fontSize="11" fill={labelFill}
-              fontWeight={isNeutral || isGood ? '600' : '400'}
+            {/* Each row is positioned by a transform rather than by absolute y
+                coordinates, so a changed answer slides the level to its new place
+                instead of teleporting it. Watching which level moved, and how
+                far, is most of what makes the connection between the answer and
+                the scale legible. */}
+            <g
+              style={{
+                transform: `translateY(${iy}px)`,
+                transition: 'transform 420ms cubic-bezier(0.2, 0.8, 0.2, 1)',
+              }}
             >
-              {level?.label}
-            </text>
+              {/* ── Tick ── */}
+              <line
+                x1={AX} y1={0}
+                x2={AX + tickLen} y2={0}
+                strokeWidth={isNeutral || isGood ? 2.5 : 1.5}
+                className={tickClass}
+              />
 
-            {/* ── Score value (Pontos column) ── */}
-            <text
-              x={VAL_X} y={iy + 4}
-              fontSize="10.5" fill="#374151"
-              textAnchor="end"
-              fontFamily="monospace"
-              fontWeight={isNeutral || isGood ? '700' : '400'}
-            >
-              {sv.value.toFixed(1)}
-            </text>
+              {/* ── Level label (Performance column) ── */}
+              <text
+                x={LABEL_X} y={4}
+                fontSize="11" fill="currentColor"
+                fontWeight={isNeutral || isGood ? '600' : '400'}
+                className={labelClass}
+              >
+                {level?.label}
+              </text>
 
-            {/* ── Admissible range ── */}
-            <text
-              x={RANGE_X} y={iy + 4}
-              fontSize="8.5" fill="#d1d5db"
-            >
-              [{sv.admissibleRange[0].toFixed(0)}, {sv.admissibleRange[1].toFixed(0)}]
-            </text>
+              {/* ── Score value (Pontos column) ── */}
+              <text
+                x={VAL_X} y={4}
+                fontSize="10.5" fill="currentColor"
+                textAnchor="end"
+                fontFamily="monospace"
+                fontWeight={isNeutral || isGood ? '700' : '400'}
+                className="text-gray-700"
+              >
+                {sv.value.toFixed(1)}
+              </text>
 
-            {/* ── Bom / Neutro pill ── */}
-            {isGood && (
-              <g>
-                <rect x={PILL_X} y={iy - 8} width={PILL_W} height={14} rx={4} fill="#dcfce7" />
-                <text x={PILL_MID} y={iy + 3} fontSize="9" fill="#16a34a" fontWeight="bold" textAnchor="middle">
-                  {t('Bom')}
-                </text>
-              </g>
-            )}
-            {isNeutral && (
-              <g>
-                <rect x={PILL_X} y={iy - 8} width={PILL_W} height={14} rx={4} fill="#dbeafe" />
-                <text x={PILL_MID} y={iy + 3} fontSize="9" fill="#2563eb" fontWeight="bold" textAnchor="middle">
-                  {t('Neutro')}
-                </text>
-              </g>
-            )}
+              {/* ── Admissible range ── */}
+              <text
+                x={RANGE_X} y={4}
+                fontSize="8.5" fill="currentColor"
+                className="text-gray-300"
+              >
+                [{sv.admissibleRange[0].toFixed(0)}, {sv.admissibleRange[1].toFixed(0)}]
+              </text>
+
+              {/* ── Bom / Neutro pill ── */}
+              {isGood && (
+                <g>
+                  <rect x={PILL_X} y={-8} width={PILL_W} height={14} rx={4} className="fill-green-100" />
+                  <text x={PILL_MID} y={3} fontSize="9" fontWeight="bold" textAnchor="middle" className="fill-green-700">
+                    {t('Bom')}
+                  </text>
+                </g>
+              )}
+              {isNeutral && (
+                <g>
+                  <rect x={PILL_X} y={-8} width={PILL_W} height={14} rx={4} className="fill-indigo-100" />
+                  <text x={PILL_MID} y={3} fontSize="9" fontWeight="bold" textAnchor="middle" className="fill-indigo-700">
+                    {t('Neutro')}
+                  </text>
+                </g>
+              )}
+            </g>
 
             {/* ── Gap bracket (left of axis, fully inside viewBox) ── */}
             {gapVal !== null && gapMidY !== null && nextY !== null && gapVal > 0.5 && (
               <g>
                 {/* Bracket vertical line */}
-                <line x1={AX - 10} y1={iy + 3} x2={AX - 10} y2={nextY - 3} stroke="#e5e7eb" strokeWidth={1} />
+                <line x1={AX - 10} y1={iy + 3} x2={AX - 10} y2={nextY - 3} strokeWidth={1} className="stroke-gray-200" />
                 {/* Bracket top cap */}
-                <line x1={AX - 13} y1={iy + 3} x2={AX - 10} y2={iy + 3} stroke="#e5e7eb" strokeWidth={1} />
+                <line x1={AX - 13} y1={iy + 3} x2={AX - 10} y2={iy + 3} strokeWidth={1} className="stroke-gray-200" />
                 {/* Bracket bottom cap */}
-                <line x1={AX - 13} y1={nextY - 3} x2={AX - 10} y2={nextY - 3} stroke="#e5e7eb" strokeWidth={1} />
+                <line x1={AX - 13} y1={nextY - 3} x2={AX - 10} y2={nextY - 3} strokeWidth={1} className="stroke-gray-200" />
                 {/* Gap value label, right-aligned so it never overflows left edge */}
                 <text
                   x={AX - 16} y={gapMidY + 4}
-                  fontSize="9" fill="#9ca3af"
+                  fontSize="9" fill="currentColor" className="text-gray-400"
                   textAnchor="end" fontStyle="italic"
                 >
                   +{gapVal.toFixed(1)}
@@ -257,7 +274,7 @@ function ScaleFormula({
         </p>
         <ResponsiveContainer width="100%" height={200}>
           <LineChart data={curve} margin={{ top: 8, right: 16, left: 0, bottom: 32 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+            <CartesianGrid strokeDasharray="3 3" stroke="rgb(var(--n-200))" />
             <XAxis
               dataKey="pos"
               type="number"
@@ -269,12 +286,12 @@ function ScaleFormula({
             />
             <YAxis tick={{ fontSize: 10 }} width={36} />
             <Tooltip content={<CustomTooltip />} />
-            <ReferenceLine y={0} stroke="#94a3b8" strokeDasharray="4 2" label={{ value: t('Neutro'), fontSize: 10, fill: '#94a3b8' }} />
-            <ReferenceLine y={100} stroke="#16a34a" strokeDasharray="4 2" label={{ value: t('Bom'), fontSize: 10, fill: '#16a34a' }} />
-            <Line type="linear" dataKey="value" stroke="#3b82f6" strokeWidth={2} dot={false} activeDot={{ r: 5 }} isAnimationActive={false} />
+            <ReferenceLine y={0} stroke="rgb(var(--n-400))" strokeDasharray="4 2" label={{ value: t('Neutro'), fontSize: 10, fill: 'rgb(var(--n-400))' }} />
+            <ReferenceLine y={100} stroke="rgb(var(--m-500))" strokeDasharray="4 2" label={{ value: t('Bom'), fontSize: 10, fill: 'rgb(var(--m-500))' }} />
+            <Line type="linear" dataKey="value" stroke="rgb(var(--v-500))" strokeWidth={2} dot={false} activeDot={{ r: 5 }} isAnimationActive={false} />
             {/* Mark the exact derived nodes the curve passes through */}
             {nodes.map((nd, i) => (
-              <ReferenceDot key={i} x={nd.x} y={nd.y} r={3.5} fill="#1d4ed8" stroke="#fff" strokeWidth={1} />
+              <ReferenceDot key={i} x={nd.x} y={nd.y} r={3.5} fill="rgb(var(--v-600))" stroke="rgb(var(--surface))" strokeWidth={1} />
             ))}
           </LineChart>
         </ResponsiveContainer>

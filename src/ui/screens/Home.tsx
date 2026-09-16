@@ -295,9 +295,9 @@ function makeTemplateArchitecture(): EvaluationModel {
     judgmentMatrices: [],
     derivedScales: [],
     decisionScale: [
-      { id: uuidv4(), label: 'Aprovado', minScore: 70, color: '#16a34a' },
-      { id: uuidv4(), label: 'Com reservas', minScore: 45, color: '#d97706' },
-      { id: uuidv4(), label: 'Rejeitado', minScore: 0, color: '#dc2626' },
+      { id: uuidv4(), label: 'Aprovado', minScore: 70, color: '#2A9C6D' },
+      { id: uuidv4(), label: 'Com reservas', minScore: 45, color: '#CE8117' },
+      { id: uuidv4(), label: 'Rejeitado', minScore: 0, color: '#D64C3D' },
     ],
   };
 }
@@ -374,9 +374,9 @@ function makeTemplateRisco(): EvaluationModel {
     judgmentMatrices: [],
     derivedScales: [],
     decisionScale: [
-      { id: uuidv4(), label: 'Nenhuma ação', minScore: 75, color: '#16a34a' },
-      { id: uuidv4(), label: 'Advertência', minScore: 40, color: '#d97706' },
-      { id: uuidv4(), label: 'Sanção / coima', minScore: 0, color: '#dc2626' },
+      { id: uuidv4(), label: 'Nenhuma ação', minScore: 75, color: '#2A9C6D' },
+      { id: uuidv4(), label: 'Advertência', minScore: 40, color: '#CE8117' },
+      { id: uuidv4(), label: 'Sanção / coima', minScore: 0, color: '#D64C3D' },
     ],
   };
 }
@@ -586,9 +586,12 @@ export default function Home() {
         </div>
       </div>
 
+      {/* `min-w-0` on the grid items: a grid track defaults to min-width:auto, so
+          without it the column cannot shrink below its content's min-content
+          width and a long row pushes the whole page into horizontal scroll. */}
       <div className="grid lg:grid-cols-3 gap-6">
         {/* ── Library ── */}
-        <div className="lg:col-span-2 space-y-5">
+        <div className="lg:col-span-2 space-y-5 min-w-0">
 
           {/* Models */}
           <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
@@ -613,14 +616,14 @@ export default function Home() {
             ) : (
               <ul className="divide-y divide-gray-100">
                 {recentModels.map((m) => (
-                  <li key={m.id} className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50">
+                  <li key={m.id} className="flex items-center gap-x-3 gap-y-1 flex-wrap px-4 py-3 hover:bg-gray-50">
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-gray-800 text-sm truncate">{m.label}</p>
                       <StatusPill updatedAt={m.updatedAt} />
                     </div>
-                    <button onClick={() => editModel(m.id)} className="text-xs text-indigo-600 hover:text-indigo-800 font-medium">{t('Editar')}</button>
-                    <button onClick={() => applyModel(m.id)} className="text-xs text-gray-700 hover:text-gray-900 font-semibold">{t('Avaliar')}</button>
-                    <button onClick={() => deleteModel(m.id)} className="text-gray-300 hover:text-red-400 text-xs">✕</button>
+                    <button onClick={() => editModel(m.id)} className="text-xs text-indigo-600 hover:text-indigo-800 font-medium shrink-0">{t('Editar')}</button>
+                    <button onClick={() => applyModel(m.id)} className="text-xs text-gray-700 hover:text-gray-900 font-semibold shrink-0">{t('Avaliar')}</button>
+                    <button onClick={() => deleteModel(m.id)} className="text-gray-300 hover:text-red-400 text-xs shrink-0 ml-auto">✕</button>
                   </li>
                 ))}
               </ul>
@@ -650,13 +653,13 @@ export default function Home() {
             ) : (
               <ul className="divide-y divide-gray-100">
                 {recentEvals.map((e) => (
-                  <li key={e.id} className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50">
+                  <li key={e.id} className="flex items-center gap-x-3 gap-y-1 flex-wrap px-4 py-3 hover:bg-gray-50">
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-gray-800 text-sm truncate">{e.label}</p>
                       <StatusPill updatedAt={e.updatedAt} />
                     </div>
-                    <button onClick={() => resumeEvaluation(e.id)} className="text-xs text-indigo-600 hover:text-indigo-800 font-medium">{t('Abrir')}</button>
-                    <button onClick={() => deleteEvaluation(e.id)} className="text-gray-300 hover:text-red-400 text-xs">✕</button>
+                    <button onClick={() => resumeEvaluation(e.id)} className="text-xs text-indigo-600 hover:text-indigo-800 font-medium shrink-0">{t('Abrir')}</button>
+                    <button onClick={() => deleteEvaluation(e.id)} className="text-gray-300 hover:text-red-400 text-xs shrink-0 ml-auto">✕</button>
                   </li>
                 ))}
               </ul>

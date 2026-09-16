@@ -505,7 +505,7 @@ export default function Report() {
               const opt = evaluation.options.find((o) => o.id === r.optionId);
               const band = decisionBand(r);
               const rejected = r.hardRejected;
-              const accent = rejected ? '#dc2626' : band?.color ?? '#6b7280';
+              const accent = rejected ? 'rgb(var(--r-500))' : band?.color ?? 'rgb(var(--n-400))';
               const { iconType, sub } = verdictMeta(r, band);
               const note = evaluation.optionNotes?.[r.optionId];
               return (

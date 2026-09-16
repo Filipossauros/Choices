@@ -34,9 +34,9 @@ export function normalizeModel(raw: Record<string, unknown>): EvaluationModel {
     const approved = legacy.approvedThreshold ?? 70;
     const conditional = legacy.conditionalThreshold ?? 40;
     decisionScale = [
-      { id: 'b-approved', label: 'Recomendado', minScore: approved, color: '#16a34a' },
-      { id: 'b-conditional', label: 'Recomendado com reservas', minScore: conditional, color: '#d97706' },
-      { id: 'b-rejected', label: 'Não recomendado', minScore: 0, color: '#dc2626' },
+      { id: 'b-approved', label: 'Recomendado', minScore: approved, color: '#2A9C6D' },
+      { id: 'b-conditional', label: 'Recomendado com reservas', minScore: conditional, color: '#CE8117' },
+      { id: 'b-rejected', label: 'Não recomendado', minScore: 0, color: '#D64C3D' },
     ];
   }
   const r = raw as Partial<EvaluationModel>;

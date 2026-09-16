@@ -1,12 +1,19 @@
 import { v4 as uuidv4 } from 'uuid';
 import type { DecisionBand } from './types';
 
-/** Default 3-band decision scale for a new model (recomendado / reservas / não). */
+/**
+ * Default 3-band decision scale for a new model (recomendado / reservas / não).
+ *
+ * The colours are the palette's own mint / peach / rose at their 500 step rather
+ * than saturated web greens and reds — a verdict badge sitting beside pastel
+ * surfaces was the loudest thing on the screen, and these are stored on the
+ * model, so a new one starts inside the system rather than outside it.
+ */
 export function defaultDecisionScale(): DecisionBand[] {
   return [
-    { id: uuidv4(), label: 'Recomendado', minScore: 70, color: '#16a34a' },
-    { id: uuidv4(), label: 'Recomendado com reservas', minScore: 40, color: '#d97706' },
-    { id: uuidv4(), label: 'Não recomendado', minScore: 0, color: '#dc2626' },
+    { id: uuidv4(), label: 'Recomendado', minScore: 70, color: '#2A9C6D' },
+    { id: uuidv4(), label: 'Recomendado com reservas', minScore: 40, color: '#CE8117' },
+    { id: uuidv4(), label: 'Não recomendado', minScore: 0, color: '#D64C3D' },
   ];
 }
 

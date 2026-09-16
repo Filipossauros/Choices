@@ -63,7 +63,7 @@ export default function DecisionScale() {
   function addBand() {
     update([
       ...bands,
-      { id: uuidv4(), label: t('Nova zona de decisão'), minScore: 50, color: '#6366f1' },
+      { id: uuidv4(), label: t('Nova zona de decisão'), minScore: 50, color: '#6C5CE7' },
     ]);
   }
   function removeBand(id: string) {

@@ -19,7 +19,15 @@ import {
 } from 'recharts';
 import ScreenNav from '../components/ScreenNav';
 
-const OPTION_COLORS = ['#3b82f6', '#16a34a', '#d97706', '#dc2626', '#8b5cf6', '#ec4899'];
+/**
+ * One line per alternative. Drawn from the palette's own ramps rather than raw
+ * web colours, and read through CSS variables so the chart follows dark mode —
+ * a Recharts `stroke` prop is not a class, so nothing else would reach it.
+ */
+const OPTION_COLORS = [
+  'rgb(var(--v-500))', 'rgb(var(--m-500))', 'rgb(var(--p-500))',
+  'rgb(var(--r-500))', 'rgb(var(--s-500))', 'rgb(var(--v-300))',
+];
 
 export default function Sensitivity() {
   const { t } = useTranslation();
@@ -139,7 +147,7 @@ export default function Sensitivity() {
         return (
           <div key={criterionId} className="border border-gray-200 rounded-xl p-4 bg-white space-y-3">
             <div className="flex items-center gap-2 flex-wrap">
-              <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: '#3b82f6' }} />
+              <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: OPTION_COLORS[0] }} />
               <h3 className="text-sm font-semibold text-gray-700">
                 {t('Sensibilidade de V(p) ao peso de «{{label}}»', { label: criterion?.label })}
               </h3>
@@ -150,7 +158,7 @@ export default function Sensitivity() {
 
             <ResponsiveContainer width="100%" height={260}>
               <LineChart data={chartData} margin={{ top: 4, right: 16, bottom: 4, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgb(var(--n-200))" />
                 {bandViews.map((v) => (
                   <ReferenceArea
                     key={v.band.id}
@@ -170,9 +178,9 @@ export default function Sensitivity() {
                 <Legend formatter={(value) => optLabelOf(value)} />
                 <ReferenceLine
                   x={currentWeightLabel}
-                  stroke="#3b82f6"
+                  stroke="rgb(var(--n-500))"
                   strokeDasharray="3 3"
-                  label={{ value: t('atual'), position: 'top', fontSize: 9, fill: '#3b82f6' }}
+                  label={{ value: t('atual'), position: 'top', fontSize: 9, fill: 'rgb(var(--n-500))' }}
                 />
                 {scenario.rankingChangePoints.map((w) => {
                   const xLabel = `${(w * 100).toFixed(0)}%`;
@@ -180,7 +188,7 @@ export default function Sensitivity() {
                     <ReferenceLine
                       key={xLabel}
                       x={xLabel}
-                      stroke="#f59e0b"
+                      stroke="rgb(var(--p-500))"
                       strokeWidth={1.5}
                       label={{ value: '⚡', position: 'top', fontSize: 11 }}
                     />

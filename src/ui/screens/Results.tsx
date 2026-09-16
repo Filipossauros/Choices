@@ -15,7 +15,8 @@ import {
   ReferenceArea, ResponsiveContainer, Cell,
 } from 'recharts';
 
-const REJECT_COLOR = '#9ca3af';
+/** Colour for a result with no band — reads from the palette, so it follows the mode. */
+const REJECT_COLOR = 'rgb(var(--n-400))';
 
 function exportEvaluation(evaluation: ReturnType<typeof useApp>['state']['evaluation']) {
   if (!evaluation) return;
@@ -246,7 +247,7 @@ export default function Results() {
           const rejected = r.hardRejected;
           const isIncomplete = !rejected && r.globalValue == null;
           const rank = ranked.findIndex((x) => x.optionId === r.optionId);
-          const accent = rejected ? '#dc2626' : isIncomplete ? '#94a3b8' : band?.color ?? '#94a3b8';
+          const accent = rejected ? 'rgb(var(--r-500))' : isIncomplete ? 'rgb(var(--n-400))' : band?.color ?? 'rgb(var(--n-400))';
           const isWhy = activeWhyId === r.optionId;
 
           return (
@@ -333,7 +334,7 @@ export default function Results() {
         <h3 className="text-sm font-semibold text-gray-700 mb-3">{t('Valor Global V(p) — Modelo Aditivo')}</h3>
         <ResponsiveContainer width="100%" height={200}>
           <BarChart data={chartData} margin={{ top: 4, right: 16, left: 0, bottom: 4 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+            <CartesianGrid strokeDasharray="3 3" stroke="rgb(var(--n-200))" />
             {/* Decision zones as translucent background bands */}
             {bandViews.map((v) => (
               <ReferenceArea
@@ -540,7 +541,7 @@ export default function Results() {
                         className="h-full rounded-full"
                         style={{
                           width: `${Math.max(0, score ?? 0)}%`,
-                          backgroundColor: isComposite ? '#6366f1' : '#818cf8',
+                          backgroundColor: isComposite ? 'rgb(var(--v-500))' : 'rgb(var(--v-400))',
                         }}
                       />
                     </div>
