@@ -32,13 +32,22 @@ interface Props {
   /** Renders the plain-language question for a pair (more vs less attractive). */
   renderQuestion: (more: GuidedItem, less: GuidedItem) => ReactNode;
   emptyHint?: string;
+  /** Shown in place of the question once every pair has an answer. */
+  doneHint?: string;
   /** Called whenever the currently active pair changes (key = `idA__idB`). */
   onActivePairChange?: (key: string | null) => void;
 }
 
-export default function GuidedJudgments({ items, judgments, onChange, renderQuestion, emptyHint, onActivePairChange }: Props) {
+export default function GuidedJudgments({ items, judgments, onChange, renderQuestion, emptyHint, doneHint, onActivePairChange }: Props) {
   const { t } = useTranslation();
   const [pairIdx, setPairIdx] = useState(0);
+  /**
+   * Set once the last unanswered pair is answered, so the run ends somewhere
+   * instead of silently looping back to question 1 — which read as "Pergunta 1
+   * de 3 · 3/3 respondidas" and left the user unsure whether anything had been
+   * recorded. Cleared by navigating back into the questions.
+   */
+  const [finished, setFinished] = useState(false);
 
   // Upper-triangle pairs, same order/keys as JudgmentMatrixEditor.
   const pairs: { idA: string; idB: string }[] = [];
@@ -57,7 +66,9 @@ export default function GuidedJudgments({ items, judgments, onChange, renderQues
   const itemsKey = items.map((it) => it.id).join('|');
   useEffect(() => {
     const firstUnanswered = pairs.findIndex((p) => !judgments[`${p.idA}__${p.idB}`]);
-    setPairIdx(firstUnanswered === -1 ? 0 : firstUnanswered);
+    // Nothing left to ask: land on the completed state, not back at question 1.
+    setFinished(firstUnanswered === -1 && pairs.length > 0);
+    setPairIdx(firstUnanswered === -1 ? Math.max(0, pairs.length - 1) : firstUnanswered);
   }, [itemsKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -83,13 +94,59 @@ export default function GuidedJudgments({ items, judgments, onChange, renderQues
     : null;
 
   function pick(cat: MacbethCategory) {
-    onChange({ ...judgments, [key]: { kind: 'exact', category: cat } });
-    const nextUnanswered = pairs.findIndex((p, i) => i > safeIdx && !judgments[`${p.idA}__${p.idB}`]);
+    const next = { ...judgments, [key]: { kind: 'exact' as const, category: cat } };
+    onChange(next);
+    const nextUnanswered = pairs.findIndex((p, i) => i !== safeIdx && !next[`${p.idA}__${p.idB}`]);
     if (nextUnanswered !== -1) setPairIdx(nextUnanswered);
-    else if (safeIdx < total - 1) setPairIdx(safeIdx + 1);
+    else setFinished(true);
   }
 
   const answered = pairs.filter((p) => judgments[`${p.idA}__${p.idB}`] !== undefined).length;
+
+  /** All pairs answered: say so and offer a way back in, rather than re-asking. */
+  if (finished && answered === total) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between text-xs text-gray-500">
+          <span>{t('{{total}} de {{total}} comparações', { total })}</span>
+          <span className="text-green-700 font-semibold">✓ {t('completo')}</span>
+        </div>
+        <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+          <div className="h-full bg-green-500 rounded-full w-full" />
+        </div>
+        <div className="border border-green-200 bg-green-50 rounded-2xl p-5 space-y-3">
+          <p className="text-sm text-green-900">
+            {doneHint ? t(doneHint) : t('Respondeu a todas as comparações.')}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => { setFinished(false); setPairIdx(0); }}
+              className="px-3.5 py-1.5 text-sm font-medium rounded-lg border border-green-300 text-green-900 hover:bg-green-100"
+            >
+              {t('Rever as respostas')}
+            </button>
+          </div>
+        </div>
+        {/* The answers themselves, so "completo" is inspectable in place. */}
+        <div className="flex flex-wrap gap-1.5">
+          {pairs.map((p, i) => {
+            const j = judgments[`${p.idA}__${p.idB}`];
+            const c = j ? (j.kind === 'exact' ? j.category : j.lo) : 0;
+            return (
+              <button
+                key={i}
+                onClick={() => { setFinished(false); setPairIdx(i); }}
+                className="text-[11px] px-2 py-1 rounded-lg border border-gray-200 text-gray-600 hover:border-indigo-300"
+                title={`${items.find((it) => it.id === p.idA)?.label} vs ${items.find((it) => it.id === p.idB)?.label}`}
+              >
+                {i + 1}. <span className="font-semibold text-indigo-700">{t(CATEGORIES[c]?.label ?? '')}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5">

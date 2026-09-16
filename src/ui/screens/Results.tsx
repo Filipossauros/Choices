@@ -456,11 +456,10 @@ export default function Results() {
         <div className="border border-gray-200 rounded-xl p-4 bg-white space-y-3">
           <h3 className="text-sm font-semibold text-gray-700">{t('Observações por {{one}}', { one: t(subj.one) })}</h3>
           <div className="space-y-2">
-            {sorted.filter((r) => !r.hardRejected).map((r) => {
-              const option = evaluation.options.find((o) => o.id === r.optionId);
+            {ranked.map((r) => {
               return (
                 <div key={r.optionId} className="flex items-start gap-3">
-                  <span className="text-sm text-gray-600 font-medium w-40 shrink-0 pt-1">{option?.label}</span>
+                  <span className="text-sm text-gray-600 font-medium w-40 shrink-0 pt-1">{labelOf(r.optionId)}</span>
                   <textarea
                     value={optionNotes[r.optionId] ?? ''}
                     onChange={(e) => setNote(r.optionId, e.target.value)}

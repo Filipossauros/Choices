@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { useApp } from '../store';
 import { allGroupsConsistent } from '../../domain/tree';
-import { scoreProfile, resolveBands, bandOrderConflicts } from '../../engine/aggregation';
+import { scoreProfile, resolveBands, bandOrderConflicts, worstPossibleScore } from '../../engine/aggregation';
 import ScreenNav from '../components/ScreenNav';
 import type { DecisionBand, QualificationCriterion } from '../../domain/types';
 import { v4 as uuidv4 } from 'uuid';
@@ -127,6 +127,27 @@ export default function DecisionScale() {
       );
     }
   }
+  /**
+   * The base zone is the catch-all for everything below the lowest cut-off. If
+   * that cut-off sits at or under the worst score the model can produce, nothing
+   * can ever land in it — the zone exists, is named, has an action, and is
+   * unreachable. (The three-band default plus a reference profile of all-Neutro
+   * lands exactly here: the cut-off derives to 0.0 and "Não recomendado"
+   * silently stops applying to anything.)
+   */
+  const lowestCutoff = nonBase.length > 0 ? nonBase[nonBase.length - 1].eff : null;
+  const worstScore = worstPossibleScore(model);
+  if (lowestCutoff != null && worstScore != null && lowestCutoff <= worstScore + 0.05) {
+    const base = decorated.find((d) => d.band.id === lowestId);
+    warnings.push(
+      t('Nada pode cair em «{{base}}»: a zona acima corta em {{c}} e a pior pontuação possível neste modelo é {{w}}. Suba o limiar de «{{above}}» ou remova a zona base.', {
+        base: base?.band.label ?? '',
+        c: lowestCutoff.toFixed(1),
+        w: worstScore.toFixed(1),
+        above: nonBase[nonBase.length - 1].band.label,
+      }),
+    );
+  }
   for (const b of incomplete) {
     if (profileHasDeadLevel(b)) {
       warnings.push(t('O perfil de «{{label}}» referencia um nível que já não existe — escolha novamente esse critério. Até lá, vale o último limiar calculado.', { label: b.label }));
@@ -152,7 +173,13 @@ export default function DecisionScale() {
   const axisEffs = decorated.filter((d) => d.band.id !== lowestId).map((d) => d.eff);
   // Headroom above the highest threshold so a band cutting at 100 stays visible.
   const top = Math.max(100, ...axisEffs) + 4;
-  const bottom = Math.min(0, ...axisEffs);
+  /**
+   * The axis has to reach the worst score the model can produce, or the base
+   * zone has nowhere to be drawn. Stopping at 0 rendered a zone that catches
+   * every negative result as a strip of zero height — it looked unreachable
+   * while quietly classifying proposals all along.
+   */
+  const bottom = Math.min(0, worstScore ?? 0, ...axisEffs) - 4;
   const span = top - bottom || 1;
 
   return (
@@ -203,7 +230,7 @@ export default function DecisionScale() {
         {/* ── Preview ladder ── */}
         <div className="hidden lg:flex gap-2 shrink-0">
           <div className="relative w-7" style={{ height: H }}>
-            {[0, 25, 50, 75, 100].filter((t) => t >= bottom && t <= top).map((t) => (
+            {[-100, -75, -50, -25, 0, 25, 50, 75, 100].filter((t) => t >= bottom && t <= top).map((t) => (
               <span
                 key={t}
                 className="absolute right-0 text-[10px] text-gray-400 font-mono -translate-y-1/2"

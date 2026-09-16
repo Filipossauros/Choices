@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useApp, type Screen, type Mode } from '../store';
 import { CREATE_SCREENS, APPLY_SCREENS } from '../store';
-import { allGroupsConsistent, modelReadiness } from '../../domain/tree';
+import { allGroupsConsistent, modelReadiness, weightingGroups, weightsForGroup } from '../../domain/tree';
 import { sortBands } from '../../domain/decision';
 import type { EvaluationModel, Evaluation } from '../../domain/types';
 import { setLang, type Lang } from '../../i18n';
@@ -77,8 +77,27 @@ const LABELS: Record<Screen, string> = {
 
 type CompletionStatus = 'done' | 'partial' | 'none';
 
+/**
+ * What each step's tick actually means.
+ *
+ * Several of these used to be vacuously true. An empty model showed Ponderação
+ * and Escalas already ticked, because "every qualification criterion has a
+ * consistent scale" holds when there are none; Resumo went green as soon as
+ * weights existed, before any scale did; Robustez ticked itself before being
+ * opened. A progress indicator that is wrong once stops being read, so each
+ * status below reports only what has genuinely been done.
+ */
 function createStatus(model: EvaluationModel, screen: Screen): CompletionStatus {
   const qual = Object.values(model.valueTree.criteria).filter((c) => c.type === 'qualification');
+  const readiness = modelReadiness(model);
+  /** Weights derived from a shortcut and not yet signed off are not finished. */
+  const weightsUnconfirmed = weightingGroups(model)
+    .filter((g) => g.childIds.length > 1)
+    .some((g) => {
+      const w = weightsForGroup(model, g.parentId);
+      return !!w && w.provenance != null && w.provenance !== 'elicited' && !w.confirmed;
+    });
+
   switch (screen) {
     case 'criteria':
       return model.valueTree.root.children.length > 0 ? 'done' : 'none';
@@ -95,7 +114,8 @@ function createStatus(model: EvaluationModel, screen: Screen): CompletionStatus 
       return grounded.length === needProfile.length ? 'done' : 'partial';
     }
     case 'scales': {
-      if (qual.length === 0) return 'done';
+      // No criteria means nothing has been done here, not that it is finished.
+      if (qual.length === 0) return 'none';
       const consistent = model.derivedScales.filter(
         (s) => qual.some((c) => c.id === s.criterionId) && s.consistencyMargin > 0,
       ).length;
@@ -103,17 +123,20 @@ function createStatus(model: EvaluationModel, screen: Screen): CompletionStatus 
       return consistent === qual.length ? 'done' : 'partial';
     }
     case 'weighting':
-      if (qual.length === 0) return 'done';
+      if (qual.length === 0) return 'none';
       if (!model.weights && !model.subWeights) return 'none';
-      return allGroupsConsistent(model) ? 'done' : 'partial';
-    case 'robustness': {
-      // Readable as soon as both LPs have run — it only reports the freedom
-      // those judgments left, so there is nothing further to "complete".
-      const r = modelReadiness(model);
-      return r.ready ? 'done' : r.scalesReady || r.weightsReady ? 'partial' : 'none';
+      if (!allGroupsConsistent(model)) return 'partial';
+      return weightsUnconfirmed ? 'partial' : 'done';
+    case 'robustness':
+      // It reads the ranges both LPs produce, so it says nothing until both have
+      // run. Nothing to "complete" beyond that — reading it is the whole step.
+      return readiness.ready ? 'done' : readiness.scalesReady || readiness.weightsReady ? 'partial' : 'none';
+    case 'summary': {
+      // The model is finished when it can actually score something: criteria,
+      // every scale, every group's weights — not weights alone.
+      if (!readiness.ready) return 'none';
+      return weightsUnconfirmed || createStatus(model, 'decision') !== 'done' ? 'partial' : 'done';
     }
-    case 'summary':
-      return qual.length > 0 && allGroupsConsistent(model) ? 'done' : 'none';
     default:
       return 'none';
   }

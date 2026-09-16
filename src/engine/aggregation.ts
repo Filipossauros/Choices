@@ -194,6 +194,23 @@ export function bandOrderConflicts(
   return conflicts;
 }
 
+/**
+ * The lowest V(p) this model can produce — every criterion at its least
+ * attractive level. Used to detect a decision zone that nothing can reach:
+ * a band whose cut-off sits at or below this is named, coloured, and dead.
+ * Null when the model cannot score at all yet.
+ */
+export function worstPossibleScore(model: EvaluationModel): number | null {
+  const scaleMap = new Map(model.derivedScales.map((s) => [s.criterionId, s]));
+  const { global } = treeValue(model, (critId, crit) => {
+    const scale = scaleMap.get(critId);
+    if (!scale) return null;
+    const worstId = crit.descriptor.levels[crit.descriptor.levels.length - 1]?.id;
+    return scale.values.find((v) => v.levelId === worstId)?.value ?? null;
+  });
+  return global === null ? null : round2(global);
+}
+
 export function aggregate(evaluation: Evaluation): AggregationResult {
   const { model, options, performances } = evaluation;
   const { valueTree, derivedScales } = model;

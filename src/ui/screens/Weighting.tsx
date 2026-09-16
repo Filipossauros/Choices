@@ -1,13 +1,17 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useApp } from '../store';
-import type { MacbethJudgment, JudgmentMatrix } from '../../domain/types';
+import { useDialogs } from '../components/Dialog';
+import type { MacbethJudgment, JudgmentMatrix, WeightProvenance } from '../../domain/types';
 import { DEFAULT_ASSESSOR_ID, ROOT_ID } from '../../domain/types';
 import { deriveWeights, ALL_NEUTRAL } from '../../engine/weighting';
 import { simulateWeighting, judgmentsFromWeights } from '../../engine/simulate';
 import WeightSliders, { weightReadings, type WeightMap } from '../components/WeightSliders';
 import { IconGrip } from '../components/icons';
-import { weightingGroups, weightsForGroup, setGroupWeights, groupConsistent, groupEffectiveWeight, type Group } from '../../domain/tree';
+import {
+  weightingGroups, weightsForGroup, setGroupWeights, groupConsistent, groupEffectiveWeight,
+  descendantQualifications, type Group,
+} from '../../domain/tree';
 import JudgmentMatrixEditor from '../components/JudgmentMatrixEditor';
 import GuidedJudgments from '../components/GuidedJudgments';
 import ScreenNav from '../components/ScreenNav';
@@ -20,11 +24,18 @@ function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; on
   const model = state.model!;
   const [deriving, setDeriving] = useState(false);
   const [activePairKey, setActivePairKey] = useState<string | null>(null);
-  // Judgments seeded by ROC stay flagged until the user reviews them.
-  const [simulated, setSimulated] = useState(false);
   // Direct-weight mode: a second input surface writing the same judgments.
   const [directMode, setDirectMode] = useState(false);
   const [draft, setDraft] = useState<WeightMap>({});
+  const dialogs = useDialogs();
+  /**
+   * How the judgments about to be derived were produced. Persisted onto the
+   * derived `Weights` rather than kept in component state: a flag that says
+   * "these were simulated, not elicited" is part of the audit trail, and this
+   * one used to vanish on reload — leaving a model whose weights nobody had
+   * actually agreed to, indistinguishable from one they had.
+   */
+  const provenanceRef = useRef<WeightProvenance>('elicited');
 
   const { criteria } = model.valueTree;
   const childCrits = group.childIds.map((id) => criteria[id]).filter(Boolean);
@@ -47,14 +58,40 @@ function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; on
    * The concrete before→after a swing actually means. Naming the two levels
    * turns an abstract "Neutro to Bom" into something the assessor can picture,
    * which is the whole difficulty with swing weighting.
+   *
+   * A *factor* has no descriptor of its own, and used to show nothing at all —
+   * so "Qualidade técnica" appeared as a bare name beside "Custo anual: 25–50 k€
+   * → < 10 k€", with no way to tell what improving it would even mean. Its swing
+   * is every criterion underneath it moving from Neutro to Bom, so that is what
+   * it says.
    */
   function jumpOf(id: string): string {
     const c = criteria[id];
-    if (c?.type !== 'qualification') return '';
-    const { levels, neutralIndex, goodIndex } = c.descriptor;
-    const from = levels[neutralIndex]?.label;
-    const to = levels[goodIndex]?.label;
-    return from && to ? `${from} → ${to}` : '';
+    if (c?.type === 'qualification') {
+      const { levels, neutralIndex, goodIndex } = c.descriptor;
+      const from = levels[neutralIndex]?.label;
+      const to = levels[goodIndex]?.label;
+      return from && to ? `${from} → ${to}` : '';
+    }
+    if (c?.type === 'composite') {
+      const leaves = descendantQualifications(model, id);
+      if (leaves.length === 0) return '';
+      return t('todos os seus critérios de Neutro → Bom');
+    }
+    return '';
+  }
+
+  /** The individual swings a factor bundles, for the second line of its card. */
+  function subJumps(id: string): string {
+    const c = criteria[id];
+    if (c?.type !== 'composite') return '';
+    return descendantQualifications(model, id)
+      .slice(0, 3)
+      .map((leaf) => {
+        const { levels, neutralIndex, goodIndex } = leaf.descriptor;
+        return `${leaf.label}: ${levels[neutralIndex]?.label} → ${levels[goodIndex]?.label}`;
+      })
+      .join(' · ');
   }
 
   /**
@@ -62,14 +99,18 @@ function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; on
    * Rank Order Centroid. Marked as suggested until reviewed: a simulated weight
    * is not an elicited preference, and the audit trail has to keep them apart.
    */
-  function simulate() {
+  async function simulate() {
+    if (Object.keys(matrix.judgments).length > 0) {
+      const ok = await dialogs.confirm({
+        title: t('Substituir as respostas já dadas neste grupo?'),
+        body: t('Os juízos passam a ser gerados a partir da ordem de importância (método ROC). Ficam marcados como simulados até os confirmar.'),
+        confirmLabel: t('Substituir'),
+      });
+      if (!ok) return;
+    }
     const { judgments } = simulateWeighting(orderedChildIds);
-    if (
-      Object.keys(matrix.judgments).length > 0 &&
-      !confirm(t('Isto substitui as respostas já dadas neste grupo por juízos simulados a partir da ordem de importância. Continuar?'))
-    ) return;
     updateJudgments(judgments);
-    setSimulated(true);
+    provenanceRef.current = 'simulated';
   }
 
   function updateJudgments(judgments: Record<string, MacbethJudgment>) {
@@ -144,27 +185,66 @@ function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; on
 
   /** Dragged weights become judgments; the LP still derives the final numbers. */
   async function applyDirect() {
-    updateJudgments(judgmentsFromWeights(orderedChildIds, draft));
+    const judgments = judgmentsFromWeights(orderedChildIds, draft);
+    updateJudgments(judgments);
     setDirectMode(false);
-    setSimulated(true);
-    const w = await deriveWeights(orderedChildIds, judgmentsFromWeights(orderedChildIds, draft));
-    dispatch({ type: 'UPDATE_MODEL', patch: setGroupWeights(model, group.parentId, w) });
+    provenanceRef.current = 'direct';
+    await derive(judgments, 'direct');
   }
 
-  async function handleDerive() {
+  async function derive(judgments: Record<string, MacbethJudgment>, provenance: WeightProvenance) {
     setDeriving(true);
     try {
-      const w = await deriveWeights(orderedChildIds, matrix.judgments);
-      dispatch({ type: 'UPDATE_MODEL', patch: setGroupWeights(model, group.parentId, w) });
+      const w = await deriveWeights(orderedChildIds, judgments);
+      dispatch({
+        type: 'UPDATE_MODEL',
+        patch: setGroupWeights(model, group.parentId, { ...w, provenance, confirmed: provenance === 'elicited' }),
+      });
     } finally {
       setDeriving(false);
     }
   }
 
+  /**
+   * Derive as soon as the group's comparisons are all answered.
+   *
+   * The button it replaces sat below the questions with no visible link to
+   * them, so answering everything left the screen looking finished while the
+   * weights were still stale — and the run had no ending anyway. Keyed on the
+   * judgments themselves so re-renders don't re-solve.
+   */
+  const judgmentsKey = JSON.stringify(matrix.judgments);
+  const lastDerived = useRef<string | null>(null);
+  useEffect(() => {
+    if (single || directMode) return;
+    const pairCount = (matrixItems.length * (matrixItems.length - 1)) / 2;
+    if (Object.keys(matrix.judgments).length < pairCount) return;
+    if (lastDerived.current === judgmentsKey) return;
+    lastDerived.current = judgmentsKey;
+    void derive(matrix.judgments, provenanceRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [judgmentsKey, single, directMode]);
+
+  /** The user has read the simulated/direct weights and stands by them. */
+  function confirmWeights() {
+    if (!weights) return;
+    dispatch({
+      type: 'UPDATE_MODEL',
+      patch: setGroupWeights(model, group.parentId, { ...weights, confirmed: true }),
+    });
+  }
+
   const matrixItems = [
     ...orderedChildIds.map((id) => ({ id, label: criteria[id]?.label ?? id })),
-    { id: ALL_NEUTRAL, label: t('Tudo-Neutro (ref.)') },
+    { id: ALL_NEUTRAL, label: t('Proposta neutra (ref.)') },
   ];
+
+  /** Weights that came from a shortcut and have not yet been signed off. */
+  const needsConfirmation =
+    !!weights &&
+    weights.provenance != null &&
+    weights.provenance !== 'elicited' &&
+    !weights.confirmed;
 
   return (
     <div className="border border-gray-200 rounded-xl overflow-hidden">
@@ -177,9 +257,13 @@ function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; on
         {single ? (
           <span className="text-xs text-gray-400">{t('único (100%)')}</span>
         ) : consistent ? (
-          <span className="text-xs font-semibold text-green-600">✓ {weights ? `z = ${weights.consistencyMargin.toFixed(3)}` : t('ok')}</span>
+          <span className={`text-xs font-semibold ${needsConfirmation ? 'text-amber-600' : 'text-green-600'}`}>
+            {needsConfirmation ? t('por confirmar') : `✓ ${t('coerente')}`}
+          </span>
         ) : (
-          <span className="text-xs font-semibold text-gray-400">{t('por calcular')}</span>
+          <span className="text-xs font-semibold text-gray-400">
+            {t('{{a}} de {{n}} respondidas', { a: Object.keys(matrix.judgments).length, n: (matrixItems.length * (matrixItems.length - 1)) / 2 })}
+          </span>
         )}
       </button>
 
@@ -280,8 +364,12 @@ function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; on
               {/* Passo 2 — pairwise comparisons */}
               <div className="bg-sky-50 rounded-2xl px-4 py-3 flex gap-3 items-start mt-2">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-sky-700 shrink-0 pt-0.5 w-16">{t('Cenário')}</span>
+                {/* "Neutro" is the level that is neither attractive nor repulsive
+                    — not the minimum acceptable. Levels below it exist and score
+                    negative, as the derived scales visibly do, so describing it
+                    as a floor contradicted the numbers the user was about to see. */}
                 <p className="text-[13px] text-sky-900/80 leading-relaxed">
-                  {t('Imagine uma proposta no mínimo aceitável em todos os critérios — nada de excecional, nada inaceitável. É esse o ponto de partida (valor 0). Só tem orçamento para corrigir um aspeto.')}
+                  {t('Parta de uma proposta neutra em tudo — nem boa nem má em nenhum critério, valor 0. Pode melhorar um só critério até ao nível «Bom». Qual das duas melhorias vale mais, e quanto mais?')}
                 </p>
               </div>
               <p className="text-sm font-semibold text-gray-700 pt-1">{t('Passo 2 — Compare a importância dos pares')}</p>
@@ -291,25 +379,38 @@ function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; on
                 onChange={updateJudgments}
                 onActivePairChange={setActivePairKey}
                 emptyHint="São necessários pelo menos 2 critérios."
+                doneHint="Todas as comparações deste grupo estão respondidas — os pesos abaixo já as refletem."
                 renderQuestion={(more, less) =>
                   less.id === ALL_NEUTRAL ? (
                     <>
-                      {t('Quanto valor traria corrigir')}{' '}
+                      {t('Partindo de uma proposta neutra em tudo, quanto valor traria melhorar')}{' '}
                       <span className="inline-block bg-indigo-50 border border-indigo-300 rounded-lg px-2 py-0.5 font-bold text-indigo-700">{more.label}</span>
-                      {t(', deixando tudo o resto no mínimo aceitável?')}
+                      {t(' até «Bom»?')}
                     </>
                   ) : (
                     <>
-                      {t('Qual destas melhorias traria mais valor à proposta?')}
+                      {/* The ranking in step 1 already fixed *which* is worth
+                          more. Asking "qual?" again and answering it with a
+                          magnitude scale is a question whose answer does not fit. */}
+                      {t('Quanto')} <u>{t('mais')}</u> {t('vale a melhoria da esquerda do que a da direita?')}
                       <span className="grid sm:grid-cols-2 gap-2.5 mt-3 text-sm font-normal">
                         <span className="border-[1.5px] border-indigo-400 bg-indigo-50 rounded-xl px-3 py-2.5">
                           <span className="block font-bold text-indigo-800">{more.label}</span>
                           <span className="block text-xs text-gray-500 mt-1">{jumpOf(more.id)}</span>
+                          {subJumps(more.id) && (
+                            <span className="block text-[11px] text-gray-400 mt-0.5">{subJumps(more.id)}</span>
+                          )}
                         </span>
                         <span className="border-[1.5px] border-gray-200 rounded-xl px-3 py-2.5">
                           <span className="block font-bold text-gray-700">{less.label}</span>
                           <span className="block text-xs text-gray-500 mt-1">{jumpOf(less.id)}</span>
+                          {subJumps(less.id) && (
+                            <span className="block text-[11px] text-gray-400 mt-0.5">{subJumps(less.id)}</span>
+                          )}
                         </span>
+                      </span>
+                      <span className="block text-xs font-normal text-gray-400 mt-2">
+                        {t('Se acha que vale menos, é a ordem do passo 1 que está errada — troque-os lá.')}
                       </span>
                     </>
                   )
@@ -326,38 +427,44 @@ function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; on
               </details>
 
               <div className="flex flex-wrap items-center gap-2.5">
-                <button
-                  onClick={handleDerive}
-                  disabled={deriving || Object.keys(matrix.judgments).length === 0}
-                  className="px-5 py-2 bg-indigo-600 text-white rounded-full font-semibold text-sm hover:bg-indigo-700 disabled:opacity-40"
-                >
-                  {deriving ? t('A calcular pesos…') : t('Calcular pesos deste grupo')}
-                </button>
+                <span className="text-xs text-gray-400 flex-1 min-w-[14rem]">
+                  {deriving
+                    ? t('A calcular os pesos…')
+                    : t('Sem botão «calcular»: os pesos derivam-se assim que as respostas estiverem completas.')}
+                </span>
                 <button
                   onClick={simulate}
                   className="px-4 py-2 rounded-full text-sm font-semibold bg-indigo-50 text-indigo-700 hover:bg-indigo-100"
                   title={t('Gera um conjunto completo e consistente de juízos a partir da ordem de importância (método ROC).')}
                 >
-                  ⚡ {t('Simular a partir da ordem')}
+                  ⚡ {t('Preencher a partir da ordem')}
                 </button>
                 <button
                   onClick={openDirect}
                   className="px-4 py-2 rounded-full text-sm border border-gray-200 text-gray-600 hover:bg-gray-50"
                   title={t('Definir os pesos diretamente e ver que juízos MACBETH isso implica.')}
                 >
-                  ⇄ {t('Modo pesos diretos')}
+                  ⇄ {t('Definir pesos à mão')}
                 </button>
-                {simulated && (
-                  <span className="text-[10px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full bg-amber-100 text-amber-700">
-                    {t('juízos simulados — por confirmar')}
-                  </span>
-                )}
               </div>
 
-              {simulated && (
-                <p className="text-xs text-amber-800 bg-amber-50 rounded-xl px-3.5 py-2.5 leading-relaxed">
-                  {t('Pesos simulados não são preferências elicitadas: servem para arrancar depressa ou testar hipóteses. Percorra as perguntas acima e ajuste o que não corresponder ao seu juízo antes de dar o modelo por fechado.')}
-                </p>
+              {needsConfirmation && (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl px-3.5 py-3 space-y-2">
+                  <p className="text-xs text-amber-900 leading-relaxed">
+                    <strong>
+                      {weights?.provenance === 'direct'
+                        ? t('Pesos definidos à mão — por confirmar.')
+                        : t('Pesos simulados a partir da ordem — por confirmar.')}
+                    </strong>{' '}
+                    {t('Não são preferências elicitadas: servem para arrancar depressa ou testar hipóteses. Percorra as perguntas acima e ajuste o que não corresponder ao seu juízo.')}
+                  </p>
+                  <button
+                    onClick={confirmWeights}
+                    className="px-3 py-1.5 text-xs font-semibold bg-amber-600 text-white rounded-lg hover:bg-amber-700"
+                  >
+                    {t('Revi e confirmo estes pesos')}
+                  </button>
+                </div>
               )}
 
               {weights && (() => {
@@ -367,18 +474,27 @@ function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; on
                 return (
                   <div className="border border-gray-200 rounded-xl p-4 bg-white space-y-3">
                     <div className="flex items-center justify-between gap-2 flex-wrap">
-                      <h3 className="font-semibold text-gray-800 text-sm">{t('Pesos derivados (Σ = 1 no grupo)')}</h3>
+                      <h3 className="font-semibold text-gray-800 text-sm">{t('Pesos — atualizados a cada resposta')}</h3>
                       <div className="flex items-center gap-2">
                         {showGlobal && (
                           <span className="text-xs text-gray-400">
                             {t('grupo =')} <strong className="text-gray-500">{(groupFactor! * 100).toFixed(0)}%</strong> {t('do modelo')}
                           </span>
                         )}
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${weights.consistencyMargin > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                          z = {weights.consistencyMargin.toFixed(4)}
+                        {/* "z = 0.0385" is an internal of the LP, not a reading
+                            for the assessor. What it certifies — that the
+                            answers do not contradict each other — is. */}
+                        <span
+                          className={`text-xs px-2 py-0.5 rounded-full font-medium ${weights.consistencyMargin > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}
+                          title={t('Margem de discriminação z = {{m}}', { m: weights.consistencyMargin.toFixed(4) })}
+                        >
+                          {weights.consistencyMargin > 0 ? `✓ ${t('coerente')}` : t('contradição')}
                         </span>
                       </div>
                     </div>
+                    <p className="text-[11px] text-gray-400">
+                      {t('A faixa clara é o intervalo de pesos ainda compatível com as respostas dadas — quanto mais larga, mais falta decidir.')}
+                    </p>
                     {showGlobal && (
                       <div className="flex items-center gap-3 text-[10px] uppercase tracking-wide text-gray-400 font-semibold">
                         <span className="w-40 shrink-0" />
@@ -394,8 +510,21 @@ function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; on
                         return (
                           <div key={w.criterionId} className="flex items-center gap-3">
                             <span className="w-40 text-sm truncate text-gray-700" title={crit?.label}>{crit?.label ?? w.criterionId}</span>
-                            <div className="flex-1 bg-gray-100 rounded-full h-4">
-                              <div className="h-4 rounded-full bg-blue-500" style={{ width: `${(w.weight * 100).toFixed(1)}%` }} />
+                            {/* The bar is the derived weight; the pale band
+                                behind it is everything still compatible with the
+                                answers. Both matter: a 50% that could be anywhere
+                                from 38% to 64% is a different fact from a 50%
+                                that is pinned. */}
+                            <div className="flex-1 bg-gray-100 rounded-full h-4 relative overflow-hidden">
+                              <div
+                                className="absolute inset-y-0 bg-indigo-100 border-x border-indigo-300"
+                                style={{
+                                  left: `${(w.admissibleRange[0] * 100).toFixed(1)}%`,
+                                  width: `${Math.max(0, (w.admissibleRange[1] - w.admissibleRange[0]) * 100).toFixed(1)}%`,
+                                }}
+                                aria-hidden="true"
+                              />
+                              <div className="absolute inset-y-0 left-0 rounded-full bg-blue-500/80" style={{ width: `${(w.weight * 100).toFixed(1)}%` }} />
                             </div>
                             <span
                               className="w-16 text-right text-sm font-mono font-medium"

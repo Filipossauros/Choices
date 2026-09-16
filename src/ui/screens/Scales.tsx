@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useApp } from '../store';
 import type {
@@ -422,6 +422,31 @@ export default function Scales() {
     return model.derivedScales.find((s) => s.criterionId === criterionId);
   }
 
+  const activeCrit = selected
+    ? qualCriteria.find((c) => c.id === selected) ?? qualCriteria[0]
+    : qualCriteria[0];
+
+  /**
+   * Derive as soon as this criterion's comparisons are all answered — same
+   * reason as the weighting groups: a button sitting below the questions with no
+   * visible link to them leaves the screen looking finished while the scale is
+   * still stale. Keyed on the judgments so re-renders don't re-solve.
+   */
+  const activeJudgmentsKey = activeCrit ? JSON.stringify(getMatrix(activeCrit.id).judgments) : '';
+  const lastDerived = useRef<string | null>(null);
+  useEffect(() => {
+    if (!activeCrit || rulerFor === activeCrit.id) return;
+    const n = activeCrit.descriptor.levels.length;
+    const pairCount = (n * (n - 1)) / 2;
+    const judgments = getMatrix(activeCrit.id).judgments;
+    if (Object.keys(judgments).length < pairCount) return;
+    const key = `${activeCrit.id}:${activeJudgmentsKey}`;
+    if (lastDerived.current === key) return;
+    lastDerived.current = key;
+    void handleDerive(activeCrit.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeJudgmentsKey, activeCrit?.id, rulerFor]);
+
   if (qualCriteria.length === 0) {
     return (
       <div className="max-w-2xl mx-auto py-10 px-4 text-center text-gray-400">
@@ -429,10 +454,6 @@ export default function Scales() {
       </div>
     );
   }
-
-  const activeCrit = selected
-    ? qualCriteria.find((c) => c.id === selected) ?? qualCriteria[0]
-    : qualCriteria[0];
 
   return (
     <div className="max-w-5xl mx-auto py-6 px-4">
@@ -508,6 +529,10 @@ export default function Scales() {
         async function applyRuler() {
           const crit = activeCrit!;
           const judgments = judgmentsFromLevelValues(crit, rulerValues);
+          // Claim this judgment set before writing it, or the auto-derive effect
+          // sees a freshly-completed matrix and re-solves — throwing away the
+          // positions this mode exists to preserve.
+          lastDerived.current = `${crit.id}:${JSON.stringify(judgments)}`;
           updateMatrix(crit.id, judgments);
           setRulerFor(null);
           setDerivingId(crit.id);
@@ -528,21 +553,81 @@ export default function Scales() {
             >
               {inRuler ? t('⇄ Modo perguntas') : t('⇄ Modo régua')}
             </button>
-            <button
-              onClick={() => handleDerive(activeCrit.id)}
-              // Deriving with no judgments yields a degenerate scale that still
-              // reports itself consistent — block it and say what is missing.
-              disabled={derivingId === activeCrit.id || Object.keys(getMatrix(activeCrit.id).judgments).length === 0}
-              title={
-                Object.keys(getMatrix(activeCrit.id).judgments).length === 0
-                  ? t('Responda a pelo menos uma comparação antes de derivar.')
-                  : undefined
-              }
-              className="px-4 py-1.5 text-sm bg-blue-700 text-white rounded hover:bg-blue-800 disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              {derivingId === activeCrit.id ? t('A derivar…') : t('Derivar escala')}
-            </button>
+            <span className="text-xs text-gray-400">
+              {derivingId === activeCrit.id
+                ? t('A calcular a escala…')
+                : t('A escala calcula-se sozinha quando as comparações estiverem completas.')}
+            </span>
           </div>
+
+          {/* ── Contradiction, stated in terms of the answers that caused it ──
+              Placed above the questions: it is what the assessor has to act on,
+              and "margem: −1.000" under a collapsed matrix was neither findable
+              nor actionable. */}
+          {(() => {
+            const scale = getScale(activeCrit.id);
+            if (!scale || scale.consistencyMargin > 0) return null;
+            const d = diagnosis[activeCrit.id];
+            const labelOfLevel = (id: string) => levels.find((l) => l.id === id)?.label ?? id;
+            const first = d?.conflicts[0];
+            return (
+              <div className="bg-rose-50 border border-rose-200 rounded-2xl p-5" role="status">
+                <div className="flex items-start gap-3">
+                  <span className="text-rose-600 text-lg leading-none mt-0.5" aria-hidden="true">⚠</span>
+                  <div className="flex-1 min-w-0 space-y-2">
+                    {first ? (
+                      <>
+                        <p className="font-bold text-rose-900 text-sm">{t('Duas respostas contradizem-se')}</p>
+                        <p className="text-[13px] text-rose-900/90 leading-relaxed">
+                          {t('Disse que o salto de')}{' '}
+                          <strong>{labelOfLevel(first.narrow.fromId)} → {labelOfLevel(first.narrow.toId)}</strong>{' '}
+                          {t('é')} <strong>{t(CATEGORIES[catOf(first.narrow.judgment)]?.label ?? '')}</strong>,{' '}
+                          {t('mas o salto de')}{' '}
+                          <strong>{labelOfLevel(first.wide.fromId)} → {labelOfLevel(first.wide.toId)}</strong>{' '}
+                          — {t('que contém o primeiro e ainda mais')} — {t('é apenas')}{' '}
+                          <strong>{t(CATEGORIES[catOf(first.wide.judgment)]?.label ?? '')}</strong>.{' '}
+                          {t('Um salto maior não pode valer menos do que um dos seus troços.')}
+                        </p>
+                        <div className="flex flex-wrap items-center gap-2 pt-1">
+                          <button
+                            onClick={() => fixJudgment(activeCrit.id, first.wide.key, minimumCategoryFor(first))}
+                            className="px-3.5 py-1.5 text-sm font-semibold bg-rose-600 text-white rounded-lg hover:bg-rose-700"
+                          >
+                            {t('Corrigir para «{{cat}}»', { cat: t(CATEGORIES[minimumCategoryFor(first)]?.label ?? '') })}
+                          </button>
+                          <span className="text-xs text-rose-800/70">
+                            {t('A correção sugerida é a que menos se afasta do que respondeu.')}
+                          </span>
+                        </div>
+                      </>
+                    ) : d?.fallback ? (
+                      <>
+                        <p className="font-bold text-rose-900 text-sm">{t('As respostas não são compatíveis entre si')}</p>
+                        <p className="text-[13px] text-rose-900/90 leading-relaxed">
+                          {t('A contradição envolve várias respostas ao mesmo tempo, por isso não há um par único a apontar. Alterar')}{' '}
+                          <strong>
+                            {labelOfLevel(d.fallback.key.split('__')[1])} → {labelOfLevel(d.fallback.key.split('__')[0])}
+                          </strong>{' '}
+                          {t('para')} <strong>{t(CATEGORIES[d.fallback.suggested]?.label ?? '')}</strong>{' '}
+                          {t('resolve-a.')}
+                        </p>
+                        <button
+                          onClick={() => fixJudgment(activeCrit.id, d.fallback!.key, d.fallback!.suggested)}
+                          className="px-3.5 py-1.5 text-sm font-semibold bg-rose-600 text-white rounded-lg hover:bg-rose-700"
+                        >
+                          {t('Aplicar esta correção')}
+                        </button>
+                      </>
+                    ) : (
+                      <p className="text-[13px] text-rose-900/90">
+                        {t('As respostas contêm uma contradição. Reveja-as abaixo: um salto maior não pode valer menos do que um salto que ele contenha.')}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
 
           {inRuler ? (
             <>
@@ -660,81 +745,17 @@ export default function Scales() {
             const scale = getScale(activeCrit.id);
             if (!scale) return null;
 
-            /**
-             * An inconsistent matrix has no scale. Showing one anyway — every
-             * level at 0.0, a chart with a 0–4 axis, labels stacked on top of
-             * each other — presents the absence of a result as a result. The
-             * diagnosis replaces it until the answers agree.
-             */
+            // The inconsistency case is rendered above the answers instead —
+            // it is the first thing to read, not a footnote under the matrix.
             if (scale.consistencyMargin <= 0) {
-              const d = diagnosis[activeCrit.id];
-              const labelOfLevel = (id: string) => levels.find((l) => l.id === id)?.label ?? id;
-              const first = d?.conflicts[0];
               return (
-                <div className="space-y-4">
-                  <div className="bg-rose-50 border border-rose-200 rounded-2xl p-5 space-y-3">
-                    <div className="flex items-start gap-3">
-                      <span className="text-rose-600 text-lg leading-none mt-0.5" aria-hidden="true">⚠</span>
-                      <div className="flex-1 min-w-0 space-y-2">
-                        {first ? (
-                          <>
-                            <p className="font-bold text-rose-900 text-sm">{t('Duas respostas contradizem-se')}</p>
-                            <p className="text-[13px] text-rose-900/90 leading-relaxed">
-                              {t('Disse que o salto de')}{' '}
-                              <strong>{labelOfLevel(first.narrow.fromId)} → {labelOfLevel(first.narrow.toId)}</strong>{' '}
-                              {t('é')} <strong>{t(CATEGORIES[catOf(first.narrow.judgment)]?.label ?? '')}</strong>,{' '}
-                              {t('mas o salto de')}{' '}
-                              <strong>{labelOfLevel(first.wide.fromId)} → {labelOfLevel(first.wide.toId)}</strong>{' '}
-                              — {t('que contém o primeiro e ainda mais')} — {t('é apenas')}{' '}
-                              <strong>{t(CATEGORIES[catOf(first.wide.judgment)]?.label ?? '')}</strong>.{' '}
-                              {t('Um salto maior não pode valer menos do que um dos seus troços.')}
-                            </p>
-                            <div className="flex flex-wrap items-center gap-2 pt-1">
-                              <button
-                                onClick={() => fixJudgment(activeCrit.id, first.wide.key, minimumCategoryFor(first))}
-                                className="px-3.5 py-1.5 text-sm font-semibold bg-rose-600 text-white rounded-lg hover:bg-rose-700"
-                              >
-                                {t('Corrigir para «{{cat}}»', { cat: t(CATEGORIES[minimumCategoryFor(first)]?.label ?? '') })}
-                              </button>
-                              <span className="text-xs text-rose-800/70">
-                                {t('A correção sugerida é a que menos se afasta do que respondeu.')}
-                              </span>
-                            </div>
-                          </>
-                        ) : d?.fallback ? (
-                          <>
-                            <p className="font-bold text-rose-900 text-sm">{t('As respostas não são compatíveis entre si')}</p>
-                            <p className="text-[13px] text-rose-900/90 leading-relaxed">
-                              {t('A contradição envolve várias respostas ao mesmo tempo, por isso não há um par único a apontar. Alterar')}{' '}
-                              <strong>
-                                {labelOfLevel(d.fallback.key.split('__')[1])} → {labelOfLevel(d.fallback.key.split('__')[0])}
-                              </strong>{' '}
-                              {t('para')} <strong>{t(CATEGORIES[d.fallback.suggested]?.label ?? '')}</strong>{' '}
-                              {t('resolve-a.')}
-                            </p>
-                            <button
-                              onClick={() => fixJudgment(activeCrit.id, d.fallback!.key, d.fallback!.suggested)}
-                              className="px-3.5 py-1.5 text-sm font-semibold bg-rose-600 text-white rounded-lg hover:bg-rose-700"
-                            >
-                              {t('Aplicar esta correção')}
-                            </button>
-                          </>
-                        ) : (
-                          <p className="text-[13px] text-rose-900/90">
-                            {t('As respostas contêm uma contradição. Reveja-as acima: um salto maior não pode valer menos do que um salto que ele contenha.')}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="border-2 border-dashed border-gray-200 rounded-2xl px-5 py-7 text-center space-y-1">
-                    <p className="text-sm font-semibold text-gray-600">
-                      {t('A escala aparece aqui quando as respostas forem coerentes.')}
-                    </p>
-                    <p className="text-xs text-gray-400">
-                      {t('Não é mostrado nenhum valor até lá — um zero em todos os níveis não é uma escala, é a ausência de uma.')}
-                    </p>
-                  </div>
+                <div className="border-2 border-dashed border-gray-200 rounded-2xl px-5 py-7 text-center space-y-1">
+                  <p className="text-sm font-semibold text-gray-600">
+                    {t('A escala aparece aqui quando as respostas forem coerentes.')}
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    {t('Não é mostrado nenhum valor até lá — um zero em todos os níveis não é uma escala, é a ausência de uma.')}
+                  </p>
                 </div>
               );
             }

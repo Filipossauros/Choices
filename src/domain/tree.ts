@@ -78,6 +78,27 @@ export function qualificationCriteria(model: EvaluationModel): QualificationCrit
   );
 }
 
+/**
+ * Every qualification leaf beneath a node, in tree order. A factor's swing is
+ * all of these moving from Neutro to Bom at once, which is what lets the
+ * weighting question describe a factor as concretely as it describes a criterion.
+ */
+export function descendantQualifications(
+  model: EvaluationModel,
+  criterionId: string,
+): QualificationCriterion[] {
+  const node = findNode(model.valueTree, criterionId);
+  if (!node) return [];
+  const { criteria } = model.valueTree;
+  const out: QualificationCriterion[] = [];
+  (function walk(n: ValueTreeNode) {
+    const c = criteria[n.criterionId];
+    if (c?.type === 'qualification') out.push(c);
+    n.children.forEach(walk);
+  })(node);
+  return out;
+}
+
 export interface Group {
   /** Parent node id (ROOT_ID for the top-level group). */
   parentId: string;
