@@ -62,8 +62,12 @@ interface Props {
   /** Show the C0–C6 codes beside each rung. Off unless the model is being audited. */
   showCodes?: boolean;
   emptyHint?: string;
-  /** Shown in place of the question once every pair has an answer. */
-  doneHint?: string;
+  /**
+   * Repeat the answers as chips once the set is complete. Off where the screen
+   * already lists them — on the scales screen they appeared twice, once in "o
+   * que já respondeu" and again right underneath.
+   */
+  showAnswerChips?: boolean;
   /** Called whenever the currently active pair changes (key = `idA__idB`). */
   onActivePairChange?: (key: string | null) => void;
 }
@@ -73,7 +77,7 @@ type Direction = 'more' | 'less' | 'equal';
 
 export default function GuidedJudgments({
   items, judgments, onChange, renderQuestion, context = 'improvement',
-  onInvert, canInvert, showCodes = false, emptyHint, doneHint, onActivePairChange,
+  onInvert, canInvert, showCodes = false, emptyHint, showAnswerChips = true, onActivePairChange,
 }: Props) {
   const { t } = useTranslation();
   const [pairIdx, setPairIdx] = useState(0);
@@ -173,31 +177,34 @@ export default function GuidedJudgments({
 
   const answered = pairs.filter((p) => judgments[`${p.idA}__${p.idB}`] !== undefined).length;
 
-  /** All pairs answered: say so and offer a way back in, rather than re-asking. */
+  /**
+   * All pairs answered. Said once.
+   *
+   * This used to be five statements of one fact stacked on top of each other —
+   * the count, a full progress bar, a "✓ completo" label, a panel saying the
+   * same in a sentence, and the answers as chips below it — about 250px to
+   * report that there was nothing left to do, pushing the thing the step
+   * produces further down the page.
+   */
   if (answered === total && !reviewing) {
     return (
-      <div className="space-y-4">
-        <div className="flex items-center justify-between text-xs text-gray-500">
-          <span>{t('{{total}} de {{total}} comparações', { total })}</span>
-          <span className="text-green-700 font-semibold">✓ {t('completo')}</span>
+      <div className="space-y-2.5">
+        <div className="flex items-center gap-3 rounded-xl border border-green-200 bg-green-50 px-3.5 py-2.5">
+          <span className="text-sm font-medium text-green-800">
+            ✓ {t('{{total}} de {{total}} respondidas', { total })}
+          </span>
+          <span className="flex-1 h-1 rounded-full bg-green-200 overflow-hidden" aria-hidden="true">
+            <span className="block h-full w-full bg-green-500 rounded-full" />
+          </span>
+          <button
+            onClick={() => { setReviewing(true); setPairIdx(0); }}
+            className="text-xs font-semibold text-green-900 underline underline-offset-2 hover:text-green-700 shrink-0"
+          >
+            {t('Rever as respostas')}
+          </button>
         </div>
-        <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-          <div className="h-full bg-green-500 rounded-full w-full" />
-        </div>
-        <div className="border border-green-200 bg-green-50 rounded-2xl p-5 space-y-3">
-          <p className="text-sm text-green-900">
-            {doneHint ? t(doneHint) : t('Respondeu a todas as comparações.')}
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => { setReviewing(true); setPairIdx(0); }}
-              className="px-3.5 py-1.5 text-sm font-medium rounded-lg border border-green-300 text-green-900 hover:bg-green-100"
-            >
-              {t('Rever as respostas')}
-            </button>
-          </div>
-        </div>
-        {/* The answers themselves, so "completo" is inspectable in place. */}
+        {/* The answers themselves, so "completo" stays inspectable in place. */}
+        {showAnswerChips && (
         <div className="flex flex-wrap gap-1.5">
           {pairs.map((p, i) => {
             const j = judgments[`${p.idA}__${p.idB}`];
@@ -214,6 +221,7 @@ export default function GuidedJudgments({
             );
           })}
         </div>
+        )}
       </div>
     );
   }

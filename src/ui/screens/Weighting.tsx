@@ -423,7 +423,12 @@ function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; on
             </>
           ) : (
             <>
-              {/* Passo 1 — ranking by importance */}
+            {/* Questions left, the weights they produce right. Stacked, the
+                weights sat about 1000px below the top of the step — the output
+                of the step, out of sight while answering it. */}
+            <div className="grid lg:grid-cols-[minmax(0,1fr)_22rem] gap-5 items-start">
+              <div className="space-y-4 min-w-0">
+              {/* Optional shortcut — ranking by importance */}
               <div className="space-y-3">
                 <details className="group/help">
                   <summary className="text-sm font-semibold text-gray-700 cursor-pointer select-none flex items-center gap-1.5 hover:text-gray-900">
@@ -480,7 +485,6 @@ function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; on
                 onInvert={invertPair}
                 canInvert={(_more, less) => less.id !== ALL_NEUTRAL}
                 emptyHint="São necessários pelo menos 2 critérios."
-                doneHint="Todas as comparações deste grupo estão respondidas — os pesos abaixo já as refletem."
                 renderQuestion={(more, less) =>
                   less.id === ALL_NEUTRAL ? (
                     <>
@@ -543,6 +547,9 @@ function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; on
               </div>
               )}
 
+              </div>
+
+              <div className="lg:sticky lg:top-24 space-y-3 min-w-0">
               {needsConfirmation && (
                 <div className="bg-amber-50 border border-amber-200 rounded-xl px-3.5 py-3 space-y-2">
                   <p className="text-xs text-amber-900 leading-relaxed">
@@ -658,6 +665,8 @@ function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; on
                   </div>
                 );
               })()}
+              </div>
+            </div>
             </>
           )}
         </div>
@@ -708,18 +717,20 @@ export default function Weighting() {
   const multiGroup = groups.length > 1;
 
   return (
-    <div className="max-w-4xl mx-auto py-6 px-4 space-y-6">
-      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-800 space-y-1">
-        <p className="font-medium">{t('O que pesa mais?')}</p>
-        <p>
-          {t('Decida a importância relativa antes do trabalho detalhado das escalas. Cada pergunta é uma escolha entre duas melhorias concretas — ou responda depressa simulando a partir da ordem de importância.')}
+    <div className="max-w-6xl mx-auto py-6 px-4 space-y-6">
+      {/* A screen with no title is a screen you can land in the middle of and
+          not know where you are. */}
+      <header>
+        <h2 className="text-xl font-bold text-gray-800 tracking-tight">{t('Importância')}</h2>
+        <p className="text-sm text-gray-500 mt-1 max-w-2xl leading-relaxed">
+          {t('Quanto conta cada critério. Cada pergunta é uma escolha entre duas propostas que diferem só em dois pontos — responda ao que escolheria, e a importância sai daí.')}
         </p>
         {multiGroup && (
-          <p className="text-xs text-blue-600">
-            {t('Existem fatores compostos: pondere os filhos dentro de cada grupo. O peso global de cada folha é o produto dos pesos ao longo do caminho até à raiz.')}
+          <p className="text-xs text-gray-400 mt-1.5 max-w-2xl leading-relaxed">
+            {t('Há critérios agrupados em fatores: cada grupo reparte a sua importância entre os seus. A importância final de cada critério é o produto ao longo do caminho.')}
           </p>
         )}
-      </div>
+      </header>
 
       <div className="space-y-3">
         {groups.map((g) => (

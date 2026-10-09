@@ -539,35 +539,47 @@ export default function Scales() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto py-6 px-4">
-      <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
-      {/* Sidebar — horizontal scroll strip on mobile, vertical list on ≥sm */}
-      <div className="w-full sm:w-48 shrink-0 flex sm:flex-col gap-2 sm:gap-1 overflow-x-auto sm:overflow-visible pb-1 sm:pb-0 -mx-4 px-4 sm:mx-0 sm:px-0">
+    <div className="max-w-6xl mx-auto py-6 px-4">
+      <header className="mb-4">
+        <h2 className="text-xl font-bold text-gray-800 tracking-tight">{t('Níveis e valores')}</h2>
+        <p className="text-sm text-gray-500 mt-1 max-w-2xl leading-relaxed">
+          {t('Quantos pontos vale cada nível de cada critério. Responda às comparações e a escala calcula-se sozinha, com «nem bom nem mau» em 0 e «bom» em 100.')}
+        </p>
+      </header>
+
+      <div className="flex flex-col gap-4">
+      {/* The criteria used to be a second navigation column beside the rail —
+          two columns of chrome before any content. As a row of chips they cost
+          one line and still carry each criterion's state. */}
+      <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap sm:overflow-visible">
         {qualCriteria.map((c) => {
           const scale = getScale(c.id);
           const isActive = activeCrit?.id === c.id;
           const path = ancestorLabels(model, c.id);
+          const done = !!scale && scale.consistencyMargin > 0;
+          const broken = !!scale && scale.consistencyMargin <= 0;
           return (
             <button
               key={c.id}
               onClick={() => setSelected(c.id)}
-              className={`shrink-0 w-44 sm:w-full text-left px-3 py-2 rounded-lg text-sm transition-colors border sm:border-0 ${
+              aria-pressed={isActive}
+              title={[...path, c.label].join(' › ')}
+              className={`shrink-0 max-w-[18rem] flex items-center gap-2 pl-2.5 pr-3.5 py-1.5 rounded-full border text-sm transition-colors ${
                 isActive
-                  ? 'bg-blue-100 text-blue-800 font-medium border-blue-200'
-                  : 'hover:bg-gray-100 text-gray-600 border-gray-200'
+                  ? 'border-indigo-500 bg-indigo-50 text-indigo-800 font-semibold ring-1 ring-indigo-500'
+                  : 'border-gray-200 bg-white text-gray-700 hover:border-indigo-300'
               }`}
             >
-              {path.length > 0 && (
-                <span className="block text-[10px] text-gray-400 truncate">{path.join(' › ')} ›</span>
-              )}
-              <span className="block truncate">{c.label}</span>
-              {scale ? (
-                <span className={`text-xs ${scale.consistencyMargin > 0 ? 'text-green-600' : 'text-red-500'}`}>
-                  {scale.consistencyMargin > 0 ? t('✓ Derivada') : t('✗ Inconsistente')}
-                </span>
-              ) : (
-                <span className="text-xs text-gray-400">{t('Por derivar')}</span>
-              )}
+              <span
+                className={`shrink-0 w-4 h-4 rounded-full grid place-items-center text-[9px] font-bold ${
+                  broken ? 'bg-red-100 text-red-600' : done ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
+                }`}
+                aria-hidden="true"
+              >
+                {broken ? '!' : done ? '✓' : '·'}
+              </span>
+              {path.length > 0 && <span className="text-[11px] text-gray-400 truncate">{path.join(' › ')} ·</span>}
+              <span className="truncate">{c.label}</span>
             </button>
           );
         })}
@@ -642,6 +654,13 @@ export default function Scales() {
                 : t('A escala calcula-se sozinha quando as comparações estiverem completas.')}
             </span>
           </div>
+
+          {/* Questions on the left, the scale they produce on the right.
+              Stacked, the scale sat ~640px below the questions: you answered
+              without ever seeing the thing the answer moved, which is most of
+              what makes MACBETH elicitation legible. */}
+          <div className="grid lg:grid-cols-[minmax(0,1fr)_26rem] gap-5 items-start">
+            <div className="space-y-6 min-w-0">
 
           {/* ── Contradiction, stated in terms of the answers that caused it ──
               Placed above the questions: it is what the assessor has to act on,
@@ -794,6 +813,7 @@ export default function Scales() {
             onActivePairChange={setActivePairKey}
             context="improvement"
             showCodes={technical}
+            showAnswerChips={false}
             emptyHint="São necessários pelo menos 2 níveis."
             renderQuestion={(more, less) => (
               <>
@@ -828,11 +848,25 @@ export default function Scales() {
           )}
           </>
           )}
+            </div>
 
+            <div className="lg:sticky lg:top-4 min-w-0 space-y-6">
           {/* Scale display — or, when the answers contradict, why they do ── */}
           {(() => {
             const scale = getScale(activeCrit.id);
-            if (!scale) return null;
+            // An empty column beside the questions says nothing. Say what will
+            // appear there, so the connection between answering and the scale is
+            // made before the first answer rather than after the last.
+            if (!scale) {
+              return (
+                <div className="border-2 border-dashed border-gray-200 rounded-2xl px-5 py-7 text-center space-y-1">
+                  <p className="text-sm font-semibold text-gray-600">{t('A escala aparece aqui')}</p>
+                  <p className="text-xs text-gray-400 leading-relaxed">
+                    {t('Cada resposta à esquerda move os níveis nesta régua. Calcula-se sozinha assim que responder a todas.')}
+                  </p>
+                </div>
+              );
+            }
 
             // The inconsistency case is rendered above the answers instead —
             // it is the first thing to read, not a footnote under the matrix.
@@ -876,6 +910,8 @@ export default function Scales() {
               </div>
             );
           })()}
+            </div>
+          </div>
         </div>
         );
       })()}

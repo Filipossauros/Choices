@@ -1,14 +1,16 @@
 /**
- * The navigation rail.
+ * The step bar.
  *
- * Replaces a horizontal stepper that had room for a tick and a word. A vertical
- * rail has room for the thing that actually helps — what is left to do in each
- * step — so "Ponderação" becomes "Ponderação · 4 de 9 comparações" and the user
- * can see where the work is without opening every screen to find out.
+ * It was briefly a 232px vertical rail, for one good reason: a rail has room for
+ * what is left to do in each step, so "Ponderação" can read "Ponderação · 4 de 9
+ * comparações" without opening the screen to find out. The cost was worse than
+ * the benefit — 232px off every screen at every width, and on the two screens
+ * that carry their own list of things to work through (criteria, groups) it
+ * meant two columns of navigation before any content began.
  *
- * Below `lg` it collapses back to the horizontal strip, which is the right shape
- * for a narrow viewport: a 232px rail beside a phone-width column leaves nothing
- * for the column.
+ * So the steps run along the top again, and the per-step detail comes with them:
+ * a second line under each label from `md` up. The strip scrolls inside itself
+ * on a narrow viewport so the page never scrolls sideways.
  */
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -405,119 +407,86 @@ export default function StepRail() {
   }));
 
   return (
-    <>
-      {/* ── Vertical rail (lg and up) ── */}
-      <aside className="hidden lg:flex fixed inset-y-0 left-0 w-[232px] flex-col bg-white border-r border-gray-200 px-3.5 py-4 z-20">
-        <div className="px-2 pb-3.5">{home}</div>
-        <div className="px-2 pb-3.5 mb-2 border-b border-gray-200 min-w-0">
-          <p className="text-[10px] font-bold uppercase tracking-[0.09em] text-gray-400">
-            {t(modeLabel[mode])}
-          </p>
-          <p className="text-[13px] font-semibold text-gray-800 truncate mt-0.5" title={docLabel}>
+    <header className="bg-white border-b border-gray-200 sticky top-0 z-20">
+      <div className="px-4 py-2.5 flex items-center gap-3 min-w-0">
+        {home}
+        <span className="text-[10px] font-bold uppercase tracking-[0.09em] px-2 py-1 rounded-md bg-indigo-50 text-indigo-700 shrink-0">
+          {t(modeLabel[mode])}
+        </span>
+        {docLabel && (
+          <span className="text-sm font-semibold text-gray-800 truncate min-w-0" title={docLabel}>
             {docLabel}
-          </p>
-          {updatedAt && <p className="text-[11px] text-gray-400 mt-0.5">{savedAgo(updatedAt, t)} · {t('local')}</p>}
-        </div>
-
-        <nav className="flex flex-col gap-0.5">
-          {steps.map(({ screen, i, status, detail, active }) => (
-            <button
-              key={screen}
-              onClick={() => dispatch({ type: 'SET_SCREEN', screen })}
-              aria-current={active ? 'step' : undefined}
-              className={`flex items-start gap-2.5 px-2.5 py-2 rounded-xl text-left transition-colors ${
-                active
-                  ? 'bg-indigo-50 text-indigo-700 font-semibold'
-                  : status === 'none'
-                  ? 'text-gray-400 hover:bg-gray-50'
-                  : 'text-gray-600 hover:bg-gray-50'
-              }`}
-            >
-              <span
-                className={`w-[22px] h-[22px] rounded-lg shrink-0 grid place-items-center text-[11px] font-bold mt-px transition-colors ${badgeFor(status, active)}`}
-                aria-hidden="true"
-              >
-                {status === 'done' && !active ? '✓' : i + 1}
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-[13.5px] leading-tight">{t(LABELS[screen])}</span>
-                {detail && (
-                  <span className="block text-[11px] font-normal text-gray-400 mt-0.5 leading-tight">
-                    {detail}
-                  </span>
-                )}
-              </span>
-            </button>
-          ))}
-        </nav>
-
-        <div className="flex-1" />
-        {mode === 'apply' && evaluation && (
-          <button
-            onClick={editModelCopy}
-            className="mb-2 text-xs px-2.5 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 text-left"
-            title={t('Cria uma cópia editável do modelo desta avaliação — não altera o original nem esta avaliação')}
-          >
-            {t('Editar modelo (cópia)')}
-          </button>
+          </span>
         )}
-        <div className="flex items-center gap-2 pt-3 border-t border-gray-200">
+        {updatedAt && (
+          <span className="hidden sm:inline text-[11px] text-gray-400 shrink-0">
+            {savedAgo(updatedAt, t)} · {t('local')}
+          </span>
+        )}
+        <div className="ml-auto flex items-center gap-2 shrink-0">
+          {mode === 'apply' && evaluation && (
+            <button
+              onClick={editModelCopy}
+              className="hidden sm:block text-xs px-2.5 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50"
+              title={t('Cria uma cópia editável do modelo desta avaliação — não altera o original nem esta avaliação')}
+            >
+              {t('Editar modelo (cópia)')}
+            </button>
+          )}
           <UiModeToggle />
           <LanguageToggle />
           <DarkModeToggle />
         </div>
-      </aside>
+      </div>
 
-      {/* ── Horizontal strip (below lg) ── */}
-      <header className="lg:hidden bg-white border-b border-gray-200 sticky top-0 z-20">
-        <div className="px-4 py-2.5 flex items-center gap-3">
-          {home}
-          <span className="text-[11px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 shrink-0">
-            {t(modeLabel[mode])}
-          </span>
-          {docLabel && <span className="text-sm text-gray-500 truncate">{docLabel}</span>}
-          <div className="ml-auto flex items-center gap-2 shrink-0">
-            <UiModeToggle />
-            <LanguageToggle />
-            <DarkModeToggle />
-          </div>
-        </div>
-        <nav className="px-4 flex gap-1 overflow-x-auto items-stretch">
-          {steps.map(({ screen, i, status, active }) => (
-            <div key={screen} className="flex items-stretch shrink-0">
-              {i > 0 && (
+      {/* The steps run along the top rather than down a 232px column beside the
+          content. The rail had room for a line of detail per step, which is why
+          it existed — but it also took 232px off every screen, and on the two
+          screens that have their own list of things to work through it meant two
+          columns of navigation before any content. The detail survives here, one
+          line under the label, from `md` up. */}
+      <nav className="px-4 flex gap-1 items-stretch overflow-x-auto">
+        {steps.map(({ screen, i, status, detail, active }) => (
+          <div key={screen} className="flex items-stretch shrink-0">
+            {i > 0 && (
+              <span
+                className={`self-center w-5 h-px mx-0.5 ${status === 'done' ? 'bg-green-300' : 'bg-gray-200'}`}
+                aria-hidden="true"
+              />
+            )}
+            <div className="flex flex-col">
+              <button
+                onClick={() => dispatch({ type: 'SET_SCREEN', screen })}
+                aria-current={active ? 'step' : undefined}
+                className={`px-2.5 pt-2 pb-1.5 text-sm rounded-lg transition-colors flex items-start gap-2 text-left ${
+                  active ? 'text-indigo-700 font-semibold' : status === 'none' ? 'text-gray-400' : 'text-gray-600'
+                }`}
+              >
                 <span
-                  className={`self-center w-5 h-px mx-0.5 ${status === 'done' ? 'bg-green-300' : 'bg-gray-200'}`}
+                  className={`w-[18px] h-[18px] rounded-full shrink-0 grid place-items-center text-[10px] font-bold mt-0.5 ${badgeFor(status, active)}`}
                   aria-hidden="true"
-                />
-              )}
-              <div className="flex flex-col">
-                <button
-                  onClick={() => dispatch({ type: 'SET_SCREEN', screen })}
-                  aria-current={active ? 'step' : undefined}
-                  className={`px-2.5 py-2 text-sm rounded-lg transition-colors flex items-center gap-2 ${
-                    active ? 'text-indigo-700 font-semibold' : status === 'none' ? 'text-gray-400' : 'text-gray-600'
-                  }`}
                 >
-                  <span
-                    className={`w-[18px] h-[18px] rounded-full shrink-0 grid place-items-center text-[10px] font-bold ${badgeFor(status, active)}`}
-                    aria-hidden="true"
-                  >
-                    {status === 'done' && !active ? '✓' : i + 1}
-                  </span>
-                  {t(LABELS[screen])}
-                </button>
-                <span
-                  className={`h-[3px] rounded-full mx-1 mb-1 transition-colors duration-500 ${
-                    active ? 'bg-accent' : status === 'done' ? 'bg-green-500' : status === 'partial' ? 'bg-amber-400' : 'bg-gray-200'
-                  }`}
-                  aria-hidden="true"
-                />
-              </div>
+                  {status === 'done' && !active ? '✓' : i + 1}
+                </span>
+                <span className="min-w-0">
+                  <span className="block leading-tight whitespace-nowrap">{t(LABELS[screen])}</span>
+                  {detail && (
+                    <span className="hidden md:block text-[11px] font-normal text-gray-400 leading-tight mt-0.5 whitespace-nowrap">
+                      {detail}
+                    </span>
+                  )}
+                </span>
+              </button>
+              <span
+                className={`h-[3px] rounded-full mx-1 mb-1 transition-colors duration-500 ${
+                  active ? 'bg-accent' : status === 'done' ? 'bg-green-500' : status === 'partial' ? 'bg-amber-400' : 'bg-gray-200'
+                }`}
+                aria-hidden="true"
+              />
             </div>
-          ))}
-        </nav>
-      </header>
-    </>
+          </div>
+        ))}
+      </nav>
+    </header>
   );
 }
