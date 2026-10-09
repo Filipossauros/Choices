@@ -88,7 +88,7 @@ export default function Robustness() {
   return (
     <div className="max-w-4xl mx-auto py-6 px-4 space-y-5">
       <div className="space-y-2">
-        <h2 className="text-lg font-semibold text-gray-800">{t('Robustez do modelo')}</h2>
+        <h2 className="text-lg font-semibold text-gray-800">{t('O que ficou em aberto')}</h2>
         <p className="text-sm text-gray-500 leading-relaxed max-w-3xl">
           {t('Quanta liberdade os seus juízos deixaram em aberto. Cada barra mostra o intervalo de valores que continuam compatíveis com o que respondeu — quanto mais estreito, mais o modelo está determinado. Não precisa de propostas: isto olha só para o modelo.')}
         </p>

@@ -186,7 +186,7 @@ export default function DecisionScale() {
     <div className="max-w-4xl mx-auto py-6 px-4 space-y-5">
       {/* ── Header ── */}
       <div className="space-y-2">
-        <h2 className="text-lg font-semibold text-gray-800">{t('Perfis de decisão')}</h2>
+        <h2 className="text-lg font-semibold text-gray-800">{t('Zonas de decisão')}</h2>
         <p className="text-sm text-gray-500 leading-relaxed">
           {t('A pontuação global V(p) ∈ [0, 100] (Neutro = 0, Bom = 100) diz quão boa é cada alternativa. Aqui define-se o que fazer com cada resultado: zonas com nome e ação (ex.: «Aceitar», «Rejeitar», «Aplicar sanção»), separadas por limiares de corte. Cada resultado cai na zona mais alta cujo limiar atinge.')}
         </p>
@@ -412,7 +412,7 @@ export default function DecisionScale() {
 
       <ScreenNav
         next="robustness"
-        nextLabel="Robustez"
+        nextLabel="O que ficou em aberto"
         hint="Veja quanta liberdade os seus juízos deixaram em aberto antes de fechar o modelo."
         blockedBy={bands.length === 0 ? 'Defina pelo menos uma zona de decisão.' : undefined}
       />

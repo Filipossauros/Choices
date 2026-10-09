@@ -388,7 +388,10 @@ export default function GuidedJudgments({
       </div>
 
       {/* MACBETH reference — the bridge between what is on screen and what goes
-          into the report, for anyone who has to defend the model. */}
+          into the report, for anyone who has to defend the model. Shown with the
+          codes, since on its own it introduces a vocabulary simple mode is
+          deliberately not using. */}
+      {showCodes && (
       <details className="text-xs text-gray-500">
         <summary className="cursor-pointer hover:text-gray-700 font-medium">{t('Equivalência com as categorias MACBETH')}</summary>
         <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-1">
@@ -403,6 +406,7 @@ export default function GuidedJudgments({
           {t('As categorias são ordinais: uma diferença Elevada (C4) tem de ser maior que uma Moderada (C3), e assim por diante. A verificação de consistência confirma que as respostas não se contradizem.')}
         </p>
       </details>
+      )}
     </div>
   );
 }

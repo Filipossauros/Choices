@@ -157,7 +157,7 @@ export default function ModelSummary() {
 
       {/* Decision bands */}
       <section className="border border-gray-200 rounded-xl p-5 bg-white space-y-3">
-        <h3 className="font-semibold text-gray-800">{t('Perfis de decisão')}</h3>
+        <h3 className="font-semibold text-gray-800">{t('Zonas de decisão')}</h3>
         <div className="space-y-1.5">
           {bandViews.map((v) => {
             const b = v.band;

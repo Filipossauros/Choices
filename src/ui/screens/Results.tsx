@@ -611,7 +611,7 @@ export default function Results() {
         </div>
       )}
 
-      <ScreenNav next="sensitivity" nextLabel="Sensibilidade"
+      <ScreenNav next="sensitivity" nextLabel="E se mudar de ideias?"
         hint="Analise a robustez dos resultados à variação dos pesos." />
     </div>
   );

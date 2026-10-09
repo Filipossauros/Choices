@@ -32,12 +32,30 @@ const catOf = (j: MacbethJudgment): MacbethCategory => (j.kind === 'exact' ? j.c
 
 // ── Scale ruler ───────────────────────────────────────────────────────────────
 
+/**
+ * Trim a label to what will actually fit, in an element that has no
+ * `text-overflow`. SVG gives no measurement without a layout pass, so this uses
+ * the average advance width of the UI face at the size the ruler draws at —
+ * wrong by a character either way, which is fine for deciding where to cut and
+ * far better than the alternative, which was level names printing straight
+ * through the numbers column.
+ */
+function fitText(text: string, maxPx: number, fontPx: number): string {
+  const perChar = fontPx * 0.54;
+  const max = Math.floor(maxPx / perChar);
+  if (text.length <= max) return text;
+  return `${text.slice(0, Math.max(1, max - 1)).trimEnd()}…`;
+}
+
 function ScaleRuler({
   scale,
   criterion,
+  technical,
 }: {
   scale: DerivedScale;
   criterion: QualificationCriterion;
+  /** Show the admissible range column — and give the labels less room. */
+  technical: boolean;
 }) {
   const { t } = useTranslation();
   const levels = criterion.descriptor.levels;
@@ -62,11 +80,15 @@ function ScaleRuler({
 
   // Column x positions
   const LABEL_X = AX + 18;   // level name ("Performance" column)
-  const VAL_X = 270;          // score value ("Pontos" column, right-aligned)
-  const RANGE_X = 276;        // admissible range start
-  const PILL_X = 368;         // Bom/Neutro pill left edge
   const PILL_W = 52;
+  const PILL_X = 368;        // Bom/Neutro pill left edge
   const PILL_MID = PILL_X + PILL_W / 2;
+  const RANGE_X = 276;       // admissible range start (technical only)
+  // Without the range column the score can move right, which is where the room
+  // for long level names comes from.
+  const VAL_X = technical ? 270 : PILL_X - 14;
+  // Widest a level name may draw before it would reach the score.
+  const LABEL_MAX = VAL_X - 40 - LABEL_X;
 
   // Header y
   const HDR_Y = 22;
@@ -85,9 +107,11 @@ function ScaleRuler({
       <text x={VAL_X} y={HDR_Y} fontSize="9" fill="currentColor" className="text-gray-400" fontWeight="600" textAnchor="end" letterSpacing="0.8">
         {t('PONTOS')}
       </text>
-      <text x={RANGE_X} y={HDR_Y} fontSize="9" letterSpacing="0" fill="currentColor" className="text-gray-300">
-        {t('intervalo')}
-      </text>
+      {technical && (
+        <text x={RANGE_X} y={HDR_Y} fontSize="9" letterSpacing="0" fill="currentColor" className="text-gray-300">
+          {t('intervalo')}
+        </text>
+      )}
       {/* Header separator */}
       <line x1={AX} y1={SEP_Y} x2={VIEW_W - 4} y2={SEP_Y} strokeWidth={1} className="stroke-gray-100" />
 
@@ -138,7 +162,8 @@ function ScaleRuler({
                 fontWeight={isNeutral || isGood ? '600' : '400'}
                 className={labelClass}
               >
-                {level?.label}
+                {fitText(level?.label ?? '', LABEL_MAX, 11)}
+                <title>{level?.label}</title>
               </text>
 
               {/* ── Score value (Pontos column) ── */}
@@ -154,13 +179,15 @@ function ScaleRuler({
               </text>
 
               {/* ── Admissible range ── */}
-              <text
-                x={RANGE_X} y={4}
-                fontSize="8.5" fill="currentColor"
-                className="text-gray-300"
-              >
-                [{sv.admissibleRange[0].toFixed(0)}, {sv.admissibleRange[1].toFixed(0)}]
-              </text>
+              {technical && (
+                <text
+                  x={RANGE_X} y={4}
+                  fontSize="8.5" fill="currentColor"
+                  className="text-gray-300"
+                >
+                  [{sv.admissibleRange[0].toFixed(0)}, {sv.admissibleRange[1].toFixed(0)}]
+                </text>
+              )}
 
               {/* ── Bom / Neutro pill ── */}
               {isGood && (
@@ -323,6 +350,7 @@ export default function Scales() {
   const { t } = useTranslation();
   const { state, dispatch } = useApp();
   const model = state.model!;
+  const technical = state.uiMode === 'technical';
   const [derivingId, setDerivingId] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [activePairKey, setActivePairKey] = useState<string | null>(null);
@@ -765,6 +793,7 @@ export default function Scales() {
             onChange={(j) => updateMatrix(activeCrit.id, j)}
             onActivePairChange={setActivePairKey}
             context="improvement"
+            showCodes={technical}
             emptyHint="São necessários pelo menos 2 níveis."
             renderQuestion={(more, less) => (
               <>
@@ -782,8 +811,9 @@ export default function Scales() {
             )}
           />
 
-          {/* Collapsed by default — the guided questions above collect the same
-              judgments; the grid is the power-user view of them. */}
+          {/* The grid is the power-user view of the same judgments the questions
+              above collect — kept for auditing, hidden while simply answering. */}
+          {technical && (
           <details className="border-t border-gray-100 pt-4 group">
             <summary className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 cursor-pointer select-none flex items-center gap-1.5 hover:text-gray-700">
               <span className="transition-transform group-open:rotate-90">▸</span> {t('Matriz de juízos')}
@@ -795,6 +825,7 @@ export default function Scales() {
               activePairKey={activePairKey ?? undefined}
             />
           </details>
+          )}
           </>
           )}
 
@@ -835,7 +866,7 @@ export default function Scales() {
                   <p className="text-xs text-gray-500 mb-3">
                     {t('Régua de valor — níveis posicionados proporcionalmente ao seu valor cardinal')}
                   </p>
-                  <ScaleRuler scale={scale} criterion={activeCrit} />
+                  <ScaleRuler scale={scale} criterion={activeCrit} technical={technical} />
                 </div>
 
                 {/* Formula + Chart */}
@@ -852,7 +883,7 @@ export default function Scales() {
 
       <ScreenNav
         next="decision"
-        nextLabel="Perfis de decisão"
+        nextLabel="Zonas de decisão"
         hint="Com escalas e pesos definidos, construa os perfis de decisão (limiares MACBETH)."
         blockedBy={
           qualCriteria.some((c) => !model.derivedScales.find((s) => s.criterionId === c.id && s.consistencyMargin > 0))

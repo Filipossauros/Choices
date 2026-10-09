@@ -1086,4 +1086,26 @@ export const en: Record<string, string> = {
     'which includes that stretch and goes further still',
   'Um percurso maior não pode melhorar menos do que uma parte dele.':
     'A longer stretch cannot improve less than a part of it.',
+
+  // ── Modo simples / técnico e renomeação dos passos ──
+  'Zonas de decisão':
+    'Decision zones',
+  'Níveis e valores':
+    'Levels and values',
+  'Importância':
+    'Importance',
+  'O que ficou em aberto':
+    'What is still open',
+  'E se mudar de ideias?':
+    'What if I change my mind?',
+  'Modo técnico: mostra a matriz de juízos, as gamas admissíveis e os atalhos de cálculo.':
+    'Technical mode: shows the judgment matrix, the admissible ranges and the calculation shortcuts.',
+  'Modo simples: só as perguntas e os resultados. Nada é removido do modelo nem do relatório.':
+    'Simple mode: just the questions and the results. Nothing is removed from the model or the report.',
+  'TÉC':
+    'TECH',
+  'SIMPLES':
+    'SIMPLE',
+  'De cada 100 pontos da avaliação, estes são os que vêm de cada critério.':
+    'Out of every 100 points of the evaluation, these are the ones coming from each criterion.',
 };

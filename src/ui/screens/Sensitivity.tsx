@@ -77,7 +77,7 @@ export default function Sensitivity() {
     <div className="max-w-5xl mx-auto py-6 px-4 space-y-6">
       {/* Header + plain-language explanation */}
       <div>
-        <h2 className="text-xl font-semibold text-gray-800">{t('Análise de sensibilidade')}</h2>
+        <h2 className="text-xl font-semibold text-gray-800">{t('E se mudar de ideias?')}</h2>
         <div className="mt-2 text-sm text-gray-600 bg-slate-50 border border-slate-200 rounded-xl p-4 leading-relaxed space-y-2">
           <p>
             <strong className="text-gray-700">{t('O que mostra:')}</strong> {t('cada linha é uma alternativa. O gráfico segue o seu valor global V(p) à medida que o peso do critério selecionado varia de 0 % a 100 %. A linha vertical tracejada (azul) marca o peso atual e as faixas coloridas de fundo são as zonas da política de decisão.')}

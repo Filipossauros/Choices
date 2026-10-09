@@ -14,7 +14,7 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { useApp, type Screen, type Mode } from '../store';
-import { CREATE_SCREENS, APPLY_SCREENS } from '../store';
+import { createScreens, APPLY_SCREENS, SCREEN_LABELS as LABELS } from '../store';
 import {
   allGroupsConsistent, modelReadiness, weightingGroups, weightsForGroup, modelRobustness,
 } from '../../domain/tree';
@@ -79,21 +79,37 @@ function DarkModeToggle() {
   );
 }
 
+/**
+ * Simple ⇄ technical. Sits beside the language and theme toggles because it is
+ * the same kind of setting: how this person wants to be addressed, not anything
+ * about the model. Nothing it hides is removed — the report keeps all of it.
+ */
+function UiModeToggle() {
+  const { t } = useTranslation();
+  const { state, dispatch } = useApp();
+  const technical = state.uiMode === 'technical';
+  return (
+    <button
+      onClick={() => dispatch({ type: 'SET_UI_MODE', uiMode: technical ? 'simple' : 'technical' })}
+      title={
+        technical
+          ? t('Modo técnico: mostra a matriz de juízos, as gamas admissíveis e os atalhos de cálculo.')
+          : t('Modo simples: só as perguntas e os resultados. Nada é removido do modelo nem do relatório.')
+      }
+      aria-pressed={technical}
+      className={`shrink-0 h-8 px-2.5 grid place-items-center rounded-lg border transition-colors text-[11px] font-bold tracking-wide ${
+        technical
+          ? 'border-indigo-300 bg-indigo-50 text-indigo-700'
+          : 'border-gray-200 text-gray-500 hover:bg-gray-50 hover:text-gray-700'
+      }`}
+    >
+      {technical ? t('TÉC') : t('SIMPLES')}
+    </button>
+  );
+}
+
 // ── Step labels and status ────────────────────────────────────────────────────
 
-const LABELS: Record<Screen, string> = {
-  home: 'Início',
-  criteria: 'Estrutura',
-  decision: 'Perfis de decisão',
-  scales: 'Escalas',
-  weighting: 'Ponderação',
-  robustness: 'Robustez',
-  summary: 'Resumo',
-  analysis: 'Propostas',
-  results: 'Resultados',
-  sensitivity: 'Sensibilidade',
-  report: 'Relatório',
-};
 
 export type CompletionStatus = 'done' | 'partial' | 'none';
 
@@ -305,7 +321,7 @@ function savedAgo(iso: string, t: TFn): string {
 export default function StepRail() {
   const { t } = useTranslation();
   const { state, dispatch } = useApp();
-  const { currentScreen, mode, model, evaluation } = state;
+  const { currentScreen, mode, uiMode, model, evaluation } = state;
 
   // Re-render the "saved" line on a slow tick so it stays honest without
   // pulling the whole tree through a state update on every keystroke.
@@ -315,7 +331,7 @@ export default function StepRail() {
     return () => clearInterval(id);
   }, []);
 
-  const screens: Screen[] = mode === 'create' ? CREATE_SCREENS : mode === 'apply' ? APPLY_SCREENS : [];
+  const screens: Screen[] = mode === 'create' ? createScreens(uiMode) : mode === 'apply' ? APPLY_SCREENS : [];
   const docLabel = mode === 'create' ? model?.label : evaluation?.label;
   const updatedAt = mode === 'create' ? model?.updatedAt : evaluation?.updatedAt;
   const modeLabel: Record<Mode, string> = { create: 'Modelo', apply: 'Avaliação' };
@@ -372,6 +388,7 @@ export default function StepRail() {
       <header className="bg-white border-b border-gray-200 sticky top-0 z-20 px-4 py-2.5 flex items-center gap-3">
         {home}
         <div className="ml-auto flex items-center gap-2">
+          <UiModeToggle />
           <LanguageToggle />
           <DarkModeToggle />
         </div>
@@ -445,6 +462,7 @@ export default function StepRail() {
           </button>
         )}
         <div className="flex items-center gap-2 pt-3 border-t border-gray-200">
+          <UiModeToggle />
           <LanguageToggle />
           <DarkModeToggle />
         </div>
@@ -459,6 +477,7 @@ export default function StepRail() {
           </span>
           {docLabel && <span className="text-sm text-gray-500 truncate">{docLabel}</span>}
           <div className="ml-auto flex items-center gap-2 shrink-0">
+            <UiModeToggle />
             <LanguageToggle />
             <DarkModeToggle />
           </div>
