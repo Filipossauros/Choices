@@ -1184,4 +1184,16 @@ export const en: Record<string, string> = {
     'narrow range — pinned down',
   '{{total}} de {{total}} respondidas':
     '{{total}} of {{total}} answered',
+
+  // ── Régua da política de decisão / sensibilidade ──
+  'Nenhuma proposta chegou a ser pontuada, por isso não há ordenação que possa mudar.':
+    'No proposal was ever scored, so there is no ranking that could change.',
+  'Onde cai cada proposta na política de decisão':
+    'Where each proposal falls in the decision policy',
+  'pontuação = Σ importância × valor, com neutro = 0 e bom = 100':
+    'score = Σ importance × value, with neutral = 0 and good = 100',
+  'zonas':
+    'zones',
+  'Nenhuma proposta pontuada — nada para colocar na régua.':
+    'No scored proposal — nothing to place on the ruler.',
 };

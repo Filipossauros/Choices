@@ -68,7 +68,27 @@ export default function Sensitivity() {
 
   const resolvedScale = resolveBands(model);
   const bandViews = displayBands(resolvedScale);
-  const options = evaluation.options;
+  /**
+   * Only the proposals that actually have a global value.
+   *
+   * The engine already refuses to put a gate-rejected or incomplete proposal in
+   * its series — charting it as 0 would draw a flat line across the decision
+   * zones and invent ranking flips against a value that does not exist. This
+   * screen was undoing that at the view layer: it iterated every option and
+   * filled the gaps with `?? 0`, drawing exactly those lines, naming them in the
+   * legend, and dragging the y-axis down to meet them.
+   */
+  const scorableIds = new Set(
+    computeSensitivity(evaluation, qualCriteria[0].id).points.flatMap((p) => Object.keys(p.optionValues)),
+  );
+  const options = evaluation.options.filter((o) => scorableIds.has(o.id));
+  if (options.length === 0) {
+    return (
+      <div className="max-w-2xl mx-auto py-10 px-4 text-center text-gray-400">
+        <p>{t('Nenhuma proposta chegou a ser pontuada, por isso não há ordenação que possa mudar.')}</p>
+      </div>
+    );
+  }
   // Use safe indexed keys for recharts dataKey (avoid UUID issues)
   const optKeys = options.map((_, i) => `v${i}`);
   const optLabelOf = (key: string) => options[parseInt(key.slice(1))]?.label ?? key;
