@@ -12,7 +12,7 @@ import JudgmentMatrixEditor from '../components/JudgmentMatrixEditor';
 import GuidedJudgments from '../components/GuidedJudgments';
 import ScreenNav from '../components/ScreenNav';
 import { ancestorLabels } from '../../domain/tree';
-import { CATEGORIES } from '../../domain/categories';
+import { CATEGORIES, categoryWording } from '../../domain/categories';
 import ValueRuler, { defaultLevelValues, judgmentsFromLevelValues, pairReadings, type LevelValues } from '../components/ValueRuler';
 import { v4 as uuidv4 } from 'uuid';
 import {
@@ -634,21 +634,23 @@ export default function Scales() {
                       <>
                         <p className="font-bold text-rose-900 text-sm">{t('Duas respostas contradizem-se')}</p>
                         <p className="text-[13px] text-rose-900/90 leading-relaxed">
-                          {t('Disse que o salto de')}{' '}
-                          <strong>{labelOfLevel(first.narrow.fromId)} → {labelOfLevel(first.narrow.toId)}</strong>{' '}
-                          {t('é')} <strong>{t(CATEGORIES[catOf(first.narrow.judgment)]?.label ?? '')}</strong>,{' '}
-                          {t('mas o salto de')}{' '}
-                          <strong>{labelOfLevel(first.wide.fromId)} → {labelOfLevel(first.wide.toId)}</strong>{' '}
-                          — {t('que contém o primeiro e ainda mais')} — {t('é apenas')}{' '}
-                          <strong>{t(CATEGORIES[catOf(first.wide.judgment)]?.label ?? '')}</strong>.{' '}
-                          {t('Um salto maior não pode valer menos do que um dos seus troços.')}
+                          {t('Disse que ir de')}{' '}
+                          <strong>{labelOfLevel(first.narrow.fromId)}</strong> {t('para')}{' '}
+                          <strong>{labelOfLevel(first.narrow.toId)}</strong>{' '}
+                          <strong>«{t(categoryWording(catOf(first.narrow.judgment), 'improvement').label)}»</strong>.{' '}
+                          {t('Mas disse que ir de')}{' '}
+                          <strong>{labelOfLevel(first.wide.fromId)}</strong> {t('para')}{' '}
+                          <strong>{labelOfLevel(first.wide.toId)}</strong>{' '}
+                          — {t('que inclui esse percurso e ainda vai mais longe')} —{' '}
+                          <strong>«{t(categoryWording(catOf(first.wide.judgment), 'improvement').label)}»</strong>.{' '}
+                          {t('Um percurso maior não pode melhorar menos do que uma parte dele.')}
                         </p>
                         <div className="flex flex-wrap items-center gap-2 pt-1">
                           <button
                             onClick={() => fixJudgment(activeCrit.id, first.wide.key, minimumCategoryFor(first))}
                             className="px-3.5 py-1.5 text-sm font-semibold bg-danger text-white rounded-lg hover:bg-danger-strong"
                           >
-                            {t('Corrigir para «{{cat}}»', { cat: t(CATEGORIES[minimumCategoryFor(first)]?.label ?? '') })}
+                            {t('Corrigir para «{{cat}}»', { cat: t(categoryWording(minimumCategoryFor(first), 'improvement').label) })}
                           </button>
                           <span className="text-xs text-rose-800/70">
                             {t('A correção sugerida é a que menos se afasta do que respondeu.')}
@@ -663,7 +665,7 @@ export default function Scales() {
                           <strong>
                             {labelOfLevel(d.fallback.key.split('__')[1])} → {labelOfLevel(d.fallback.key.split('__')[0])}
                           </strong>{' '}
-                          {t('para')} <strong>{t(CATEGORIES[d.fallback.suggested]?.label ?? '')}</strong>{' '}
+                          {t('para')} <strong>«{t(categoryWording(d.fallback.suggested, 'improvement').label)}»</strong>{' '}
                           {t('resolve-a.')}
                         </p>
                         <button
@@ -731,7 +733,7 @@ export default function Scales() {
           {answered.length > 0 && (
             <div className="bg-white border border-gray-200 rounded-2xl p-4 space-y-2">
               <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
-                {t('Juízos já dados — julgue por comparação')}
+                {t('O que já respondeu neste critério')}
               </p>
               {answered.map((a, i) => (
                 <div
@@ -750,7 +752,7 @@ export default function Scales() {
                     <span className="text-[9px] font-bold uppercase tracking-wide text-indigo-600">{t('referência')}</span>
                   )}
                   <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 shrink-0">
-                    {t(CATEGORIES[a.cat]?.label ?? '')}
+                    {t(categoryWording(a.cat, 'improvement').label)}
                   </span>
                 </div>
               ))}
@@ -762,17 +764,18 @@ export default function Scales() {
             judgments={getMatrix(activeCrit.id).judgments}
             onChange={(j) => updateMatrix(activeCrit.id, j)}
             onActivePairChange={setActivePairKey}
+            context="improvement"
             emptyHint="São necessários pelo menos 2 níveis."
             renderQuestion={(more, less) => (
               <>
-                {t('Que ganho representa subir de')}{' '}
+                {t('A proposta tem')}{' '}
                 <span className="inline-block bg-gray-50 border border-gray-200 rounded-lg px-2 py-0.5 font-semibold text-gray-700">{less.label}</span>
-                {' '}{t('para')}{' '}
-                <span className="inline-block bg-indigo-50 border border-indigo-300 rounded-lg px-2 py-0.5 font-bold text-indigo-700">{more.label}</span>
-                ?
+                {' '}{t('e passa a ter')}{' '}
+                <span className="inline-block bg-indigo-50 border border-indigo-300 rounded-lg px-2 py-0.5 font-bold text-indigo-700">{more.label}</span>.
+                <span className="block mt-1">{t('Quanto melhora com isso?')}</span>
                 {referenceJump && (
-                  <span className="block text-sm font-normal text-gray-500 mt-2">
-                    {t('Comparado com o salto de referência ({{ref}}), este ganho é…', { ref: referenceJump })}
+                  <span className="block text-sm font-normal text-gray-600 bg-indigo-50 border border-indigo-100 rounded-xl px-3 py-2 mt-3">
+                    {t('Para comparar: o salto de referência ({{ref}}).', { ref: referenceJump })}
                   </span>
                 )}
               </>

@@ -13,8 +13,8 @@
  */
 import { useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { QualificationCriterion, MacbethJudgment } from '../../domain/types';
-import { CATEGORIES, categoryForRatio } from '../../domain/categories';
+import type { QualificationCriterion, MacbethJudgment, MacbethCategory } from '../../domain/types';
+import { categoryForRatio, categoryWording } from '../../domain/categories';
 
 /**
  * Base drawing domain. It widens to fit the data — a level below Neutro or
@@ -258,7 +258,7 @@ export default function ValueRuler({
 export function pairReadings(criterion: QualificationCriterion, values: LevelValues) {
   const levels = criterion.descriptor.levels;
   const judgments = judgmentsFromLevelValues(criterion, values);
-  const rows: { key: string; from: string; to: string; delta: number; cat: number }[] = [];
+  const rows: { key: string; from: string; to: string; delta: number; cat: MacbethCategory }[] = [];
   for (let i = 0; i < levels.length - 1; i++) {
     for (let j = i + 1; j < levels.length; j++) {
       const key = `${levels[i].id}__${levels[j].id}`;
@@ -272,5 +272,5 @@ export function pairReadings(criterion: QualificationCriterion, values: LevelVal
       });
     }
   }
-  return rows.sort((a, b) => a.delta - b.delta).map((r) => ({ ...r, label: CATEGORIES[r.cat]?.label ?? '' }));
+  return rows.sort((a, b) => a.delta - b.delta).map((r) => ({ ...r, label: categoryWording(r.cat, 'improvement').label }));
 }

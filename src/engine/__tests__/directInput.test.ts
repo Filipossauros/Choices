@@ -7,6 +7,7 @@
  * real LP accepts, covering every pair and preserving the order the user drew.
  */
 import { describe, it, expect } from 'vitest';
+import { categoryLabel, categoryWording } from '../../domain/categories';
 import {
   defaultLevelValues,
   judgmentsFromLevelValues,
@@ -88,7 +89,12 @@ describe('value ruler', () => {
     const rows = pairReadings(crit(), { forte: 100, basica: 42, nenhuma: 0 });
     expect(rows).toHaveLength(3);
     expect(rows[0].delta).toBeLessThanOrEqual(rows[rows.length - 1].delta);
-    expect(rows[rows.length - 1].label).toBe('Extrema');
+    // The widest gap sits at the top of the ladder. Readings are labelled with
+    // what the respondent would *say* ("é o salto máximo"), not with the name of
+    // the quantity ("Extrema") — the two have to stay tied to the same category.
+    expect(rows[rows.length - 1].cat).toBe(6);
+    expect(rows[rows.length - 1].label).toBe(categoryWording(6, 'improvement').label);
+    expect(categoryLabel(6)).toBe('Extrema');
     expect(rows[0].from).toBeTruthy();
   });
 });

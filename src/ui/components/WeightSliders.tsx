@@ -12,7 +12,7 @@
  * when it varies one weight.
  */
 import { useTranslation } from 'react-i18next';
-import { CATEGORIES } from '../../domain/categories';
+import { categoryWording } from '../../domain/categories';
 import { judgmentsFromWeights } from '../../engine/simulate';
 import { ALL_NEUTRAL } from '../../engine/weighting';
 
@@ -48,7 +48,7 @@ export function weightReadings(orderedIds: string[], weights: WeightMap, labelOf
         less: labelOf(b),
         delta: Math.abs((weights[a] ?? 0) - (weights[b] ?? 0)),
         cat,
-        label: CATEGORIES[cat]?.label ?? '',
+        label: categoryWording(cat, 'preference').label,
       };
     })
     .sort((x, y) => x.delta - y.delta);

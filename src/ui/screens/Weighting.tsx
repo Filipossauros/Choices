@@ -2,8 +2,9 @@ import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useApp } from '../store';
 import { useDialogs } from '../components/Dialog';
-import type { MacbethJudgment, JudgmentMatrix, WeightProvenance } from '../../domain/types';
+import type { MacbethJudgment, MacbethCategory, JudgmentMatrix, WeightProvenance } from '../../domain/types';
 import { DEFAULT_ASSESSOR_ID, ROOT_ID } from '../../domain/types';
+import { reorientJudgments, moveBefore } from '../../domain/judgments';
 import { deriveWeights, ALL_NEUTRAL } from '../../engine/weighting';
 import { simulateWeighting, judgmentsFromWeights } from '../../engine/simulate';
 import WeightSliders, { weightReadings, type WeightMap } from '../components/WeightSliders';
@@ -81,6 +82,63 @@ function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; on
     return '';
   }
 
+  /** The level a criterion sits at in one of the two anchor positions. */
+  function levelLabel(id: string, which: 'neutral' | 'good'): string {
+    const c = criteria[id];
+    if (c?.type === 'qualification') {
+      const { levels, neutralIndex, goodIndex } = c.descriptor;
+      return levels[which === 'neutral' ? neutralIndex : goodIndex]?.label ?? '';
+    }
+    if (c?.type === 'composite') {
+      return which === 'neutral'
+        ? t('tudo no nível neutro')
+        : t('tudo no nível «Bom»');
+    }
+    return '';
+  }
+
+  /**
+   * One of the two alternatives a swing comparison is really about: good in one
+   * criterion, neutral in the other, identical everywhere else.
+   */
+  function proposalCard(
+    name: string,
+    upId: string,
+    rows: { id: string; label: string }[],
+  ) {
+    const row = (crit: { id: string; label: string }, improved: boolean) => (
+      <span key={crit.id} className="flex gap-2.5 items-start px-3 py-2 border-t border-gray-100 first:border-t-0">
+        <span
+          className={`shrink-0 w-4 h-4 mt-0.5 rounded-full grid place-items-center text-[9px] font-bold ${
+            improved ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'
+          }`}
+          aria-hidden="true"
+        >
+          {improved ? '▲' : '–'}
+        </span>
+        <span className="min-w-0">
+          <span className="block text-[10px] uppercase tracking-wide text-gray-400 truncate">{crit.label}</span>
+          <span className={`block text-[13px] ${improved ? 'font-semibold text-gray-800' : 'text-gray-500'}`}>
+            {levelLabel(crit.id, improved ? 'good' : 'neutral')}
+          </span>
+          {improved && subJumps(crit.id) && (
+            <span className="block text-[11px] text-gray-400 mt-0.5">{subJumps(crit.id)}</span>
+          )}
+        </span>
+      </span>
+    );
+    return (
+      <span className="border-[1.5px] border-gray-200 rounded-xl bg-white overflow-hidden">
+        <span className="block px-3 py-1.5 bg-gray-50 border-b border-gray-100 text-[11px] font-bold uppercase tracking-wider text-gray-500">
+          {name}
+        </span>
+        {/* Both cards list the criteria in the same order, so the eye compares
+            level against level instead of hunting for the matching row. */}
+        {rows.map((crit) => row(crit, crit.id === upId))}
+      </span>
+    );
+  }
+
   /** The individual swings a factor bundles, for the second line of its card. */
   function subJumps(id: string): string {
     const c = criteria[id];
@@ -153,17 +211,41 @@ function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; on
 
     // Re-key the existing judgments to the new order so already-given answers
     // stay in the matrix (the magnitude is symmetric; only which side is the
-    // "more attractive" row changes). ALL_NEUTRAL always ranks last.
-    const rank = new Map(next.map((id, k) => [id, k] as const));
-    const rankOf = (id: string) => (id === ALL_NEUTRAL ? Number.MAX_SAFE_INTEGER : rank.get(id) ?? Number.MAX_SAFE_INTEGER - 1);
-    const remapped: Record<string, MacbethJudgment> = {};
-    for (const [key, value] of Object.entries(matrix.judgments)) {
-      const [a, b] = key.split('__');
-      const [first, second] = rankOf(a) <= rankOf(b) ? [a, b] : [b, a];
-      remapped[`${first}__${second}`] = value;
-    }
+    // "more attractive" row changes). ALL_NEUTRAL is absent from `next`, so it
+    // ranks last — where it belongs.
+    const remapped = reorientJudgments(next, matrix.judgments);
 
     const updatedMatrix: JudgmentMatrix = { ...matrix, judgments: remapped, updatedAt: new Date().toISOString() };
+    dispatch({
+      type: 'UPDATE_MODEL',
+      patch: {
+        weightOrder: { ...(model.weightOrder ?? {}), [group.parentId]: next },
+        judgmentMatrices: [
+          ...model.judgmentMatrices.filter(
+            (m) => !(m.kind === 'weighting' && (m.criterionId ?? ROOT_ID) === group.parentId),
+          ),
+          updatedMatrix,
+        ],
+      },
+    });
+  }
+
+  /**
+   * The respondent picked the *lower-ranked* criterion as the more valuable one.
+   *
+   * Rather than refusing the answer and pointing at the ranking above ("troque-os
+   * lá"), take it: move that criterion above the other and re-file the existing
+   * answers. Nothing is lost — a MACBETH category is the size of a difference,
+   * which is symmetric; only the key's orientation changes. Everything between
+   * the two also flips, which is what "I prefer B to A, and A beat those" means.
+   */
+  function invertPair(moreId: string, lessId: string, cat: MacbethCategory) {
+    if (lessId === ALL_NEUTRAL || moreId === ALL_NEUTRAL) return;
+    const next = moveBefore(orderedChildIds, lessId, moreId);
+    const judgments = reorientJudgments(next, matrix.judgments);
+    judgments[`${lessId}__${moreId}`] = { kind: 'exact', category: cat };
+
+    const updatedMatrix: JudgmentMatrix = { ...matrix, judgments, updatedAt: new Date().toISOString() };
     dispatch({
       type: 'UPDATE_MODEL',
       patch: {
@@ -344,10 +426,10 @@ function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; on
                 <details className="group/help">
                   <summary className="text-sm font-semibold text-gray-700 cursor-pointer select-none flex items-center gap-1.5 hover:text-gray-900">
                     <span className="text-gray-400 text-xs transition-transform group-open/help:rotate-90">▸</span>
-                    {t('Passo 1 — Ordene os critérios por importância')}
+                    {t('Atalho — ordenar os critérios por importância')}
                   </summary>
                   <p className="text-xs text-gray-500 mt-1.5 leading-relaxed pl-4">
-                    {t('Antes de quantificar, ordene os critérios do mais para o menos importante — ou seja, aquele cuja melhoria de Neutro para Bom traria mais valor fica no topo. As perguntas seguintes seguem esta ordem, comparando sempre o critério mais importante com o menos importante, o que torna cada comparação mais natural. (Ordene primeiro; alterar a ordem depois de responder pode baralhar as respostas já dadas.)')}
+                    {t('Não é obrigatório: serve só para as perguntas começarem já perto do que pensa. Pode mudar de ideias em qualquer pergunta — se escolher a proposta do lado direito, esta lista reordena-se sozinha e as respostas já dadas mantêm-se.')}
                   </p>
                 </details>
                 <ol className="space-y-1.5">
@@ -375,56 +457,44 @@ function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; on
                 </ol>
               </div>
 
-              {/* Passo 2 — pairwise comparisons */}
-              <div className="bg-sky-50 rounded-2xl px-4 py-3 flex gap-3 items-start mt-2">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-sky-700 shrink-0 pt-0.5 w-16">{t('Cenário')}</span>
-                {/* "Neutro" is the level that is neither attractive nor repulsive
-                    — not the minimum acceptable. Levels below it exist and score
-                    negative, as the derived scales visibly do, so describing it
-                    as a floor contradicted the numbers the user was about to see. */}
-                <p className="text-[13px] text-sky-900/80 leading-relaxed">
-                  {t('Parta de uma proposta neutra em tudo — nem boa nem má em nenhum critério, valor 0. Pode melhorar um só critério até ao nível «Bom». Qual das duas melhorias vale mais, e quanto mais?')}
-                </p>
-              </div>
-              <p className="text-sm font-semibold text-gray-700 pt-1">{t('Passo 2 — Compare a importância dos pares')}</p>
+              {/* The comparisons.
+
+                  The question used to be "quanto *mais* vale a melhoria da
+                  esquerda do que a da direita?", with the two swings described
+                  in small print underneath. That is the right question for the
+                  method and the wrong one for a person: its subject is a
+                  variation of an alternative that does not exist, so answering
+                  means building two imaginary proposals in your head first. So
+                  build them on screen instead — the swing comparison *is* a
+                  choice between two concrete alternatives that differ in exactly
+                  two criteria and are neutral in every other. */}
               <GuidedJudgments
                 items={matrixItems}
                 judgments={matrix.judgments}
                 onChange={updateJudgments}
                 onActivePairChange={setActivePairKey}
+                context="preference"
+                onInvert={invertPair}
+                canInvert={(_more, less) => less.id !== ALL_NEUTRAL}
                 emptyHint="São necessários pelo menos 2 critérios."
                 doneHint="Todas as comparações deste grupo estão respondidas — os pesos abaixo já as refletem."
                 renderQuestion={(more, less) =>
                   less.id === ALL_NEUTRAL ? (
                     <>
-                      {t('Partindo de uma proposta neutra em tudo, quanto valor traria melhorar')}{' '}
-                      <span className="inline-block bg-indigo-50 border border-indigo-300 rounded-lg px-2 py-0.5 font-bold text-indigo-700">{more.label}</span>
-                      {t(' até «Bom»?')}
+                      {t('Uma proposta no nível neutro em todos os critérios. Prefere-a como está, ou com')}{' '}
+                      <span className="inline-block bg-indigo-50 border border-indigo-300 rounded-lg px-2 py-0.5 font-bold text-indigo-700">{more.label}</span>{' '}
+                      {t('no nível «Bom»?')}
+                      <span className="block text-xs font-normal text-gray-500 mt-2">{jumpOf(more.id)}</span>
                     </>
                   ) : (
                     <>
-                      {/* The ranking in step 1 already fixed *which* is worth
-                          more. Asking "qual?" again and answering it with a
-                          magnitude scale is a question whose answer does not fit. */}
-                      {t('Quanto')} <u>{t('mais')}</u> {t('vale a melhoria da esquerda do que a da direita?')}
+                      {t('Chegaram duas propostas. São iguais em tudo — excepto nestes dois pontos.')}
                       <span className="grid sm:grid-cols-2 gap-2.5 mt-3 text-sm font-normal">
-                        <span className="border-[1.5px] border-indigo-400 bg-indigo-50 rounded-xl px-3 py-2.5">
-                          <span className="block font-bold text-indigo-800">{more.label}</span>
-                          <span className="block text-xs text-gray-500 mt-1">{jumpOf(more.id)}</span>
-                          {subJumps(more.id) && (
-                            <span className="block text-[11px] text-gray-400 mt-0.5">{subJumps(more.id)}</span>
-                          )}
-                        </span>
-                        <span className="border-[1.5px] border-gray-200 rounded-xl px-3 py-2.5">
-                          <span className="block font-bold text-gray-700">{less.label}</span>
-                          <span className="block text-xs text-gray-500 mt-1">{jumpOf(less.id)}</span>
-                          {subJumps(less.id) && (
-                            <span className="block text-[11px] text-gray-400 mt-0.5">{subJumps(less.id)}</span>
-                          )}
-                        </span>
+                        {proposalCard(t('Proposta A'), more.id, [more, less])}
+                        {proposalCard(t('Proposta B'), less.id, [more, less])}
                       </span>
                       <span className="block text-xs font-normal text-gray-400 mt-2">
-                        {t('Se acha que vale menos, é a ordem do passo 1 que está errada — troque-os lá.')}
+                        {t('Em todos os outros critérios as duas estão exactamente no mesmo nível.')}
                       </span>
                     </>
                   )

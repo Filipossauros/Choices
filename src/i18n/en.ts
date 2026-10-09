@@ -984,4 +984,106 @@ export const en: Record<string, string> = {
   'ancorado em Neutro = 0 e Bom = 100. A habilitação corre a montante — qualquer condição eliminatória não cumprida reprova a {{one}} antes da agregação. O valor global é classificado pela escala de decisão configurada.':
     'anchored at Neutral = 0 and Good = 100. Eligibility runs upstream — any eliminating condition not met rejects the {{one}} before aggregation. The global value is then classified by the configured decision scale.',
   '│   └── Conformidade RGPD (condição eliminatória)': '│   └── GDPR compliance (eliminating condition)',
+
+  // ── Escada de respostas em linguagem comum + perguntas reescritas ──
+  'Tanto me faz':
+    'No preference',
+  'escolheria à sorte':
+    'I would pick at random',
+  'Não melhora':
+    'No improvement',
+  'na prática é igual':
+    'in practice it is the same',
+  'Prefiro, quase nada':
+    'I prefer it, barely',
+  'quase não dava pela diferença':
+    'I would hardly notice the difference',
+  'Melhora quase nada':
+    'Improves hardly at all',
+  'é melhor no papel':
+    'better on paper only',
+  'Prefiro um pouco':
+    'I prefer it a little',
+  'notava-se, mas não mudava a minha escolha':
+    'noticeable, but it would not change my choice',
+  'Melhora um pouco':
+    'Improves a little',
+  'é melhor, mas pouco':
+    'better, but only slightly',
+  'Prefiro moderadamente':
+    'I moderately prefer it',
+  'conta, e pesava na decisão':
+    'it counts, and would weigh on the decision',
+  'Melhora de forma visível':
+    'Visibly better',
+  'é uma melhoria que se nota':
+    'an improvement you notice',
+  'Prefiro muito':
+    'I much prefer it',
+  'era preciso um bom motivo para escolher a outra':
+    'it would take a good reason to pick the other one',
+  'Melhora muito':
+    'Much better',
+  'é uma melhoria importante':
+    'an important improvement',
+  'Prefiro muitíssimo':
+    'I very strongly prefer it',
+  'só escolheria a outra num caso muito especial':
+    'I would only pick the other one in a very special case',
+  'Melhora muitíssimo':
+    'Vastly better',
+  'muda a qualidade da proposta':
+    'it changes the quality of the proposal',
+  'Não há comparação':
+    'No comparison',
+  'nunca escolheria a outra por causa deste ponto':
+    'I would never pick the other one because of this point',
+  'É o salto máximo':
+    'It is the biggest possible step',
+  'é a maior diferença possível neste critério':
+    'the largest difference possible on this criterion',
+  'Qual escolhe?':
+    'Which one do you choose?',
+  'Com que folga prefere «{{label}}»?':
+    'By how much do you prefer “{{label}}”?',
+  'Equivalência com as categorias MACBETH':
+    'How this maps onto the MACBETH categories',
+  'Atalho — ordenar os critérios por importância':
+    'Shortcut — rank the criteria by importance',
+  'Não é obrigatório: serve só para as perguntas começarem já perto do que pensa. Pode mudar de ideias em qualquer pergunta — se escolher a proposta do lado direito, esta lista reordena-se sozinha e as respostas já dadas mantêm-se.':
+    'Optional: it only makes the questions start close to what you already think. You can change your mind on any question — choosing the proposal on the right reorders this list for you, and the answers you have given are kept.',
+  'Chegaram duas propostas. São iguais em tudo — excepto nestes dois pontos.':
+    'Two proposals have come in. They are identical in everything — except these two points.',
+  'Em todos os outros critérios as duas estão exactamente no mesmo nível.':
+    'On every other criterion the two sit at exactly the same level.',
+  'Proposta A':
+    'Proposal A',
+  'Proposta B':
+    'Proposal B',
+  'Uma proposta no nível neutro em todos os critérios. Prefere-a como está, ou com':
+    'A proposal sitting at the neutral level on every criterion. Do you prefer it as it is, or with',
+  'no nível «Bom»?':
+    'at the “Good” level?',
+  'tudo no nível neutro':
+    'everything at the neutral level',
+  'tudo no nível «Bom»':
+    'everything at the “Good” level',
+  'A proposta tem':
+    'The proposal has',
+  'e passa a ter':
+    'and moves to',
+  'Quanto melhora com isso?':
+    'How much better does that make it?',
+  'Para comparar: o salto de referência ({{ref}}).':
+    'For comparison: the reference step ({{ref}}).',
+  'O que já respondeu neste critério':
+    'What you have answered on this criterion',
+  'Disse que ir de':
+    'You said that going from',
+  'Mas disse que ir de':
+    'But you said that going from',
+  'que inclui esse percurso e ainda vai mais longe':
+    'which includes that stretch and goes further still',
+  'Um percurso maior não pode melhorar menos do que uma parte dele.':
+    'A longer stretch cannot improve less than a part of it.',
 };
