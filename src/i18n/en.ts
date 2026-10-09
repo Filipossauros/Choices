@@ -1162,4 +1162,26 @@ export const en: Record<string, string> = {
     'You confirmed that the importance matches what you think.',
   'rever outra vez':
     'review again',
+
+  // ── Layout: títulos de ecrã, régua de gamas ──
+  'Quantos pontos vale cada nível de cada critério. Responda às comparações e a escala calcula-se sozinha, com «nem bom nem mau» em 0 e «bom» em 100.':
+    'How many points each level of each criterion is worth. Answer the comparisons and the scale derives itself, with “neither good nor bad” at 0 and “good” at 100.',
+  'Quanto conta cada critério. Cada pergunta é uma escolha entre duas propostas que diferem só em dois pontos — responda ao que escolheria, e a importância sai daí.':
+    'How much each criterion counts. Every question is a choice between two proposals differing in only two points — answer what you would choose, and the importance follows.',
+  'Há critérios agrupados em fatores: cada grupo reparte a sua importância entre os seus. A importância final de cada critério é o produto ao longo do caminho.':
+    'Some criteria are grouped into factors: each group shares out its importance among its own. A criterion’s final importance is the product along the path.',
+  'A escala aparece aqui':
+    'The scale appears here',
+  'Cada resposta à esquerda move os níveis nesta régua. Calcula-se sozinha assim que responder a todas.':
+    'Each answer on the left moves the levels on this ruler. It derives itself once you have answered them all.',
+  'gama':
+    'range',
+  'gama admissível':
+    'admissible range',
+  'valor usado no cálculo':
+    'value used in the calculation',
+  'gama estreita — determinado':
+    'narrow range — pinned down',
+  '{{total}} de {{total}} respondidas':
+    '{{total}} of {{total}} answered',
 };

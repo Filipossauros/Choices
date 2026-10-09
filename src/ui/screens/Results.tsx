@@ -1,4 +1,4 @@
-import { useMemo, useEffect, useState, Fragment } from 'react';
+import { useMemo, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useApp } from '../store';
 import { aggregate } from '../../engine/aggregation';
@@ -10,10 +10,6 @@ import type { DecisionBand } from '../../domain/types';
 import { ROOT_ID } from '../../domain/types';
 import { IconExport } from '../components/icons';
 import ScreenNav from '../components/ScreenNav';
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ReferenceArea, ResponsiveContainer, Cell,
-} from 'recharts';
 
 /** Colour for a result with no band — reads from the palette, so it follows the mode. */
 const REJECT_COLOR = 'rgb(var(--n-400))';
@@ -329,50 +325,101 @@ export default function Results() {
         })}
       </div>
 
-      {/* ── Bar chart ── */}
-      <div className="border border-gray-200 rounded-xl p-4 bg-white">
-        <h3 className="text-sm font-semibold text-gray-700 mb-3">{t('Valor Global V(p) — Modelo Aditivo')}</h3>
-        <ResponsiveContainer width="100%" height={200}>
-          <BarChart data={chartData} margin={{ top: 4, right: 16, left: 0, bottom: 4 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgb(var(--n-200))" />
-            {/* Decision zones as translucent background bands */}
-            {bandViews.map((v) => (
-              <ReferenceArea
-                key={v.band.id}
-                y1={v.isBase ? axisBottom : v.lower}
-                y2={v.upper ?? axisTop}
-                fill={v.band.color}
-                fillOpacity={0.1}
-                stroke="none"
-                ifOverflow="extendDomain"
-              />
-            ))}
-            <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-            <YAxis domain={[axisBottom, axisTop]} tick={{ fontSize: 11 }} />
-            <Tooltip formatter={(v) => [`${v}`, 'V(p)']} />
-            <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-              {chartData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-
-      {/* ── Decision policy (compact strip) ── */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4">
-        <span className="text-xs text-gray-400 font-semibold uppercase tracking-wide">{t('Política de decisão')}</span>
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-2 mt-2.5">
-          {bandViews.map((v, i) => (
-            <Fragment key={v.band.id}>
-              {i > 0 && <span className="text-gray-300 select-none">·</span>}
-              <span className="inline-flex items-center gap-2">
-                <span className="text-xs font-bold rounded-full px-2.5 py-0.5 text-white" style={{ backgroundColor: v.band.color }}>
-                  {v.band.label}
-                </span>
-                <span className="font-mono text-xs text-gray-500">{bandRangeLabel(v.band, result.decisionScale)}</span>
-              </span>
-            </Fragment>
-          ))}
+      {/* ── Decision policy, with every proposal placed on it ──
+          This was a bar chart plus, separately, a row of chips naming the zones.
+          With one scorable proposal the chart drew a single enormous bar, which
+          says nothing; and a bar's height never answered the question actually
+          being asked, which is how far the proposal is from the next threshold.
+          One ruler does both, and reads the same with one proposal or ten. */}
+      <div className="border border-gray-200 rounded-xl p-4 bg-white space-y-3">
+        <div className="flex items-baseline gap-2 flex-wrap">
+          <h3 className="text-sm font-semibold text-gray-700">{t('Onde cai cada proposta na política de decisão')}</h3>
+          <span className="text-xs text-gray-400">{t('pontuação = Σ importância × valor, com neutro = 0 e bom = 100')}</span>
         </div>
+
+        {(() => {
+          const span = axisTop - axisBottom || 1;
+          const at = (v: number) => `${Math.max(0, Math.min(100, ((v - axisBottom) / span) * 100))}%`;
+          const cols = 'grid grid-cols-[minmax(0,10rem)_minmax(0,1fr)_4rem] gap-3 items-center';
+          return (
+            <div>
+              {/* The zones themselves, as a band across the axis. */}
+              <div className={cols}>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 text-right">
+                  {t('zonas')}
+                </span>
+                <span className="relative h-7 rounded-lg bg-gray-100 overflow-hidden">
+                  {bandViews.map((v) => {
+                    const lo = v.isBase ? axisBottom : v.lower;
+                    const hi = v.upper ?? axisTop;
+                    return (
+                      <span
+                        key={v.band.id}
+                        className="absolute inset-y-0 flex items-center px-2 text-[10px] font-bold uppercase tracking-wider truncate"
+                        style={{
+                          left: at(lo),
+                          right: `calc(100% - ${at(hi)})`,
+                          backgroundColor: v.band.color,
+                          color: '#fff',
+                          opacity: 0.85,
+                        }}
+                        title={`${v.band.label} — ${bandRangeLabel(v.band, result.decisionScale)}`}
+                      >
+                        {v.band.label}
+                      </span>
+                    );
+                  })}
+                </span>
+                <span />
+              </div>
+
+              {/* Tick labels: the axis ends plus every threshold. */}
+              <div className={`${cols} pt-1`}>
+                <span />
+                <span className="relative h-4 text-[10px] font-mono text-gray-400">
+                  <span className="absolute left-0">{axisBottom}</span>
+                  {bandViews.filter((v) => !v.isBase).map((v) => (
+                    <span key={v.band.id} className="absolute -translate-x-1/2" style={{ left: at(v.lower) }}>
+                      {v.lower.toFixed(0)}
+                    </span>
+                  ))}
+                  <span className="absolute right-0">{axisTop}</span>
+                </span>
+                <span />
+              </div>
+
+              {/* One row per scored proposal. */}
+              <div className="mt-1 space-y-1">
+                {chartData.map((d) => (
+                  <div key={d.optionId} className={`${cols} text-sm`}>
+                    <span className="truncate text-right text-gray-700" title={d.name}>{d.name}</span>
+                    <span className="relative h-5">
+                      <span className="absolute inset-x-0 top-1/2 h-px bg-gray-200" aria-hidden="true" />
+                      {bandViews.filter((v) => !v.isBase).map((v) => (
+                        <span
+                          key={v.band.id}
+                          className="absolute inset-y-0 w-px bg-gray-200"
+                          style={{ left: at(v.lower) }}
+                          aria-hidden="true"
+                        />
+                      ))}
+                      <span
+                        className="absolute top-1/2 w-3.5 h-3.5 rounded-full border-2 border-white -translate-x-1/2 -translate-y-1/2 shadow"
+                        style={{ left: at(d.value), backgroundColor: d.color }}
+                      />
+                    </span>
+                    <span className="text-right font-mono text-sm font-bold tabular-nums" style={{ color: d.color }}>
+                      {d.value.toFixed(1)}
+                    </span>
+                  </div>
+                ))}
+                {chartData.length === 0 && (
+                  <p className="text-xs text-gray-400 py-2">{t('Nenhuma proposta pontuada — nada para colocar na régua.')}</p>
+                )}
+              </div>
+            </div>
+          );
+        })()}
       </div>
 
       {/* ── Per-criterion profile table ── */}

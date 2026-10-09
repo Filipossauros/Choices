@@ -15,44 +15,93 @@ import { sortBands } from '../../domain/decision';
 import ScreenNav from '../components/ScreenNav';
 
 /** A range bar: the admissible interval as a band, the optimum as a dot. */
-function RangeBar({
-  reading,
+/**
+ * A set of admissible ranges over one shared axis.
+ *
+ * The information on this screen *is* the width of each range, and that was
+ * exactly what got the least room: an 85px bar against 180px of label and 250px
+ * of numbers plus a badge. Worse, the bars had no axis and no ticks, so two
+ * different lengths said nothing — you cannot read a position off a track whose
+ * ends are not marked. And six of seven badges said "folgado", which made the
+ * one that said "firme" invisible.
+ *
+ * So the bar gets the width, the axis gets marked, the rows sort from the most
+ * undecided down, and the repeated badge gives way to the number it was standing
+ * in for — with colour reserved for the rows that are actually pinned down.
+ */
+const TIGHT = 0.2;
+
+function RangeChart({
+  readings,
   domainMax,
   format,
 }: {
-  reading: RangeReading;
+  readings: RangeReading[];
   domainMax: number;
   format: (n: number) => string;
 }) {
   const { t } = useTranslation();
   const pct = (v: number) => `${Math.max(0, Math.min(100, (v / domainMax) * 100))}%`;
-  const width = Math.max(0, Math.min(100, ((reading.hi - reading.lo) / domainMax) * 100));
+  const rows = [...readings].sort((a, b) => (b.hi - b.lo) - (a.hi - a.lo));
+  const ticks = [0, 0.25, 0.5, 0.75, 1];
+  const cols = 'grid grid-cols-[minmax(0,10.5rem)_minmax(0,1fr)_4.5rem] gap-3 items-center';
 
   return (
-    <div className="flex items-center gap-3 text-sm">
-      <span className="flex-[0_0_11rem] text-right text-gray-500 truncate" title={reading.label}>
-        {reading.label}
-      </span>
-      <span className="flex-1 h-7 rounded-lg bg-gray-100 relative overflow-hidden">
-        <span
-          className="absolute inset-y-0 bg-indigo-100 border-x-2 border-indigo-500"
-          style={{ left: pct(reading.lo), width: `${width}%` }}
-        />
-        <span
-          className="absolute top-1/2 w-3 h-3 rounded-full bg-accent border-2 border-white -translate-x-1/2 -translate-y-1/2"
-          style={{ left: pct(reading.central) }}
-        />
-      </span>
-      <span className="flex-[0_0_7rem] text-right font-mono text-xs text-gray-400 tabular-nums">
-        {format(reading.lo)} – {format(reading.hi)}
-      </span>
-      <span
-        className={`flex-[0_0_4.5rem] text-center text-[10px] font-bold uppercase tracking-wide px-2 py-1 rounded-full ${
-          reading.loose ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'
-        }`}
-      >
-        {reading.loose ? t('folgado') : t('firme')}
-      </span>
+    <div>
+      <div className={`${cols} text-[10px] font-mono text-gray-400 pb-1`}>
+        <span />
+        <span className="relative h-4">
+          {ticks.map((f) => (
+            <span
+              key={f}
+              className="absolute -translate-x-1/2 whitespace-nowrap"
+              style={{ left: `${f * 100}%` }}
+            >
+              {format(f * domainMax)}
+            </span>
+          ))}
+        </span>
+        <span className="text-right uppercase tracking-wider font-sans font-bold">{t('gama')}</span>
+      </div>
+
+      <div className="relative">
+        {/* Grid lines sit behind the bars, inside the bar column only. */}
+        <span className="absolute inset-y-0 left-[calc(10.5rem+0.75rem)] right-[calc(4.5rem+0.75rem)] pointer-events-none" aria-hidden="true">
+          {ticks.map((f) => (
+            <span key={f} className="absolute inset-y-0 w-px bg-gray-200" style={{ left: `${f * 100}%` }} />
+          ))}
+        </span>
+
+        {rows.map((r) => {
+          const span = r.hi - r.lo;
+          const tight = span / domainMax <= TIGHT;
+          return (
+            <div key={r.id} className={`${cols} py-1 text-sm`}>
+              <span className="truncate text-gray-600" title={r.label}>{r.label}</span>
+              <span className="relative h-5 rounded-md bg-gray-100">
+                <span
+                  className={`absolute inset-y-0 rounded-md ${tight ? 'bg-green-400' : 'bg-indigo-300'}`}
+                  style={{ left: pct(r.lo), width: `${Math.max(0, Math.min(100, (span / domainMax) * 100))}%` }}
+                />
+                <span
+                  className="absolute top-1/2 w-[3px] h-3.5 rounded-sm bg-indigo-700 -translate-x-1/2 -translate-y-1/2"
+                  style={{ left: pct(r.central) }}
+                  title={t('valor usado no cálculo')}
+                />
+              </span>
+              <span className={`text-right font-mono text-xs tabular-nums ${tight ? 'text-green-700 font-semibold' : 'text-gray-500'}`}>
+                {format(span)}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="flex flex-wrap gap-x-5 gap-y-1 pt-3 mt-2 border-t border-gray-100 text-[11px] text-gray-400">
+        <span><i className="inline-block w-4 h-2.5 rounded-sm bg-indigo-300 align-[-1px] mr-1.5" />{t('gama admissível')}</span>
+        <span><i className="inline-block w-[3px] h-3 bg-indigo-700 align-[-2px] mr-1.5" />{t('valor usado no cálculo')}</span>
+        <span><i className="inline-block w-4 h-2.5 rounded-sm bg-green-400 align-[-1px] mr-1.5" />{t('gama estreita — determinado')}</span>
+      </div>
     </div>
   );
 }
@@ -86,7 +135,7 @@ export default function Robustness() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto py-6 px-4 space-y-5">
+    <div className="max-w-6xl mx-auto py-6 px-4 space-y-5">
       <div className="space-y-2">
         <h2 className="text-lg font-semibold text-gray-800">{t('O que ficou em aberto')}</h2>
         <p className="text-sm text-gray-500 leading-relaxed max-w-3xl">
@@ -101,11 +150,7 @@ export default function Robustness() {
               <h3 className="text-[11px] font-bold uppercase tracking-wider text-gray-400">
                 {t('Pesos — valor central e gama admissível')}
               </h3>
-              <div className="space-y-3">
-                {robustness.weights.map((w) => (
-                  <RangeBar key={w.id} reading={w} domainMax={1} format={(n) => n.toFixed(2)} />
-                ))}
-              </div>
+              <RangeChart readings={robustness.weights} domainMax={1} format={(n) => n.toFixed(2)} />
               {loosest?.loose && (
                 <p className="text-xs text-gray-500 leading-relaxed pt-2 border-t border-gray-100">
                   {t('«{{label}}» tem a gama mais larga: os juízos dados não o fixam bem. Se essa incerteza importar, responda a mais uma comparação que o envolva.', { label: loosest.label })}
@@ -141,11 +186,7 @@ export default function Robustness() {
               <h3 className="text-[11px] font-bold uppercase tracking-wider text-gray-400">
                 {t('Níveis de desempenho não ancorados')}
               </h3>
-              <div className="space-y-3">
-                {robustness.scales.slice(0, 8).map((s) => (
-                  <RangeBar key={s.id} reading={s} domainMax={100} format={(n) => n.toFixed(0)} />
-                ))}
-              </div>
+              <RangeChart readings={robustness.scales.slice(0, 8)} domainMax={100} format={(n) => n.toFixed(0)} />
               <p className="text-xs text-gray-400 pt-2 border-t border-gray-100">
                 {t('Neutro e Bom não aparecem: estão fixos em 0 e 100 por construção.')}
               </p>
