@@ -1108,4 +1108,58 @@ export const en: Record<string, string> = {
     'SIMPLE',
   'De cada 100 pontos da avaliação, estes são os que vêm de cada critério.':
     'Out of every 100 points of the evaluation, these are the ones coming from each criterion.',
+
+  // ── «Faz sentido?» — o modelo por palavras ──
+  'Faz sentido?':
+    'Does this make sense?',
+  'Isto é o que as suas respostas dizem, por palavras. Se alguma frase lhe soar errada, é porque uma das respostas não era o que queria — e dá para voltar atrás sem perder o resto.':
+    'This is what your answers say, in words. If a sentence sounds wrong, one of the answers was not what you meant — and you can go back without losing the rest.',
+  'Dentro de «{{g}}»:':
+    'Within “{{g}}”:',
+  'pesa mais do que {{others}} em conjunto':
+    'outweighs {{others}} put together',
+  'pesa mais do que {{others}}':
+    'outweighs {{others}}',
+  ' e ':
+    ' and ',
+  '{{a}} pontos em cada 100, contra {{b}}.':
+    '{{a}} points out of every 100, against {{b}}.',
+  'vale cerca de':
+    'is worth roughly',
+  '{{n}}×':
+    '{{n}}×',
+  'quase não conta: {{p}} pontos em cada 100. Uma proposta pode ser fraca aí sem grande consequência.':
+    'barely counts: {{p}} points out of every 100. A proposal can be weak there without much consequence.',
+  'Uma proposta boa em tudo menos em':
+    'A proposal that is good at everything except',
+  'fica em {{s}} pontos.':
+    'scores {{s}} points.',
+  'Teste rápido':
+    'Quick test',
+  'duas propostas inventadas a partir dos seus pesos':
+    'two proposals made up from your weights',
+  'ganha':
+    'wins',
+  'pontuação':
+    'score',
+  'Com as suas respostas, as duas empatam: ser bom só em «{{solo}}» vale tanto como ser bom em tudo o resto.':
+    'With your answers the two tie: being good only at “{{solo}}” is worth as much as being good at everything else.',
+  'Com as suas respostas ganha a A: ser bom só em «{{solo}}» vale mais do que ser bom em todos os outros critérios juntos.':
+    'With your answers A wins: being good only at “{{solo}}” is worth more than being good at every other criterion put together.',
+  'Com as suas respostas ganha a B: ser bom em todos os outros critérios vale mais do que ser bom só em «{{solo}}».':
+    'With your answers B wins: being good at every other criterion is worth more than being good only at “{{solo}}”.',
+  'Sim, é isso mesmo':
+    'Yes, that is right',
+  'Não — não é o que penso':
+    'No — that is not what I think',
+  'Então uma destas comparações não era o que queria dizer. Nada é apagado — abra a que lhe parecer errada e mude a resposta.':
+    'Then one of these comparisons was not what you meant. Nothing is deleted — open the one that looks wrong and change the answer.',
+  'Rever «{{g}}»':
+    'Review “{{g}}”',
+  'Fatores de topo':
+    'Top-level factors',
+  'Confirmou que a importância está como pensa.':
+    'You confirmed that the importance matches what you think.',
+  'rever outra vez':
+    'review again',
 };

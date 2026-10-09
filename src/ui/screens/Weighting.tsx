@@ -16,6 +16,7 @@ import {
 import JudgmentMatrixEditor from '../components/JudgmentMatrixEditor';
 import GuidedJudgments from '../components/GuidedJudgments';
 import ScreenNav from '../components/ScreenNav';
+import SanityCheck from '../components/SanityCheck';
 import { v4 as uuidv4 } from 'uuid';
 
 /** One collapsible weighting panel for a single group of sibling criteria. */
@@ -344,7 +345,7 @@ function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; on
     !weights.confirmed;
 
   return (
-    <div className="border border-gray-200 rounded-xl overflow-hidden">
+    <div id={`weight-group-${group.parentId}`} className="border border-gray-200 rounded-xl overflow-hidden scroll-mt-4">
       <button onClick={onToggle} className="w-full flex items-center gap-3 px-4 py-3 bg-gray-50 hover:bg-gray-100 text-left">
         <span className="text-gray-400 text-xs w-3">{open ? '▾' : '▸'}</span>
         <span className="font-medium text-gray-800">
@@ -725,6 +726,19 @@ export default function Weighting() {
           <GroupPanel key={g.parentId} group={g} open={openGroups.has(g.parentId)} onToggle={() => toggle(g.parentId)} />
         ))}
       </div>
+
+      {/* The step does not end at a number. It ends at something the respondent
+          can agree or disagree with. */}
+      {allReady && (
+        <SanityCheck
+          onRevisit={(groupId) => {
+            setOpenGroups((prev) => new Set(prev).add(groupId));
+            requestAnimationFrame(() =>
+              document.getElementById(`weight-group-${groupId}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
+            );
+          }}
+        />
+      )}
 
       <ScreenNav
         next="scales"
