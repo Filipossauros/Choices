@@ -324,7 +324,7 @@ export default function DecisionScale() {
                     <input
                       value={b.action ?? ''}
                       onChange={(e) => patchBand(b.id, { action: e.target.value })}
-                      placeholder={t('O que fazer nesta zona? (ex.: aceitar a proposta, aplicar sanção…)')}
+                      placeholder={t('O que fazer nesta zona? (ex.: aceitar, rever, rejeitar…)')}
                       className="flex-1 border border-gray-200 rounded-lg px-2 py-1 text-sm focus:ring-1 focus:ring-blue-400"
                     />
                   </div>

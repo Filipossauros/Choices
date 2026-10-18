@@ -457,7 +457,7 @@ function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; on
                     {t('Atalho — ordenar os critérios por importância')}
                   </summary>
                   <p className="text-xs text-gray-500 mt-1.5 leading-relaxed pl-4">
-                    {t('Não é obrigatório: serve só para as perguntas começarem já perto do que pensa. Pode mudar de ideias em qualquer pergunta — se escolher a proposta do lado direito, esta lista reordena-se sozinha e as respostas já dadas mantêm-se.')}
+                    {t('Não é obrigatório: serve só para as perguntas começarem já perto do que pensa. Pode mudar de ideias em qualquer pergunta — se escolher a melhoria do lado direito, esta lista reordena-se sozinha e as respostas já dadas mantêm-se.')}
                   </p>
                 </details>
                 <ol className="space-y-1.5">

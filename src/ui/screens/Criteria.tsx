@@ -226,6 +226,7 @@ function CriterionForm({
   onCancel: () => void;
 }) {
   const { t } = useTranslation();
+  const subject = subjectNoun(useApp().state.model!);
   const [label, setLabel] = useState(initial?.label ?? '');
   const [description, setDescription] = useState(initial?.description ?? '');
   const [type, setType] = useState<CritType>(initial?.type ?? 'qualification');
@@ -354,8 +355,8 @@ function CriterionForm({
       {type === 'gate' && (
         <div className="text-sm bg-orange-50 border border-orange-200 rounded-lg px-3 py-2.5 space-y-2.5">
           <p className="text-orange-900">
-            <strong>{t('Elimina a proposta inteira.')}</strong>{' '}
-            {t('Se a resposta for «não cumpre», a proposta é excluída sem chegar a ser pontuada — não é compensada por nenhum outro critério. O alcance é sempre global, mesmo que esta condição esteja dentro de um fator.')}
+            <strong>{t('Elimina {{art}} {{one}} inteir{{o}}.', { art: subject.art, one: subject.one, o: subject.art })}</strong>{' '}
+            {t('Se a resposta for «não cumpre», {{art}} {{one}} é excluíd{{o}} sem chegar a ser pontuad{{o}} — não é compensada por nenhum outro critério. O alcance é sempre global, mesmo que esta condição esteja dentro de um fator.', { art: subject.art, one: subject.one, o: subject.art })}
           </p>
           <div className="border-t border-orange-200 pt-2.5">
             <p className="text-xs text-orange-800/80 mb-2">
@@ -530,6 +531,7 @@ export default function Criteria() {
   const { t } = useTranslation();
   const { state, dispatch } = useApp();
   const model = state.model!;
+  const subject = subjectNoun(model);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [addingUnder, setAddingUnder] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
@@ -800,7 +802,7 @@ export default function Criteria() {
             )}
             {c.type === 'gate' && (
               <p className="text-xs text-orange-700/80 mt-0.5">
-                {t('Elimina a proposta inteira se não for cumprida — alcance global, não apenas neste fator.')}
+                {t('Elimina {{art}} {{one}} inteir{{o}} se não for cumprida — alcance global, não apenas neste fator.', { art: subject.art, one: subject.one, o: subject.art })}
               </p>
             )}
             {isComposite && (

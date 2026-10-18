@@ -1368,4 +1368,16 @@ export const en: Record<string, string> = {
     'Each bar is the range of values still compatible with your answers: the narrower it is, the less is left undecided. Answering more comparisons narrows it.',
   'Isto olha só para o modelo e não precisa de alternativas registadas. A pergunta oposta — a que importância é que a ordenação muda — precisa delas, e por isso vive no passo «E se mudar de ideias?».':
     'This looks only at the model and needs no alternatives registered. The opposite question — at what importance does the ranking change — does need them, and so lives in “What if I change my mind?”.',
+
+  // ── Substantivo do modelo nas condições eliminatórias ──
+  'Elimina {{art}} {{one}} inteir{{o}}.':
+    'Eliminates the whole {{one}}.',
+  'Se a resposta for «não cumpre», {{art}} {{one}} é excluíd{{o}} sem chegar a ser pontuad{{o}} — não é compensada por nenhum outro critério. O alcance é sempre global, mesmo que esta condição esteja dentro de um fator.':
+    'If the answer is “does not meet”, the {{one}} is excluded without ever being scored — no other criterion compensates for it. The scope is always global, even when this condition sits inside a factor.',
+  'Elimina {{art}} {{one}} inteir{{o}} se não for cumprida — alcance global, não apenas neste fator.':
+    'Eliminates the whole {{one}} if it is not met — global scope, not just within this factor.',
+  'Não é obrigatório: serve só para as perguntas começarem já perto do que pensa. Pode mudar de ideias em qualquer pergunta — se escolher a melhoria do lado direito, esta lista reordena-se sozinha e as respostas já dadas mantêm-se.':
+    'Optional: it only makes the questions start close to what you already think. You can change your mind on any question — choosing the improvement on the right reorders this list for you, and the answers you have given are kept.',
+  'O que fazer nesta zona? (ex.: aceitar, rever, rejeitar…)':
+    'What happens in this zone? (e.g. accept, review, reject…)',
 };
