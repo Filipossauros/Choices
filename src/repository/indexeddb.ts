@@ -46,6 +46,7 @@ export function normalizeModel(raw: Record<string, unknown>): EvaluationModel {
     modelVersion: MODEL_VERSION,
     label: r.label ?? 'Modelo',
     description: r.description,
+    subject: r.subject,
     subjectKind: r.subjectKind,
     createdAt: r.createdAt ?? new Date().toISOString(),
     updatedAt: r.updatedAt ?? new Date().toISOString(),

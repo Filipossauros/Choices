@@ -17,6 +17,8 @@ import { v4 as uuidv4 } from 'uuid';
 import ScreenNav from '../components/ScreenNav';
 import { useDialogs } from '../components/Dialog';
 import { IconGate, IconQualification, IconComposite, IconGrip } from '../components/icons';
+import Why from '../components/Why';
+import { subjectNoun, subjectWords, SUBJECT_PRESETS } from '../../domain/subject';
 
 /**
  * Three blank levels, not five adjectives.
@@ -73,6 +75,19 @@ function LevelEditor({
   const numericCount = levels.filter((l) => typeof l.numericValue === 'number' && Number.isFinite(l.numericValue)).length;
   const numericComplete = levels.length > 1 && numericCount === levels.length;
 
+  /**
+   * Where each level would land if the steps between them were even — the two
+   * anchors pinned at 0 and 100, everything else read off from their positions.
+   * It is an estimate, and it is the whole point: before answering a single
+   * comparison you can see that the level below the anchor scores negative and
+   * the one above "bom" scores past a hundred.
+   */
+  function previewPoints(i: number): string | null {
+    if (neutralIndex === goodIndex) return null;
+    const v = ((neutralIndex - i) / (neutralIndex - goodIndex)) * 100;
+    return Number.isFinite(v) ? (Math.round(v * 10) / 10).toFixed(0) : null;
+  }
+
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2 flex-wrap">
@@ -114,24 +129,78 @@ function LevelEditor({
             title={t('Leitura deste nível na escala de medida (opcional, mas necessária para desempenho contínuo)')}
             aria-label={t('Valor numérico do nível {{n}}', { n: i + 1 })}
           />
-          {/* On mobile these anchors wrap to their own line under the input */}
-          <div className="flex items-center gap-3 basis-full sm:basis-auto pl-7 sm:pl-0">
-            <label className="flex items-center gap-1 text-xs text-blue-600 cursor-pointer">
-              <input type="radio" name={`neutral-${levels[0]?.id}`} checked={neutralIndex === i} onChange={() => onChange(levels, i, goodIndex, vetoLevelId)} />
-              {t('Neutro')}
-            </label>
-            <label className="flex items-center gap-1 text-xs text-green-600 cursor-pointer">
-              <input type="radio" name={`good-${levels[0]?.id}`} checked={goodIndex === i} onChange={() => onChange(levels, neutralIndex, i, vetoLevelId)} />
-              {t('Bom')}
-            </label>
-            <label className="flex items-center gap-1 text-xs text-orange-600 cursor-pointer" title={t('Veto: reprova abaixo deste nível')}>
-              <input type="checkbox" checked={vetoLevelId === level.id} onChange={(e) => onChange(levels, neutralIndex, goodIndex, e.target.checked ? level.id : undefined)} />
-              {t('Veto')}
-            </label>
-            <button onClick={() => removeLevel(i)} className="text-red-400 hover:text-red-600 text-sm px-1 ml-auto sm:ml-0" aria-label={t('Remover nível {{n}}', { n: i + 1 })}>✕</button>
-          </div>
+          {/* The points column is the explanation: it shows, without a word,
+              that there is life below zero and above a hundred. Three
+              paragraphs that used to say so are gone. */}
+          <span
+            className={`w-14 text-right font-mono text-[13px] tabular-nums ${
+              i === goodIndex ? 'font-bold text-green-700'
+                : i === neutralIndex ? 'font-bold text-indigo-700'
+                : 'text-gray-500'
+            }`}
+            aria-label={t('Pontos estimados do nível {{n}}', { n: i + 1 })}
+          >
+            {previewPoints(i) ?? '—'}
+          </span>
+          <span className="w-[7.5rem] shrink-0">
+            {i === goodIndex && <span className="text-[9.5px] font-bold font-mono tracking-wider px-1.5 py-1 rounded bg-green-100 text-green-700">{t('BOM')}</span>}
+            {i === neutralIndex && <span className="text-[9.5px] font-bold font-mono tracking-wider px-1.5 py-1 rounded bg-indigo-100 text-indigo-700">{t('NEM BOM NEM MAU')}</span>}
+            {level.id === vetoLevelId && <span className="text-[9.5px] font-bold font-mono tracking-wider px-1.5 py-1 rounded bg-amber-100 text-amber-700">{t('EXCLUI')}</span>}
+          </span>
+          <button onClick={() => removeLevel(i)} className="text-red-400 hover:text-red-600 text-sm px-1" aria-label={t('Remover nível {{n}}', { n: i + 1 })}>✕</button>
         </div>
       ))}
+
+      {/* Three choices, one line, under the table that shows what they do. */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 pt-3 mt-1 border-t border-gray-200">
+        <label className="flex items-center gap-1.5 text-xs text-gray-600">
+          {t('nem bom nem mau')}
+          <select
+            value={neutralIndex}
+            onChange={(e) => onChange(levels, Number(e.target.value), goodIndex, vetoLevelId)}
+            className="border border-gray-200 rounded-lg px-2 py-1 text-xs bg-white max-w-[11rem]"
+          >
+            {levels.map((l, i) => <option key={l.id} value={i}>{l.label || t('Nível {{n}}', { n: i + 1 })}</option>)}
+          </select>
+        </label>
+        <label className="flex items-center gap-1.5 text-xs text-gray-600">
+          {t('bom')}
+          <select
+            value={goodIndex}
+            onChange={(e) => onChange(levels, neutralIndex, Number(e.target.value), vetoLevelId)}
+            className="border border-gray-200 rounded-lg px-2 py-1 text-xs bg-white max-w-[11rem]"
+          >
+            {levels.map((l, i) => <option key={l.id} value={i}>{l.label || t('Nível {{n}}', { n: i + 1 })}</option>)}
+          </select>
+        </label>
+        <label className="flex items-center gap-1.5 text-xs text-gray-600">
+          {t('excluir abaixo de')}
+          <select
+            value={vetoLevelId ?? ''}
+            onChange={(e) => onChange(levels, neutralIndex, goodIndex, e.target.value || undefined)}
+            className="border border-gray-200 rounded-lg px-2 py-1 text-xs bg-white max-w-[11rem]"
+          >
+            <option value="">{t('— nada exclui —')}</option>
+            {levels.map((l, i) => <option key={l.id} value={l.id}>{l.label || t('Nível {{n}}', { n: i + 1 })}</option>)}
+          </select>
+        </label>
+        <Why label="porquê estas duas?" className="ml-auto">
+          <p>
+            {t('Toda a ponderação pergunta «qual destas subidas de «nem bom nem mau» até «bom» vale mais?». Por isso as duas referências têm de significar algo por si — se fossem os extremos de cada critério, quem escrevesse um nível mais exagerado inflacionava a importância desse critério sem o querer.')}
+          </p>
+          <p>
+            {t('«Nem bom nem mau» não é o pior nível, e «bom» não é o melhor: os níveis abaixo e acima existem, e pontuam abaixo de 0 e acima de 100. A coluna dos pontos mostra a estimativa; os valores definitivos saem das comparações do passo «Níveis e valores».')}
+          </p>
+        </Why>
+      </div>
+
+      {/* Conditional, not preventive: it appears when the mistake is made. */}
+      {neutralIndex === levels.length - 1 && levels.length > 1 && (
+        <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 leading-relaxed" role="status">
+          {t('«Nem bom nem mau» está no pior nível, por isso nada aqui pontua abaixo de zero. É mesmo isso que quer dizer?')}
+        </p>
+      )}
+
       <div className="flex items-center gap-3 flex-wrap">
         <button onClick={addLevel} className="text-sm text-blue-600 hover:text-blue-800">
           {t('+ Adicionar nível')}
@@ -365,6 +434,98 @@ const TYPE_TAG: Record<CritType, { label: string; cls: string }> = {
   gate: { label: 'Eliminatória', cls: 'bg-rose-100 text-rose-700' },
 };
 
+/**
+ * What this model compares. One control, because it is one decision — the
+ * presets cover the usual cases and "outro…" is a first-class option, not an
+ * escape hatch. Whatever is chosen here is the noun every later question uses.
+ */
+function SubjectPicker() {
+  const { t } = useTranslation();
+  const { state, dispatch } = useApp();
+  const model = state.model!;
+  const current = subjectWords(model);
+  const isPreset = SUBJECT_PRESETS.some((p) => p.one === current.one && p.many === current.many);
+  const [custom, setCustom] = useState(!isPreset);
+
+  function set(one: string, many: string) {
+    dispatch({ type: 'UPDATE_MODEL', patch: { subject: { one, many } } });
+  }
+
+  return (
+    <div className="space-y-1 shrink-0">
+      <label htmlFor="model-subject" className="block text-xs text-gray-500 font-medium">
+        {t('O que vai comparar')}
+      </label>
+      {custom ? (
+        <div className="flex items-center gap-1.5">
+          <input
+            id="model-subject"
+            value={current.one}
+            onChange={(e) => set(e.target.value, current.many)}
+            placeholder={t('serviço')}
+            aria-label={t('Singular')}
+            className="w-28 border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm"
+          />
+          <input
+            value={current.many}
+            onChange={(e) => set(current.one, e.target.value)}
+            placeholder={t('serviços')}
+            aria-label={t('Plural')}
+            className="w-28 border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm"
+          />
+          <button
+            onClick={() => { setCustom(false); set(SUBJECT_PRESETS[0].one, SUBJECT_PRESETS[0].many); }}
+            className="text-xs text-gray-400 hover:text-gray-600 px-1"
+          >
+            {t('↩')}
+          </button>
+        </div>
+      ) : (
+        <select
+          id="model-subject"
+          value={current.many}
+          onChange={(e) => {
+            if (e.target.value === '__custom') { setCustom(true); return; }
+            const p = SUBJECT_PRESETS.find((x) => x.many === e.target.value);
+            if (p) set(p.one, p.many);
+          }}
+          className="border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm bg-white min-w-[9rem]"
+        >
+          {SUBJECT_PRESETS.map((p) => (
+            <option key={p.many} value={p.many}>{t(p.many)}</option>
+          ))}
+          <option value="__custom">{t('outro…')}</option>
+        </select>
+      )}
+    </div>
+  );
+}
+
+/** The three natures a node can have, and what each one implies downstream. */
+function KindLegend({ flat = false }: { flat?: boolean }) {
+  const { t } = useTranslation();
+  const { state } = useApp();
+  const subject = subjectNoun(state.model!);
+  const items = [
+    { k: t('Fator — agrupa'), tone: 'bg-indigo-50', title: 'text-indigo-700',
+      d: t('Reúne outros elementos e reparte importância entre eles. A sua pontuação vem dos filhos.') },
+    { k: t('Critério — mede'), tone: 'bg-sky-50', title: 'text-sky-700',
+      d: t('Tem níveis ordenados e duas referências: «nem bom nem mau» = 0 e «bom» = 100. É aqui que vive a regra de exclusão.') },
+    { k: t('Condição eliminatória'), tone: 'bg-rose-50', title: 'text-rose-700',
+      d: t('Pergunta de sim/não, respondida antes de haver pontuação. Se não for cumprida, exclui a {{one}}.', { one: subject.one }) },
+  ];
+  return (
+    <div className="grid sm:grid-cols-3 gap-3">
+      {items.map((it) => (
+        <div key={it.k} className={`rounded-2xl p-4 ${flat ? '' : it.tone}`}>
+          <p className={`text-sm font-bold mb-1 ${it.title}`}>{it.k}</p>
+          <p className="text-xs text-gray-600 leading-relaxed">{it.d}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function Criteria() {
   const { t } = useTranslation();
   const { state, dispatch } = useApp();
@@ -381,6 +542,7 @@ export default function Criteria() {
   const dialogs = useDialogs();
 
   const criteria = model.valueTree.criteria;
+  const empty = model.valueTree.root.children.length === 0;
   const totalLeaves = Object.values(criteria).filter((c) => c.type !== 'composite').length;
   const factorCount = Object.values(criteria).filter((c) => c.type === 'composite').length;
 
@@ -680,8 +842,8 @@ export default function Criteria() {
 
   return (
     <div className="max-w-3xl mx-auto py-6 px-4 space-y-6">
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex-1 space-y-1">
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div className="flex-1 min-w-[16rem] space-y-1">
           <label htmlFor="model-label" className="block text-xs text-gray-500 font-medium">{t('Designação do modelo')}</label>
           <input
             id="model-label"
@@ -691,33 +853,16 @@ export default function Criteria() {
             className="w-full text-xl font-semibold border-0 border-b border-gray-200 focus:border-blue-400 outline-none pb-1"
           />
         </div>
+        <SubjectPicker />
         <button onClick={exportModel} className="px-3 py-1.5 mt-4 text-sm border border-gray-300 rounded hover:bg-gray-50 shrink-0">
           {t('Exportar modelo')}
         </button>
       </div>
 
-      {/* The three types are the vocabulary everything downstream depends on,
-          so they are defined in place rather than left to be inferred. */}
-      <div className="grid sm:grid-cols-3 gap-3">
-        <div className="rounded-2xl p-4 bg-indigo-50">
-          <p className="text-sm font-bold text-indigo-700 mb-1">{t('Fator — agrupa')}</p>
-          <p className="text-xs text-gray-600 leading-relaxed">
-            {t('Reúne outros elementos e reparte peso entre eles. A sua pontuação vem dos filhos. Pode conter outros fatores, sem limite de profundidade.')}
-          </p>
-        </div>
-        <div className="rounded-2xl p-4 bg-sky-50">
-          <p className="text-sm font-bold text-sky-700 mb-1">{t('Critério — mede')}</p>
-          <p className="text-xs text-gray-600 leading-relaxed">
-            {t('O que se avalia. Tem níveis de desempenho ordenados, com duas referências fixas: Neutro = 0 e Bom = 100.')}
-          </p>
-        </div>
-        <div className="rounded-2xl p-4 bg-rose-50">
-          <p className="text-sm font-bold text-rose-700 mb-1">{t('Condição eliminatória')}</p>
-          <p className="text-xs text-gray-600 leading-relaxed">
-            {t('Pergunta de sim/não. Se não for cumprida, a proposta é excluída sem ser pontuada — esteja onde estiver na estrutura.')}
-          </p>
-        </div>
-      </div>
+      {/* The three kinds are the vocabulary everything downstream depends on.
+          While the tree is empty they are the screen's main content; once there
+          is something in it they are reference, and fold away. */}
+      {empty ? <KindLegend /> : <Why label="fator, critério ou condição eliminatória?"><KindLegend flat /></Why>}
 
       <div className="space-y-2">
         <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">

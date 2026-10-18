@@ -320,7 +320,13 @@ export interface EvaluationModel {
   description?: string;
   createdAt: string;
   updatedAt: string;
-  /** Whether this model evaluates proposals (e.g. architecture) or positions/moments (monitoring). */
+  /**
+   * What this model compares, in the model's own words — "serviço", "candidato",
+   * "cenário". Used by every question in the create flow, so the central
+   * question is not phrased in a domain the model does not belong to.
+   */
+  subject?: { one: string; many: string };
+  /** Superseded by `subject`; still read so older models keep their wording. */
   subjectKind?: 'proposals' | 'positions';
   valueTree: ValueTree;
   judgmentMatrices: JudgmentMatrix[];

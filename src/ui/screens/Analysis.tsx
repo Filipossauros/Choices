@@ -9,6 +9,7 @@ import {
   levelPosition, nearestLevelId, hasNumericAxis, numericPosition, positionToNumeric,
 } from '../../engine/scaling';
 import { v4 as uuidv4 } from 'uuid';
+import { subjectNoun } from '../../domain/subject';
 import ScreenNav from '../components/ScreenNav';
 import ModelNotReady from '../components/ModelNotReady';
 import { useDialogs } from '../components/Dialog';
@@ -66,14 +67,16 @@ export default function Analysis() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const dialogs = useDialogs();
 
+  // The noun the model chose, so a model about services never says "proposta".
+  const subject = subjectNoun(model);
   const isPositions = model.subjectKind === 'positions';
-  const subjectSingular = isPositions ? t('posição') : t('proposta');
-  const subjectPlaceholder = isPositions ? t('Nome da posição / momento…') : t('Nome da proposta…');
-  const subjectColumnHeader = isPositions ? t('Posição / Momento') : t('Proposta');
+  const subjectSingular = subject.one;
+  const subjectPlaceholder = t('Nome d{{art}} {{one}}…', { art: subject.art, one: subject.one });
+  const subjectColumnHeader = subject.One;
   const subjectScreenTitle = isPositions ? t('Análise e monitorização') : t('Análise e avaliação');
-  const subjectScreenDesc = isPositions
-    ? t('Registe as posições / momentos, responda às condições eliminatórias e classifique o desempenho em cada critério de qualificação. Uma condição eliminatória não cumprida exclui a posição antes da agregação.')
-    : t('Registe as propostas, responda às condições eliminatórias e classifique o desempenho em cada critério de qualificação. Uma condição eliminatória não cumprida reprova a proposta antes da agregação.');
+  const subjectScreenDesc = t('Registe {{artMany}} {{many}}, responda às condições eliminatórias e classifique o desempenho em cada critério pontuado. Uma condição eliminatória não cumprida exclui {{art}} {{one}} antes da agregação.', {
+    artMany: subject.artMany, many: subject.many, art: subject.art, one: subject.one,
+  });
 
   const columns = tableColumns(model);
   const spans = headerSpans(columns);
