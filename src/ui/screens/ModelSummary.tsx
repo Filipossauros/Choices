@@ -2,7 +2,9 @@ import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useApp } from '../store';
 import { repository } from '../../repository';
-import { buildModelSpec, downloadJson } from '../../domain/modelSpec';
+import { buildModelSpec, buildPackage, downloadJson } from '../../domain/modelSpec';
+import { buildTestVectors } from '../../engine/bench';
+import type { EvaluationModel } from '../../domain/types';
 import { allGroupsConsistent } from '../../domain/tree';
 import { displayBands, bandRangeLabel } from '../../domain/decision';
 import { resolveBands } from '../../engine/aggregation';
@@ -40,18 +42,17 @@ export default function ModelSummary() {
         <div className="space-y-1">
           <h2 className="text-lg font-semibold text-gray-800">{t('Resumo do modelo')}</h2>
           <p className="text-sm text-gray-500 max-w-xl">
-            {t('Síntese completa do critério: estrutura, fórmula de agregação e fatores de ponderação. Exporte como JSON para alimentar agentes de IA (ex.: correr diagnósticos sobre o modelo).')}
+            {t('Estrutura, fórmula de agregação, pesos e zonas — o modelo inteiro numa página, para rever antes de o exportar.')}
           </p>
         </div>
-        <div className="flex flex-col gap-2 shrink-0">
-          <button onClick={exportSpecJson} className="px-4 py-2 text-sm font-medium rounded-lg bg-accent text-white hover:bg-accent-strong">
-            ↓ {t('Exportar especificação (JSON · IA)')}
-          </button>
-          <button onClick={exportModelJson} className="px-4 py-2 text-sm rounded-lg border border-gray-300 hover:bg-gray-50">
-            ↓ {t('Exportar modelo (JSON)')}
-          </button>
-        </div>
       </div>
+
+      <PackageCard
+        model={model}
+        ready={ready}
+        onExportModel={exportModelJson}
+        onExportSpec={exportSpecJson}
+      />
 
       {/* Readiness diagnostics */}
       <div className="flex flex-wrap gap-2 text-xs">
@@ -59,6 +60,8 @@ export default function ModelSummary() {
         <Chip ok={spec.diagnostics.factorCount >= 0} label={t('{{n}} fator(es) composto(s)', { n: spec.diagnostics.factorCount })} neutral />
         <Chip ok={spec.diagnostics.scalesDerived} label={t('Escalas derivadas')} />
         <Chip ok={spec.diagnostics.weightsComplete} label={t('Pesos completos')} />
+        <Chip ok={spec.diagnostics.scenarioCount > 0} label={t('{{n}} cenário(s) de ensaio', { n: spec.diagnostics.scenarioCount })} />
+        {spec.diagnostics.hasConsequences && <Chip ok label={t('Regras de consequência')} />}
       </div>
 
       {/* Aggregation formula */}
@@ -209,6 +212,97 @@ export default function ModelSummary() {
         </button>
       </div>
     </div>
+  );
+}
+
+/**
+ * What leaves the app.
+ *
+ * The model is built here and applied elsewhere, so the export is not a
+ * convenience — it is the deliverable. The card says what each file is for, and
+ * refuses the package while the model is incomplete: a package with scales
+ * still to derive would produce, wherever it is applied, numbers this app never
+ * computed. The individual files stay available, because an unfinished model is
+ * still worth passing to a colleague.
+ */
+function PackageCard({
+  model, ready, onExportModel, onExportSpec,
+}: {
+  model: EvaluationModel;
+  ready: boolean;
+  onExportModel: () => void;
+  onExportSpec: () => void;
+}) {
+  const { t } = useTranslation();
+  const scenarios = model.scenarios ?? [];
+  const short = model.id.slice(0, 8);
+
+  function exportPackage() {
+    downloadJson(
+      `choices-pacote-${short}.json`,
+      buildPackage(model, scenarios.length > 0 ? buildTestVectors(model, scenarios) : undefined),
+    );
+  }
+
+  const parts = [
+    { name: 'model', what: t('O modelo completo, reimportável: árvore, níveis, escalas derivadas, pesos, zonas e regras.'), ok: true },
+    { name: 'spec', what: t('A especificação legível: fórmulas expandidas, pesos efetivos e diagnósticos.'), ok: true },
+    {
+      name: 'testVectors',
+      what: t('Os cenários com os resultados esperados, para quem reimplementar o modelo se validar.'),
+      ok: scenarios.length > 0,
+      missing: t('nenhum cenário ainda'),
+    },
+  ];
+
+  return (
+    <section className="border border-accent/40 rounded-xl bg-accent/[0.04] p-5 space-y-3">
+      <div className="flex items-baseline gap-2 flex-wrap">
+        <h3 className="font-semibold text-gray-800">{t('O que sai daqui')}</h3>
+        <p className="text-xs text-gray-500 flex-1 min-w-[16rem]">
+          {t('Este modelo é aplicado fora da aplicação. O que sai é uma especificação — quem a aplica lê estes ficheiros e produz os resultados.')}
+        </p>
+      </div>
+
+      <p className="text-xs text-gray-500">
+        {t('Um ficheiro — {{name}} — com três partes:', { name: `choices-pacote-${short}.json` })}
+      </p>
+
+      <ul className="space-y-1.5">
+        {parts.map((f) => (
+          <li key={f.name} className="flex items-start gap-2.5 text-sm">
+            <span className={`mt-1 w-1.5 h-1.5 rounded-full shrink-0 ${f.ok ? 'bg-emerald-500' : 'bg-amber-400'}`} />
+            <span className="min-w-0">
+              <code className="font-mono text-xs text-gray-700">{f.name}</code>
+              {!f.ok && <span className="ml-2 text-[11px] text-amber-700">{f.missing}</span>}
+              <span className="block text-xs text-gray-500">{f.what}</span>
+            </span>
+          </li>
+        ))}
+      </ul>
+
+      <div className="flex items-center gap-2 flex-wrap pt-1">
+        <button
+          onClick={exportPackage}
+          disabled={!ready}
+          title={!ready ? t('Conclua as escalas e a ponderação: um pacote incompleto produziria resultados que esta aplicação nunca calculou.') : undefined}
+          className="px-4 py-2 text-sm font-medium rounded-lg bg-accent text-white hover:bg-accent-strong disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          ↓ {t('Exportar pacote')}
+        </button>
+        <button onClick={onExportModel} className="px-3 py-2 text-sm rounded-lg border border-gray-300 bg-white hover:bg-gray-50">
+          {t('Só o modelo')}
+        </button>
+        <button onClick={onExportSpec} className="px-3 py-2 text-sm rounded-lg border border-gray-300 bg-white hover:bg-gray-50">
+          {t('Só a especificação')}
+        </button>
+        {!ready && (
+          <span className="text-xs text-amber-700">
+            {t('Pacote bloqueado enquanto o modelo estiver incompleto.')}
+          </span>
+        )}
+      </div>
+    </section>
   );
 }
 

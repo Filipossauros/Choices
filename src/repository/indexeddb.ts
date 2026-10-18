@@ -2,6 +2,7 @@ import { openDB, type IDBPDatabase } from 'idb';
 import type { EvaluationModel, Evaluation, ChoicesDocument } from '../domain/types';
 import { MODEL_VERSION } from '../domain/types';
 import type { DocsRepository, DocMeta } from './types';
+import { PACKAGE_SCHEMA } from '../domain/modelSpec';
 
 const DB_NAME = 'macbeth-arc';
 const DB_VERSION = 2;
@@ -137,6 +138,14 @@ export class IndexedDBRepository implements DocsRepository {
   // ── Import ────────────────────────────────────────────────────────────────
   parseDocument(json: string): ChoicesDocument {
     const obj = JSON.parse(json) as Record<string, unknown>;
+    // An export package wraps the model alongside its readable spec and its
+    // test vectors. Importing one takes the model back out: the spec is derived
+    // and the vectors travel inside the model's own `scenarios`, so nothing is
+    // lost by unwrapping, and without this the wrapper would be normalised as
+    // if it were the model itself.
+    if (obj.schema === PACKAGE_SCHEMA && obj.model != null) {
+      return normalizeModel(obj.model as Record<string, unknown>);
+    }
     if (obj.kind === 'evaluation' || (obj.model != null && obj.options != null)) {
       return obj as unknown as Evaluation;
     }

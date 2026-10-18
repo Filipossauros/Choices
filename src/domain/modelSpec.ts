@@ -7,7 +7,7 @@
  * describing what the application does and how its data is shaped.
  */
 
-import type { EvaluationModel } from './types';
+import type { EvaluationModel, PenaltyRules } from './types';
 import { ROOT_ID } from './types';
 import {
   weightingGroups,
@@ -67,6 +67,13 @@ export interface ModelSpec {
     effectiveLeafWeights: { criterionId: string; label: string; weight: number }[];
   };
   decision: { bands: { label: string; action?: string; minScore: number; thresholdSource: 'profile' | 'manual'; referenceProfile?: Record<string, string> }[] };
+  /**
+   * The consequence layer, verbatim. Present only when the model has one —
+   * absent and "empty" are different statements, and a reader of the spec must
+   * be able to tell "this model has no money rules" from "this model has rules
+   * that charge nothing".
+   */
+  consequences?: PenaltyRules;
   diagnostics: {
     leafCount: number;
     factorCount: number;
@@ -74,6 +81,9 @@ export interface ModelSpec {
     scalesDerived: boolean;
     weightsComplete: boolean;
     ready: boolean;
+    /** Hand-written trials shipped with the model as test vectors. */
+    scenarioCount: number;
+    hasConsequences: boolean;
   };
 }
 
@@ -196,6 +206,7 @@ export function buildModelSpec(model: EvaluationModel): ModelSpec {
           referenceProfile: b.referenceProfile,
         })),
     },
+    ...(model.penaltyRules ? { consequences: model.penaltyRules } : {}),
     diagnostics: {
       leafCount,
       factorCount,
@@ -203,6 +214,8 @@ export function buildModelSpec(model: EvaluationModel): ModelSpec {
       scalesDerived,
       weightsComplete,
       ready: leafCount > 0 && scalesDerived && weightsComplete,
+      scenarioCount: model.scenarios?.length ?? 0,
+      hasConsequences: !!model.penaltyRules,
     },
   };
 }
@@ -276,6 +289,7 @@ export function buildCapabilitiesManifest(): CapabilitiesManifest {
       { id: 'model-json', description: 'Modelo completo, reimportável.', schema: 'EvaluationModel' },
       { id: 'evaluation-json', description: 'Avaliação completa (modelo + propostas + resultados).', schema: 'Evaluation' },
       { id: 'model-spec-json', description: 'Especificação legível por IA do modelo (fórmulas, pesos, escalas, diagnósticos).', schema: MODEL_SPEC_SCHEMA },
+      { id: 'test-vectors-json', description: 'Cenários de ensaio com os resultados esperados, para validar uma reimplementação do modelo.', schema: 'choices/test-vectors@1' },
       { id: 'report-pdf', description: 'Relatório de decisão em PDF.' },
     ],
     exampleUseCases: [
@@ -290,6 +304,42 @@ export function buildCapabilitiesManifest(): CapabilitiesManifest {
         structure: 'root(Risco) → {HealthStatus→{Latência, Taxa de erros, Saturação}, Criticidade, Duração, Responsabilidade}; perfis: Nenhuma ação/Advertência/Sanção.',
       },
     ],
+  };
+}
+
+// ─── Export package ──────────────────────────────────────────────────────────
+
+export const PACKAGE_SCHEMA = 'choices/package@1';
+
+/**
+ * Everything needed to apply this model somewhere else, in one file.
+ *
+ * One file rather than three downloads: browsers block the second and third
+ * download of a single click, and a package that arrives in pieces is a package
+ * that arrives incomplete. The three parts answer three different questions —
+ * `model` is the reimportable document, `spec` is the readable expansion of it,
+ * `testVectors` is how the implementer checks they got it right — so they stay
+ * named and separable inside it.
+ */
+export interface ModelPackage {
+  schema: typeof PACKAGE_SCHEMA;
+  generatedAt: string;
+  model: EvaluationModel;
+  spec: ModelSpec;
+  /** Absent when the model carries no scenarios — nothing to check against. */
+  testVectors?: unknown;
+}
+
+export function buildPackage(
+  model: EvaluationModel,
+  testVectors?: unknown,
+): ModelPackage {
+  return {
+    schema: PACKAGE_SCHEMA,
+    generatedAt: new Date().toISOString(),
+    model,
+    spec: buildModelSpec(model),
+    ...(testVectors ? { testVectors } : {}),
   };
 }
 

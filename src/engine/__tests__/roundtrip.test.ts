@@ -7,6 +7,8 @@
  */
 import { describe, it, expect } from 'vitest';
 import { normalizeModel } from '../../repository/indexeddb';
+import { repository } from '../../repository';
+import { buildPackage } from '../../domain/modelSpec';
 import type { EvaluationModel, TestScenario, PenaltyRules } from '../../domain/types';
 
 const scenario: TestScenario = {
@@ -69,5 +71,23 @@ describe('normalizeModel carries the package fields', () => {
     const m = normalizeModel(raw({}));
     expect(m.scenarios).toBeUndefined();
     expect(m.penaltyRules).toBeUndefined();
+  });
+});
+
+describe('the export package is importable', () => {
+  it('unwraps a package back into the model it carries', () => {
+    const model = normalizeModel(raw({ scenarios: [scenario], penaltyRules: rules }));
+    const pkg = buildPackage(model, { schema: 'choices/test-vectors@1', vectors: [] });
+    const back = repository.parseDocument(JSON.stringify(pkg));
+    expect(back.kind).toBe('model');
+    expect((back as EvaluationModel).id).toBe('m1');
+    expect((back as EvaluationModel).penaltyRules).toEqual(rules);
+    expect((back as EvaluationModel).scenarios).toEqual([scenario]);
+  });
+
+  it('still reads a bare model and a bare evaluation', () => {
+    expect(repository.parseDocument(JSON.stringify(raw({}))).kind).toBe('model');
+    const evaluation = { kind: 'evaluation', id: 'e', model: raw({}), options: [], performances: [] };
+    expect(repository.parseDocument(JSON.stringify(evaluation)).kind).toBe('evaluation');
   });
 });

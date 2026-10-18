@@ -21,7 +21,7 @@ export default function ScreenNav({ next, nextLabel, hint, blockedBy }: Props) {
   // Simple mode drops a step from the create flow, so "next" can name a screen
   // that is not in it. Walk forward to the first one that is, rather than making
   // every caller know which steps the current reader sees.
-  const flow = state.mode === 'apply' ? APPLY_SCREENS : createScreens(state.uiMode);
+  const flow = state.mode === 'apply' ? APPLY_SCREENS : createScreens(state.uiMode, state.model);
   const target = flow.includes(next)
     ? next
     : CREATE_SCREENS.slice(CREATE_SCREENS.indexOf(next) + 1).find((s) => flow.includes(s)) ?? next;

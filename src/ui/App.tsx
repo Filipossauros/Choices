@@ -8,6 +8,8 @@ import DecisionScale from './screens/DecisionScale';
 import Scales from './screens/Scales';
 import Weighting from './screens/Weighting';
 import Robustness from './screens/Robustness';
+import Bench from './screens/Bench';
+import Penalties from './screens/Penalties';
 import ModelSummary from './screens/ModelSummary';
 import Analysis from './screens/Analysis';
 import Results from './screens/Results';
@@ -53,6 +55,8 @@ function Router() {
           {!atHome && inCreate && currentScreen === 'decision' && <DecisionScale />}
           {!atHome && inCreate && currentScreen === 'scales' && <Scales />}
           {!atHome && inCreate && currentScreen === 'weighting' && <Weighting />}
+          {!atHome && inCreate && currentScreen === 'penalties' && <Penalties />}
+          {!atHome && inCreate && currentScreen === 'bench' && <Bench />}
           {!atHome && inCreate && currentScreen === 'robustness' && <Robustness />}
           {!atHome && inCreate && currentScreen === 'summary' && <ModelSummary />}
           {!atHome && inApply && currentScreen === 'analysis' && <Analysis />}

@@ -410,10 +410,25 @@ export default function DecisionScale() {
         </div>
       </div>
 
+      {/* Most models end at the classification, so Consequências is not a step
+          until it has something in it. This is where someone who needs it looks
+          for it: right after deciding what each zone means. */}
+      {!model.penaltyRules && bands.length > 0 && (
+        <button
+          onClick={() => dispatch({ type: 'SET_SCREEN', screen: 'penalties' })}
+          className="w-full text-left rounded-xl border border-gray-200 hover:border-gray-300 bg-white px-4 py-3 transition-colors"
+        >
+          <span className="text-sm font-medium text-gray-700">{t('Estas zonas têm consequências com custo?')}</span>
+          <span className="block text-xs text-gray-400 mt-0.5">
+            {t('Penalizações contratuais, por exemplo. Definem-se à parte do modelo e nunca entram nas escalas de valor.')}
+          </span>
+        </button>
+      )}
+
       <ScreenNav
-        next="robustness"
-        nextLabel="O que ficou em aberto"
-        hint="Veja quanta liberdade os seus juízos deixaram em aberto antes de fechar o modelo."
+        next="bench"
+        nextLabel="Banco de ensaio"
+        hint="Experimente o modelo com valores escritos à mão antes de o fechar."
         blockedBy={bands.length === 0 ? 'Defina pelo menos uma zona de decisão.' : undefined}
       />
     </div>

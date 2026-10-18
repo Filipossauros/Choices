@@ -180,3 +180,80 @@ export function runScenarios(model: EvaluationModel, scenarios: TestScenario[]):
 export function runScenario(model: EvaluationModel, scenario: TestScenario): BenchResult {
   return runScenarios(model, [scenario])[0];
 }
+
+export const TEST_VECTORS_SCHEMA = 'choices/test-vectors@1';
+
+/**
+ * The scenarios as inputs + expected results.
+ *
+ * This is the point of the bench: whoever implements the model elsewhere runs
+ * these same inputs and compares. A number that differs means their
+ * implementation is wrong, not the model — which is only true if the expected
+ * values here come from the same engine the model was built with, so they are
+ * taken straight from `runScenarios`.
+ */
+export interface TestVectors {
+  schema: typeof TEST_VECTORS_SCHEMA;
+  generatedAt: string;
+  model: { id: string; label: string; version: string };
+  anchors: { neutral: 0; good: 100 };
+  vectors: {
+    id: string;
+    label: string;
+    inputs: Record<string, string | number | null>;
+    expected: {
+      index: number | null;
+      band: string | null;
+      blocked: boolean;
+      blockedBy: string | null;
+      /** Present only when something blocked it: what it would have scored. */
+      indicativeIndex?: number | null;
+      incomplete: boolean;
+      missing: string[];
+      /** Per-criterion values, so a mismatch can be located instead of guessed. */
+      criterionValues: Record<string, number | null>;
+    };
+  }[];
+}
+
+export function buildTestVectors(
+  model: EvaluationModel,
+  scenarios: TestScenario[],
+): TestVectors {
+  const results = runScenarios(model, scenarios);
+  return {
+    schema: TEST_VECTORS_SCHEMA,
+    generatedAt: new Date().toISOString(),
+    model: { id: model.id, label: model.label, version: model.modelVersion },
+    anchors: { neutral: 0, good: 100 },
+    vectors: results.map((r) => {
+      const inputs: Record<string, string | number | null> = {};
+      const criterionValues: Record<string, number | null> = {};
+      for (const row of r.rows) {
+        inputs[row.criterionId] = row.blank
+          ? null
+          : row.type === 'gate'
+            ? row.verdict ?? null
+            : row.position != null
+              ? row.observed
+              : row.levelLabel;
+        if (row.type === 'qualification') criterionValues[row.criterionId] = row.value;
+      }
+      return {
+        id: r.scenarioId,
+        label: r.label,
+        inputs,
+        expected: {
+          index: r.globalValue,
+          band: r.band?.label ?? null,
+          blocked: r.blocked,
+          blockedBy: r.blockedBy?.label ?? null,
+          ...(r.blocked ? { indicativeIndex: r.indicativeValue } : {}),
+          incomplete: r.missing.length > 0,
+          missing: r.missing.map((m) => m.label),
+          criterionValues,
+        },
+      };
+    }),
+  };
+}

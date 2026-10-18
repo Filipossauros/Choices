@@ -165,6 +165,17 @@ export function createStatus(model: EvaluationModel, screen: Screen): Completion
       if (!model.weights && !model.subWeights) return 'none';
       if (!allGroupsConsistent(model)) return 'partial';
       return unconfirmed ? 'partial' : 'done';
+    case 'penalties': {
+      const rules = model.penaltyRules;
+      if (!rules) return 'none';
+      return rules.criterionRules.length > 0 ? 'done' : 'partial';
+    }
+    case 'bench': {
+      const scenarios = model.scenarios ?? [];
+      if (scenarios.length === 0) return 'none';
+      // Scenarios only mean anything once the model can score them.
+      return readiness.ready ? 'done' : 'partial';
+    }
     case 'robustness':
       return readiness.ready ? 'done' : readiness.scalesReady || readiness.weightsReady ? 'partial' : 'none';
     case 'summary':
@@ -333,7 +344,7 @@ export default function StepRail() {
     return () => clearInterval(id);
   }, []);
 
-  const screens: Screen[] = mode === 'create' ? createScreens(uiMode) : mode === 'apply' ? APPLY_SCREENS : [];
+  const screens: Screen[] = mode === 'create' ? createScreens(uiMode, model) : mode === 'apply' ? APPLY_SCREENS : [];
   const docLabel = mode === 'create' ? model?.label : evaluation?.label;
   const updatedAt = mode === 'create' ? model?.updatedAt : evaluation?.updatedAt;
   const modeLabel: Record<Mode, string> = { create: 'Modelo', apply: 'Avaliação' };

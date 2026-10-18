@@ -20,6 +20,8 @@ export type Screen =
   | 'decision'
   | 'scales'
   | 'weighting'
+  | 'penalties'
+  | 'bench'
   | 'robustness'
   | 'summary'
   // aplicação do modelo
@@ -38,18 +40,31 @@ export type Screen =
  * how much freedom the judgments left, which needs no proposals at all. The
  * ranking-flip analysis stays in the apply flow, where alternatives exist.
  */
-export const CREATE_SCREENS: Screen[] = ['criteria', 'weighting', 'scales', 'decision', 'robustness', 'summary'];
+export const CREATE_SCREENS: Screen[] = [
+  'criteria', 'weighting', 'scales', 'decision', 'penalties', 'bench', 'robustness', 'summary',
+];
 export const APPLY_SCREENS: Screen[] = ['analysis', 'results', 'sensitivity', 'report'];
 
 /**
- * The create flow as a given reader sees it. Robustez reads the LPs' admissible
- * ranges — it answers "how much did my answers leave undecided?", which is a
- * question about the model's construction rather than about the decision, so it
- * is a step only in technical mode. The screen itself still exists and the
- * report still carries its numbers.
+ * The create flow as a given reader sees it.
+ *
+ * Robustez reads the LPs' admissible ranges — it answers "how much did my
+ * answers leave undecided?", which is a question about the model's construction
+ * rather than about the decision, so it is a step only in technical mode. The
+ * screen itself still exists and the report still carries its numbers.
+ *
+ * Consequências is a step only for models that have any: most models classify
+ * and stop there, and a permanent step about money would be noise in them. The
+ * screen is reachable from Zonas de decisão, and once rules exist it takes its
+ * place in the rail like any other step.
  */
-export function createScreens(uiMode: UiMode): Screen[] {
-  return uiMode === 'technical' ? CREATE_SCREENS : CREATE_SCREENS.filter((s) => s !== 'robustness');
+export function createScreens(uiMode: UiMode, model?: EvaluationModel | null): Screen[] {
+  const hasPenalties = !!model?.penaltyRules;
+  return CREATE_SCREENS.filter(
+    (s) =>
+      (s !== 'robustness' || uiMode === 'technical') &&
+      (s !== 'penalties' || hasPenalties),
+  );
 }
 
 /** The name of each screen, as the rail and the navigation strip print it. */
@@ -59,6 +74,8 @@ export const SCREEN_LABELS: Record<Screen, string> = {
   decision: 'Zonas de decisão',
   scales: 'Níveis e valores',
   weighting: 'Importância',
+  penalties: 'Consequências',
+  bench: 'Banco de ensaio',
   robustness: 'O que ficou em aberto',
   summary: 'Resumo',
   analysis: 'Propostas',
@@ -151,7 +168,7 @@ function reducer(state: AppState, action: Action): AppState {
     case 'SET_UI_MODE': {
       // Simple mode drops a step. Switching to it while standing on that step
       // would leave the screen rendered with nothing in the rail pointing at it.
-      const flow = createScreens(action.uiMode);
+      const flow = createScreens(action.uiMode, state.model);
       const stranded = state.mode === 'create' && !flow.includes(state.currentScreen);
       return {
         ...state,
