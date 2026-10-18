@@ -1322,4 +1322,36 @@ export const en: Record<string, string> = {
     'Register the {{many}}, answer the eliminating conditions and rate the performance on each scored criterion. An eliminating condition that is not met excludes the {{one}} before aggregation.',
   'Nome d{{art}} {{one}}…':
     'Name of the {{one}}…',
+
+  // ── Atalho explicado antes de agir; modo de valores à mão ──
+  'Começar a partir da ordem':
+    'Start from the ranking',
+  'Gera as {{n}} respostas deste grupo a partir da ordem que deu.':
+    'Generates this group’s {{n}} answers from the ranking you gave.',
+  'Não são as suas preferências':
+    'They are not your preferences',
+  '— ficam por confirmar.':
+    '— they stay unconfirmed.',
+  'As respostas já dadas neste grupo são substituídas.':
+    'The answers already given in this group are replaced.',
+  'como funciona?':
+    'how does it work?',
+  'Os pesos saem da ordem pelo método ROC (Rank Order Centroid): entre todos os conjuntos de pesos compatíveis com essa ordem, é o que fica no centro — portanto não acrescenta preferência nenhuma para lá da ordem que deu.':
+    'The weights come from the ranking by the ROC method (Rank Order Centroid): among every set of weights compatible with that ranking, it is the one at the centre — so it adds no preference beyond the ranking you gave.',
+  'com {{n}} critérios →':
+    'with {{n}} criteria →',
+  'Depois disso é tudo igual às respostas dadas à mão: os mesmos juízos, o mesmo cálculo, a mesma verificação de coerência. O atalho não contorna nada — só começa por si. Fecha-se no passo «Faz sentido?», onde confirma ou corrige.':
+    'After that everything is as if you had answered by hand: the same judgements, the same calculation, the same consistency check. The shortcut bypasses nothing — it only starts for you. It closes at “Does this make sense?”, where you confirm or correct it.',
+  'Gerar e rever':
+    'Generate and review',
+  'Perguntas':
+    'Questions',
+  'Valores à mão':
+    'Values by hand',
+  'Os valores que colocar são os que ficam. Arraste os níveis não fixos.':
+    'The values you place are the ones that stay. Drag the levels that are not pinned.',
+  'A colocar valores à mão: cada posição implica uma resposta — as que aparecem ao lado — e a escala que sai é, por construção, coerente com elas. É a mesma escala das perguntas, por outro caminho. «Nem bom nem mau» e «bom» ficam fixos em 0 e 100, e nenhum nível pode passar à frente de outro.':
+    'Placing values by hand: each position implies an answer — the ones shown beside it — and the resulting scale is, by construction, consistent with them. It is the same scale the questions produce, by another route. “Neither good nor bad” and “good” stay pinned at 0 and 100, and no level can overtake another.',
+  'Respostas deduzidas':
+    'Deduced answers',
 };

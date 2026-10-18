@@ -6,7 +6,7 @@ import type { MacbethJudgment, MacbethCategory, JudgmentMatrix, WeightProvenance
 import { DEFAULT_ASSESSOR_ID, ROOT_ID } from '../../domain/types';
 import { reorientJudgments, moveBefore } from '../../domain/judgments';
 import { deriveWeights, ALL_NEUTRAL } from '../../engine/weighting';
-import { simulateWeighting, judgmentsFromWeights } from '../../engine/simulate';
+import { simulateWeighting, judgmentsFromWeights, rocWeights } from '../../engine/simulate';
 import WeightSliders, { weightReadings, type WeightMap } from '../components/WeightSliders';
 import { IconGrip } from '../components/icons';
 import {
@@ -147,14 +147,48 @@ function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; on
    * is not an elicited preference, and the audit trail has to keep them apart.
    */
   async function simulate() {
-    if (Object.keys(matrix.judgments).length > 0) {
-      const ok = await dialogs.confirm({
-        title: t('Substituir as respostas já dadas neste grupo?'),
-        body: t('Os juízos passam a ser gerados a partir da ordem de importância (método ROC). Ficam marcados como simulados até os confirmar.'),
-        confirmLabel: t('Substituir'),
-      });
-      if (!ok) return;
-    }
+    const replacing = Object.keys(matrix.judgments).length > 0;
+    const n = orderedChildIds.length;
+    const pairs = (n * (n + 1)) / 2;
+    const preview = rocWeights(n).map((w) => (w * 100).toFixed(1)).join('  ');
+
+    /**
+     * The explanation arrives *before* the action, not as an amber banner
+     * afterwards. It used to be a `title` tooltip — invisible on a phone, and
+     * too late anywhere else — followed by a warning the user could dismiss
+     * without ever having been told what the shortcut had done.
+     *
+     * What stays on the face of the dialog is the one thing that must not be
+     * missed: these are not the respondent's preferences. The method behind it
+     * folds away.
+     */
+    const ok = await dialogs.confirm({
+      title: t('Começar a partir da ordem'),
+      confirmLabel: t('Gerar e rever'),
+      body: (
+        <>
+          <p>
+            {t('Gera as {{n}} respostas deste grupo a partir da ordem que deu.', { n: pairs })}{' '}
+            <strong className="text-amber-800">{t('Não são as suas preferências')}</strong>{' '}
+            {t('— ficam por confirmar.')}
+            {replacing && <> {t('As respostas já dadas neste grupo são substituídas.')}</>}
+          </p>
+          <Why label="como funciona?">
+            <p>
+              {t('Os pesos saem da ordem pelo método ROC (Rank Order Centroid): entre todos os conjuntos de pesos compatíveis com essa ordem, é o que fica no centro — portanto não acrescenta preferência nenhuma para lá da ordem que deu.')}
+            </p>
+            <p className="font-mono text-xs text-gray-600">
+              {t('com {{n}} critérios →', { n })} {preview}
+            </p>
+            <p>
+              {t('Depois disso é tudo igual às respostas dadas à mão: os mesmos juízos, o mesmo cálculo, a mesma verificação de coerência. O atalho não contorna nada — só começa por si. Fecha-se no passo «Faz sentido?», onde confirma ou corrige.')}
+            </p>
+          </Why>
+        </>
+      ),
+    });
+    if (!ok) return;
+
     const { judgments } = simulateWeighting(orderedChildIds);
     updateJudgments(judgments);
     provenanceRef.current = 'simulated';
@@ -517,9 +551,8 @@ function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; on
                 <button
                   onClick={simulate}
                   className="px-4 py-2 rounded-full text-sm font-semibold bg-indigo-50 text-indigo-700 hover:bg-indigo-100"
-                  title={t('Gera um conjunto completo e consistente de juízos a partir da ordem de importância (método ROC).')}
                 >
-                  ⚡ {t('Preencher a partir da ordem')}
+                  ⚡ {t('Começar a partir da ordem')}
                 </button>
                 <button
                   onClick={openDirect}

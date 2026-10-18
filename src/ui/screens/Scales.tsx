@@ -551,6 +551,11 @@ export default function Scales() {
           <p>
             {t('As perguntas comparam subidas entre níveis, não níveis isolados: é a distância entre eles que fixa a escala. Por isso aparecem todos os pares, e não só os vizinhos.')}
           </p>
+          {rulerFor !== null && (
+            <p>
+              {t('A colocar valores à mão: cada posição implica uma resposta — as que aparecem ao lado — e a escala que sai é, por construção, coerente com elas. É a mesma escala das perguntas, por outro caminho. «Nem bom nem mau» e «bom» ficam fixos em 0 e 100, e nenhum nível pode passar à frente de outro.')}
+            </p>
+          )}
         </Why>
       </header>
 
@@ -655,27 +660,36 @@ export default function Scales() {
 
         return (
         <div className="flex-1 space-y-6 min-w-0">
-          <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex items-center gap-3 flex-wrap">
             <h2 className="font-semibold text-gray-800">{activeCrit.label}</h2>
-            <button
-              onClick={() => (inRuler ? setRulerFor(null) : openRuler())}
-              className="px-3.5 py-1.5 text-sm rounded-full border border-gray-200 text-gray-600 hover:bg-gray-50"
-            >
-              {inRuler ? t('⇄ Modo perguntas') : t('⇄ Modo régua')}
-            </button>
-            <span className="text-xs text-gray-400">
-              {derivingId === activeCrit.id
-                ? t('A calcular a escala…')
-                : t('A escala calcula-se sozinha quando as comparações estiverem completas.')}
+            {/* Two states, named by what you do in each. It was a ghost button
+                reading "⇄ Modo régua" — the name of a destination — wedged
+                between the title and a line of grey help text, where it read as
+                a tertiary control rather than as the screen's mode switch. */}
+            <div className="inline-flex rounded-lg border-[1.5px] border-gray-300 overflow-hidden bg-white" role="group">
+              <button
+                onClick={() => setRulerFor(null)}
+                aria-pressed={!inRuler}
+                className={`px-3 py-1.5 text-[13px] font-semibold transition-colors ${
+                  !inRuler ? 'bg-accent text-white' : 'text-gray-500 hover:bg-gray-50'
+                }`}
+              >
+                {t('Perguntas')}
+              </button>
+              <button
+                onClick={openRuler}
+                aria-pressed={inRuler}
+                className={`px-3 py-1.5 text-[13px] font-semibold border-l-[1.5px] border-gray-300 transition-colors ${
+                  inRuler ? 'bg-accent text-white' : 'text-gray-500 hover:bg-gray-50'
+                }`}
+              >
+                {t('Valores à mão')}
+              </button>
+            </div>
+            <span className="text-xs text-gray-400 ml-auto">
+              {derivingId === activeCrit.id ? t('A calcular a escala…') : ''}
             </span>
           </div>
-
-          {/* Questions on the left, the scale they produce on the right.
-              Stacked, the scale sat ~640px below the questions: you answered
-              without ever seeing the thing the answer moved, which is most of
-              what makes MACBETH elicitation legible. */}
-          <div className="grid lg:grid-cols-[minmax(0,1fr)_26rem] gap-5 items-start">
-            <div className="space-y-6 min-w-0">
 
           {/* ── Contradiction, stated in terms of the answers that caused it ──
               Placed above the questions: it is what the assessor has to act on,
@@ -748,22 +762,20 @@ export default function Scales() {
             );
           })()}
 
+          {/* Placing values by hand is a different editing surface, not a
+              variant of the questions column — so it takes the whole width, and
+              the derived-scale column goes away while it is open, because the
+              ruler *is* the scale. */}
           {inRuler ? (
             <>
-              <p className="text-sm text-gray-500 leading-relaxed">
-                <strong className="text-gray-700">{t('Os valores que colocar são os que ficam.')}</strong>{' '}
-                {t('Cada posição implica um juízo MACBETH (à direita) e a escala resultante é, por construção, coerente com esses juízos. A faixa clara ao lado de cada nível é o troço em que o pode arrastar sem mudar nenhum juízo. Neutro e Bom estão fixos em 0 e 100, e nenhum nível pode passar à frente de outro.')}
-              </p>
-              <div className="grid lg:grid-cols-[1fr_22rem] gap-5 items-start">
+              <p className="text-sm text-gray-500">{t('Os valores que colocar são os que ficam. Arraste os níveis não fixos.')}</p>
+              <div className="grid lg:grid-cols-[minmax(0,1fr)_22rem] gap-5 items-start">
                 <div className="bg-white border border-gray-200 rounded-2xl p-5">
                   <ValueRuler criterion={activeCrit} values={rulerValues} onChange={setRulerValues} />
                 </div>
                 <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-2">
                   <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
-                    {t('Juízos MACBETH deduzidos')} <span className="text-indigo-600">· {t('ao vivo')}</span>
-                  </p>
-                  <p className="text-xs text-gray-400 leading-relaxed pb-1">
-                    {t('Todos os pares, não só os adjacentes — é o que o método exige.')}
+                    {t('Respostas deduzidas')} <span className="text-indigo-600">· {t('ao vivo')}</span>
                   </p>
                   {pairReadings(activeCrit, rulerValues).map((r) => (
                     <div key={r.key} className="flex items-center gap-2.5 rounded-xl border border-gray-100 px-3 py-2">
@@ -789,7 +801,8 @@ export default function Scales() {
               </div>
             </>
           ) : (
-          <>
+          <div className="grid lg:grid-cols-[minmax(0,1fr)_26rem] gap-5 items-start">
+            <div className="space-y-6 min-w-0">
           {/* Answers already given, as bars — the scale you are judging against
               stays visible instead of having to be held in memory. */}
           {answered.length > 0 && (
@@ -873,8 +886,6 @@ export default function Scales() {
             />
           </details>
           )}
-          </>
-          )}
             </div>
 
             <div className="lg:sticky lg:top-4 min-w-0 space-y-6">
@@ -939,6 +950,7 @@ export default function Scales() {
           })()}
             </div>
           </div>
+          )}
         </div>
         );
       })()}

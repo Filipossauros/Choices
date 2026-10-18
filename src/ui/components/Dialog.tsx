@@ -18,7 +18,13 @@ import { useTranslation } from 'react-i18next';
 
 interface DialogRequest {
   title: string;
-  body?: string;
+  /**
+   * A sentence, or a node when the dialog has to carry something richer — the
+   * weighting shortcut explains what it is about to generate, with the method
+   * folded behind a `Why`. Still one short paragraph by default: a dialog that
+   * needs scrolling is a screen in disguise.
+   */
+  body?: ReactNode;
   /** Label of the confirming button; absent for a plain acknowledgement. */
   confirmLabel?: string;
   cancelLabel?: string;
@@ -109,9 +115,9 @@ export function DialogProvider({ children }: { children: ReactNode }) {
               {request.title}
             </h2>
             {request.body && (
-              <p id="dialog-body" className="text-sm text-gray-600 leading-relaxed">
+              <div id="dialog-body" className="text-sm text-gray-600 leading-relaxed space-y-2">
                 {request.body}
-              </p>
+              </div>
             )}
             <div className="flex justify-end gap-2 pt-1">
               {request.kind === 'confirm' && (
