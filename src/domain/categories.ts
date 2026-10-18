@@ -17,7 +17,14 @@
  *   preference   when two whole alternatives are being compared
  *                (weighting: "prefiro muito" — era preciso um bom motivo…)
  *   improvement  when one criterion moves up one level
- *                (scales: "melhora muito" — é uma melhoria importante)
+ *                (scales: "vale muito" — é uma subida importante)
+ *
+ * The two ends of the ladder are where the wording has to work hardest. C0 is a
+ * precise, strong claim — the two are worth exactly the same — so it must not
+ * sound like carelessness ("tanto me faz, escolheria à sorte"). C6 is the
+ * largest difference conceivable *on this criterion*, so it needs that
+ * referent: "é o salto máximo" reads as a unit of measurement, and it was the
+ * one rung that described the scale while the other six described the answer.
  *
  * The ladder stays monotone in both wordings, and `weight` drives a staircase so
  * the size of each step is visible before any label is read. C0–C6 are untouched
@@ -25,7 +32,16 @@
  */
 import type { MacbethCategory } from './types';
 
-/** Which question the ladder is answering. */
+/**
+ * Which question the ladder is answering.
+ *
+ * `improvement` says "vale", not "melhora". The screen that uses it cannot
+ * assume the respondent recognises the upward direction — "«Mais de 36 meses»
+ * passa a «Sem data anunciada». Quanto melhora com isso?" reads as a mistake
+ * when the descriptor's order is not self-evident, and gives no way to tell a
+ * misunderstanding from a reversed descriptor. The question states the direction
+ * and asks for the value of the step.
+ */
 export type JudgmentContext = 'preference' | 'improvement';
 
 export interface CategoryWording {
@@ -53,44 +69,44 @@ export const CATEGORIES: CategorySpec[] = [
   {
     value: 0, label: 'Nula', code: 'C0', weight: 6,
     hint: 'Nenhuma diferença com relevância prática',
-    preference: { label: 'Tanto me faz', gloss: 'escolheria à sorte' },
-    improvement: { label: 'Não melhora', gloss: 'na prática é igual' },
+    preference: { label: 'Valem o mesmo', gloss: 'nenhum dos dois pesa mais na decisão' },
+    improvement: { label: 'Não vale nada', gloss: 'os dois níveis valem exactamente o mesmo' },
   },
   {
     value: 1, label: 'Muito baixa', code: 'C1', weight: 14,
     hint: 'Diferença quase imperceptível',
     preference: { label: 'Prefiro, quase nada', gloss: 'quase não dava pela diferença' },
-    improvement: { label: 'Melhora quase nada', gloss: 'é melhor no papel' },
+    improvement: { label: 'Quase não vale', gloss: 'quase não dava pela diferença' },
   },
   {
     value: 2, label: 'Baixa', code: 'C2', weight: 24,
     hint: 'Diferença pequena mas perceptível',
-    preference: { label: 'Prefiro um pouco', gloss: 'notava-se, mas não mudava a minha escolha' },
-    improvement: { label: 'Melhora um pouco', gloss: 'é melhor, mas pouco' },
+    preference: { label: 'Prefiro um pouco', gloss: 'nota-se, mas não mudava a minha escolha' },
+    improvement: { label: 'Vale pouco', gloss: 'nota-se, mas não mudava a minha escolha' },
   },
   {
     value: 3, label: 'Moderada', code: 'C3', weight: 36,
     hint: 'Diferença claramente sentida',
     preference: { label: 'Prefiro moderadamente', gloss: 'conta, e pesava na decisão' },
-    improvement: { label: 'Melhora de forma visível', gloss: 'é uma melhoria que se nota' },
+    improvement: { label: 'Vale moderadamente', gloss: 'conta, e pesava na decisão' },
   },
   {
     value: 4, label: 'Elevada', code: 'C4', weight: 50,
     hint: 'Diferença significativa',
     preference: { label: 'Prefiro muito', gloss: 'era preciso um bom motivo para escolher a outra' },
-    improvement: { label: 'Melhora muito', gloss: 'é uma melhoria importante' },
+    improvement: { label: 'Vale muito', gloss: 'é uma subida importante' },
   },
   {
     value: 5, label: 'Muito elevada', code: 'C5', weight: 66,
     hint: 'Diferença muito marcada',
     preference: { label: 'Prefiro muitíssimo', gloss: 'só escolheria a outra num caso muito especial' },
-    improvement: { label: 'Melhora muitíssimo', gloss: 'muda a qualidade da proposta' },
+    improvement: { label: 'Vale muitíssimo', gloss: 'é uma subida decisiva' },
   },
   {
     value: 6, label: 'Extrema', code: 'C6', weight: 84,
     hint: 'A maior diferença concebível',
     preference: { label: 'Não há comparação', gloss: 'nunca escolheria a outra por causa deste ponto' },
-    improvement: { label: 'É o salto máximo', gloss: 'é a maior diferença possível neste critério' },
+    improvement: { label: 'É a maior diferença possível aqui', gloss: 'não há subida maior neste critério' },
   },
 ];
 

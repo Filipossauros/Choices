@@ -1196,4 +1196,130 @@ export const en: Record<string, string> = {
     'zones',
   'Nenhuma proposta pontuada — nada para colocar na régua.':
     'No scored proposal — nothing to place on the ruler.',
+
+  // ── Substantivo do modelo, âncoras, escada reescrita, perguntas enxutas ──
+  'Valem o mesmo':
+    'They are worth the same',
+  'nenhum dos dois pesa mais na decisão':
+    'neither of them weighs more on the decision',
+  'Não vale nada':
+    'Worth nothing',
+  'os dois níveis valem exactamente o mesmo':
+    'the two levels are worth exactly the same',
+  'Quase não vale':
+    'Worth almost nothing',
+  'Vale pouco':
+    'Worth little',
+  'nota-se, mas não mudava a minha escolha':
+    'noticeable, but it would not change my choice',
+  'Vale moderadamente':
+    'Moderately worth it',
+  'Vale muito':
+    'Worth a lot',
+  'é uma subida importante':
+    'an important step up',
+  'Vale muitíssimo':
+    'Worth a great deal',
+  'é uma subida decisiva':
+    'a decisive step up',
+  'É a maior diferença possível aqui':
+    'It is the biggest difference possible here',
+  'não há subida maior neste critério':
+    'there is no bigger step on this criterion',
+  'O que vai comparar':
+    'What you are comparing',
+  'Singular':
+    'Singular',
+  'Plural':
+    'Plural',
+  'outro…':
+    'other…',
+  'alternativa':
+    'alternative',
+  'alternativas':
+    'alternatives',
+  'opção':
+    'option',
+  'opções':
+    'options',
+  'serviço':
+    'service',
+  'serviços':
+    'services',
+  'fornecedor':
+    'supplier',
+  'fornecedores':
+    'suppliers',
+  'candidato':
+    'candidate',
+  'candidatos':
+    'candidates',
+  'cenário':
+    'scenario',
+  'cenários':
+    'scenarios',
+  'fator, critério ou condição eliminatória?':
+    'factor, criterion or eliminating condition?',
+  'Reúne outros elementos e reparte importância entre eles. A sua pontuação vem dos filhos.':
+    'Groups other elements and shares importance between them. Its score comes from its children.',
+  'Tem níveis ordenados e duas referências: «nem bom nem mau» = 0 e «bom» = 100. É aqui que vive a regra de exclusão.':
+    'Has ordered levels and two references: “neither good nor bad” = 0 and “good” = 100. This is where the exclusion rule lives.',
+  'Pergunta de sim/não, respondida antes de haver pontuação. Se não for cumprida, exclui a {{one}}.':
+    'A yes/no question, answered before any scoring. If it is not met, it excludes the {{one}}.',
+  'Pontos estimados do nível {{n}}':
+    'Estimated points for level {{n}}',
+  'NEM BOM NEM MAU':
+    'NEITHER GOOD NOR BAD',
+  'EXCLUI':
+    'EXCLUDES',
+  'nem bom nem mau':
+    'neither good nor bad',
+  'bom':
+    'good',
+  'excluir abaixo de':
+    'exclude below',
+  '— nada exclui —':
+    '— nothing excludes —',
+  'porquê estas duas?':
+    'why these two?',
+  'Toda a ponderação pergunta «qual destas subidas de «nem bom nem mau» até «bom» vale mais?». Por isso as duas referências têm de significar algo por si — se fossem os extremos de cada critério, quem escrevesse um nível mais exagerado inflacionava a importância desse critério sem o querer.':
+    'The whole weighting step asks “which of these steps from ‘neither good nor bad’ to ‘good’ is worth more?”. That is why the two references have to mean something in themselves — if they were each criterion’s extremes, writing a more extreme level would inflate that criterion’s importance without anyone intending it.',
+  '«Nem bom nem mau» não é o pior nível, e «bom» não é o melhor: os níveis abaixo e acima existem, e pontuam abaixo de 0 e acima de 100. A coluna dos pontos mostra a estimativa; os valores definitivos saem das comparações do passo «Níveis e valores».':
+    '“Neither good nor bad” is not the worst level, and “good” is not the best: the levels below and above exist, and score below 0 and above 100. The points column shows the estimate; the final values come from the comparisons in “Levels and values”.',
+  '«Nem bom nem mau» está no pior nível, por isso nada aqui pontua abaixo de zero. É mesmo isso que quer dizer?':
+    '“Neither good nor bad” is on the worst level, so nothing here scores below zero. Is that really what you mean?',
+  'porquê?':
+    'why?',
+  'Quanto conta cada critério.':
+    'How much each criterion counts.',
+  'Cada pergunta compara duas melhorias: um critério a subir do nível «nem bom nem mau» até «bom», contra outro a fazer o mesmo. Tudo o resto fica igual nos dois casos, por isso a resposta diz quanto cada critério conta — e não quanto vale {{art}} {{one}} em geral.':
+    'Every question compares two improvements: one criterion rising from “neither good nor bad” to “good”, against another doing the same. Everything else stays identical in both cases, so the answer says how much each criterion counts — not how good the {{one}} is overall.',
+  'Há critérios agrupados em fatores: cada grupo reparte a sua importância entre os seus, e a importância final de um critério é o produto ao longo do caminho.':
+    'Some criteria are grouped into factors: each group shares its importance among its own, and a criterion’s final importance is the product along the path.',
+  'Só pode melhorar um destes dois até «bom». Qual escolhe?':
+    'You can only improve one of these two up to “good”. Which do you choose?',
+  'Vale a pena melhorar':
+    'Is it worth improving',
+  'até «bom»?':
+    'up to “good”?',
+  'A importância aparece aqui':
+    'The importance appears here',
+  'Cada resposta à esquerda move estas barras. Calcula-se sozinha assim que responder a todas.':
+    'Each answer on the left moves these bars. It derives itself once you have answered them all.',
+  'Quanto vale cada subida.':
+    'How much each step up is worth.',
+  'Cada critério recebe uma escala a partir das suas respostas, com «nem bom nem mau» em 0 e «bom» em 100 — as duas referências que escolheu na Estrutura. Os níveis acima e abaixo delas ficam fora desse intervalo.':
+    'Each criterion gets a scale from your answers, with “neither good nor bad” at 0 and “good” at 100 — the two references you chose in Structure. Levels above and below them fall outside that range.',
+  'As perguntas comparam subidas entre níveis, não níveis isolados: é a distância entre eles que fixa a escala. Por isso aparecem todos os pares, e não só os vizinhos.':
+    'The questions compare steps between levels, not levels on their own: it is the distance between them that fixes the scale. That is why every pair appears, not just the neighbouring ones.',
+  'Quanto vale esta subida?':
+    'How much is this step up worth?',
+  'está ao contrário? ↗':
+    'is it the wrong way round? ↗',
+  'para comparar: {{ref}} — «{{cat}}»':
+    'for comparison: {{ref}} — “{{cat}}”',
+  'Registe {{artMany}} {{many}}, responda às condições eliminatórias e classifique o desempenho em cada critério pontuado. Uma condição eliminatória não cumprida exclui {{art}} {{one}} antes da agregação.':
+    'Register the {{many}}, answer the eliminating conditions and rate the performance on each scored criterion. An eliminating condition that is not met excludes the {{one}} before aggregation.',
+  'Nome d{{art}} {{one}}…':
+    'Name of the {{one}}…',
 };

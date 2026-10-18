@@ -280,7 +280,7 @@ export default function GuidedJudgments({
             <div className="flex flex-wrap gap-2">
               {([
                 { d: 'more' as const, label: moreItem.label, grow: true },
-                { d: 'equal' as const, label: t('Tanto me faz'), grow: false },
+                { d: 'equal' as const, label: t(categoryWording(0, context).label), grow: false },
                 { d: 'less' as const, label: lessItem.label, grow: true },
               ]).map(({ d, label, grow }) => {
                 const on = dir === d;
@@ -355,7 +355,9 @@ export default function GuidedJudgments({
         )}
 
         {/* C0 lives outside the ladder: it answers a different question
-            (sameness), and inside the ladder it gets picked by accident. */}
+            (sameness), and inside the ladder it gets picked by accident. Its
+            gloss follows the same rule as the rungs' — shown once chosen, not
+            permanently. */}
         {!asksDirection && (
           <button
             onClick={() => pick(0)}
@@ -366,13 +368,13 @@ export default function GuidedJudgments({
                 : 'border-gray-200 text-gray-500 hover:border-indigo-200'
             }`}
           >
-            {t(categoryWording(0, context).label)} — {t(categoryWording(0, context).gloss)}
+            {t(categoryWording(0, context).label)}
           </button>
         )}
-        {asksDirection && dir === 'equal' && (
+        {currentCat === 0 && (dir === 'equal' || !asksDirection) && (
           <p className="text-xs text-gray-500">
-            <span className="font-semibold text-gray-700">«{t('Tanto me faz')}»</span>
-            {' — '}{t('escolheria à sorte')}.
+            <span className="font-semibold text-gray-700">«{t(categoryWording(0, context).label)}»</span>
+            {' — '}{t(categoryWording(0, context).gloss)}.
           </p>
         )}
       </div>

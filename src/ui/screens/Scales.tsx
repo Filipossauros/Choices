@@ -11,6 +11,7 @@ import { sampleCurve } from '../../engine/interpolation';
 import JudgmentMatrixEditor from '../components/JudgmentMatrixEditor';
 import GuidedJudgments from '../components/GuidedJudgments';
 import ScreenNav from '../components/ScreenNav';
+import Why from '../components/Why';
 import { ancestorLabels } from '../../domain/tree';
 import { CATEGORIES, categoryWording } from '../../domain/categories';
 import ValueRuler, { defaultLevelValues, judgmentsFromLevelValues, pairReadings, type LevelValues } from '../components/ValueRuler';
@@ -540,11 +541,17 @@ export default function Scales() {
 
   return (
     <div className="max-w-6xl mx-auto py-6 px-4">
-      <header className="mb-4">
+      <header className="mb-4 flex items-start gap-3 flex-wrap">
         <h2 className="text-xl font-bold text-gray-800 tracking-tight">{t('Níveis e valores')}</h2>
-        <p className="text-sm text-gray-500 mt-1 max-w-2xl leading-relaxed">
-          {t('Quantos pontos vale cada nível de cada critério. Responda às comparações e a escala calcula-se sozinha, com «nem bom nem mau» em 0 e «bom» em 100.')}
-        </p>
+        <p className="text-sm text-gray-500 mt-1 flex-1 min-w-[14rem]">{t('Quanto vale cada subida.')}</p>
+        <Why className="mt-1 basis-full">
+          <p>
+            {t('Cada critério recebe uma escala a partir das suas respostas, com «nem bom nem mau» em 0 e «bom» em 100 — as duas referências que escolheu na Estrutura. Os níveis acima e abaixo delas ficam fora desse intervalo.')}
+          </p>
+          <p>
+            {t('As perguntas comparam subidas entre níveis, não níveis isolados: é a distância entre eles que fixa a escala. Por isso aparecem todos os pares, e não só os vizinhos.')}
+          </p>
+        </Why>
       </header>
 
       <div className="flex flex-col gap-4">
@@ -595,14 +602,22 @@ export default function Scales() {
          */
         const levels = activeCrit.descriptor.levels;
         const labelOf = (id: string) => levels.find((l) => l.id === id)?.label ?? '';
+        const indexOf = (id: string) => levels.findIndex((l) => l.id === id);
         const answered = Object.entries(getMatrix(activeCrit.id).judgments)
           .map(([key, j]) => {
             const [a, b] = key.split('__');
             const cat = j.kind === 'exact' ? j.category : j.lo;
-            return { key, from: labelOf(b), to: labelOf(a), cat };
+            return { key, from: labelOf(b), to: labelOf(a), cat, span: Math.abs(indexOf(a) - indexOf(b)) };
           })
           .filter((x) => x.from && x.to);
-        const reference = answered[0];
+        /**
+         * The widest step already answered, as the yardstick for the next one.
+         * Judging a difference in the abstract is the hard part; judging it
+         * against the biggest step on the same criterion is a comparison, which
+         * is what the method is for. (It used to be whichever pair happened to
+         * be answered first, which made the sentence that names it untrue.)
+         */
+        const reference = [...answered].sort((a, b) => b.span - a.span)[0];
         const referenceJump = reference ? `${reference.from} → ${reference.to}` : '';
 
         const inRuler = rulerFor === activeCrit.id;
@@ -782,11 +797,11 @@ export default function Scales() {
               <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
                 {t('O que já respondeu neste critério')}
               </p>
-              {answered.map((a, i) => (
+              {answered.map((a) => (
                 <div
                   key={a.key}
                   className={`flex items-center gap-3 rounded-xl px-3 py-2 border text-sm ${
-                    i === 0 ? 'border-indigo-300 bg-indigo-50' : 'border-gray-100'
+                    a.key === reference?.key ? 'border-indigo-300 bg-indigo-50' : 'border-gray-100'
                   }`}
                 >
                   <span
@@ -795,7 +810,7 @@ export default function Scales() {
                     aria-hidden="true"
                   />
                   <span className="flex-1 truncate text-gray-600">{a.from} → {a.to}</span>
-                  {i === 0 && (
+                  {a.key === reference?.key && (
                     <span className="text-[9px] font-bold uppercase tracking-wide text-indigo-600">{t('referência')}</span>
                   )}
                   <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 shrink-0">
@@ -817,14 +832,26 @@ export default function Scales() {
             emptyHint="São necessários pelo menos 2 níveis."
             renderQuestion={(more, less) => (
               <>
-                {t('A proposta tem')}{' '}
-                <span className="inline-block bg-gray-50 border border-gray-200 rounded-lg px-2 py-0.5 font-semibold text-gray-700">{less.label}</span>
-                {' '}{t('e passa a ter')}{' '}
-                <span className="inline-block bg-indigo-50 border border-indigo-300 rounded-lg px-2 py-0.5 font-bold text-indigo-700">{more.label}</span>.
-                <span className="block mt-1">{t('Quanto melhora com isso?')}</span>
+                {t('Quanto vale esta subida?')}
+                {/* The arrow states the direction the descriptor claims, which
+                    the question used to assume. Without it, "«Mais de 36 meses»
+                    passa a «Sem data anunciada»" reads as a mistake and there is
+                    no way to tell a misunderstanding from a reversed descriptor
+                    — so the escape sits right beside it. */}
+                <span className="flex items-center gap-2.5 mt-2.5 text-[17px] font-normal leading-tight flex-wrap">
+                  <span className="text-gray-500">{less.label}</span>
+                  <span className="text-gray-300" aria-hidden="true">→</span>
+                  <span className="font-bold text-gray-900">{more.label}</span>
+                  <button
+                    onClick={() => dispatch({ type: 'SET_SCREEN', screen: 'criteria' })}
+                    className="ml-auto text-xs font-semibold text-indigo-600 underline underline-offset-2 hover:text-indigo-800"
+                  >
+                    {t('está ao contrário? ↗')}
+                  </button>
+                </span>
                 {referenceJump && (
-                  <span className="block text-sm font-normal text-gray-600 bg-indigo-50 border border-indigo-100 rounded-xl px-3 py-2 mt-3">
-                    {t('Para comparar: o salto de referência ({{ref}}).', { ref: referenceJump })}
+                  <span className="block text-[13px] font-normal text-indigo-800 bg-indigo-50 border border-indigo-100 rounded-xl px-3 py-2 mt-3">
+                    {t('para comparar: {{ref}} — «{{cat}}»', { ref: referenceJump, cat: t(categoryWording(reference!.cat, 'improvement').label) })}
                   </span>
                 )}
               </>

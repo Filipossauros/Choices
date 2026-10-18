@@ -17,6 +17,8 @@ import JudgmentMatrixEditor from '../components/JudgmentMatrixEditor';
 import GuidedJudgments from '../components/GuidedJudgments';
 import ScreenNav from '../components/ScreenNav';
 import SanityCheck from '../components/SanityCheck';
+import Why from '../components/Why';
+import { subjectNoun } from '../../domain/subject';
 import { v4 as uuidv4 } from 'uuid';
 
 /** One collapsible weighting panel for a single group of sibling criteria. */
@@ -100,43 +102,28 @@ function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; on
   }
 
   /**
-   * One of the two alternatives a swing comparison is really about: good in one
-   * criterion, neutral in the other, identical everywhere else.
+   * The thing the comparison is actually about: one criterion moving from "nem
+   * bom nem mau" to "bom", everything else untouched.
+   *
+   * It used to be drawn as two whole alternatives, one line per criterion, with
+   * a row saying "here nothing changed" — which read as data rather than as the
+   * control it was — and with the two anchors labelled on every card, repeating
+   * what Estrutura already defines. What is left is the move itself: from, an
+   * arrow, to. The arrow is the direction; the card is the swing.
    */
-  function proposalCard(
-    name: string,
-    upId: string,
-    rows: { id: string; label: string }[],
-  ) {
-    const row = (crit: { id: string; label: string }, improved: boolean) => (
-      <span key={crit.id} className="flex gap-2.5 items-start px-3 py-2 border-t border-gray-100 first:border-t-0">
-        <span
-          className={`shrink-0 w-4 h-4 mt-0.5 rounded-full grid place-items-center text-[9px] font-bold ${
-            improved ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'
-          }`}
-          aria-hidden="true"
-        >
-          {improved ? '▲' : '–'}
-        </span>
-        <span className="min-w-0">
-          <span className="block text-[10px] uppercase tracking-wide text-gray-400 truncate">{crit.label}</span>
-          <span className={`block text-[13px] ${improved ? 'font-semibold text-gray-800' : 'text-gray-500'}`}>
-            {levelLabel(crit.id, improved ? 'good' : 'neutral')}
-          </span>
-          {improved && subJumps(crit.id) && (
-            <span className="block text-[11px] text-gray-400 mt-0.5">{subJumps(crit.id)}</span>
-          )}
-        </span>
-      </span>
-    );
+  function swingCard(crit: { id: string; label: string }) {
+    const sub = subJumps(crit.id);
     return (
-      <span className="border-[1.5px] border-gray-200 rounded-xl bg-white overflow-hidden">
-        <span className="block px-3 py-1.5 bg-gray-50 border-b border-gray-100 text-[11px] font-bold uppercase tracking-wider text-gray-500">
-          {name}
+      <span className="block border-[1.5px] border-gray-200 rounded-xl bg-white px-3.5 py-3">
+        <span className="block text-[10px] font-bold uppercase tracking-wider text-gray-400 truncate mb-1.5">
+          {crit.label}
         </span>
-        {/* Both cards list the criteria in the same order, so the eye compares
-            level against level instead of hunting for the matching row. */}
-        {rows.map((crit) => row(crit, crit.id === upId))}
+        <span className="flex items-center gap-2.5 text-[14px] leading-tight">
+          <span className="text-gray-500 min-w-0 flex-1">{levelLabel(crit.id, 'neutral')}</span>
+          <span className="text-gray-300 shrink-0" aria-hidden="true">→</span>
+          <span className="font-bold text-gray-900 min-w-0 flex-1">{levelLabel(crit.id, 'good')}</span>
+        </span>
+        {sub && <span className="block text-[11px] font-normal text-gray-400 mt-1.5">{sub}</span>}
       </span>
     );
   }
@@ -488,20 +475,17 @@ function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; on
                 renderQuestion={(more, less) =>
                   less.id === ALL_NEUTRAL ? (
                     <>
-                      {t('Uma proposta no nível neutro em todos os critérios. Prefere-a como está, ou com')}{' '}
-                      <span className="inline-block bg-indigo-50 border border-indigo-300 rounded-lg px-2 py-0.5 font-bold text-indigo-700">{more.label}</span>{' '}
-                      {t('no nível «Bom»?')}
-                      <span className="block text-xs font-normal text-gray-500 mt-2">{jumpOf(more.id)}</span>
+                      {t('Vale a pena melhorar')}{' '}
+                      <span className="inline-block bg-indigo-50 border border-indigo-300 rounded-lg px-2 py-0.5 font-bold text-indigo-700">{more.label}</span>
+                      {' '}{t('até «bom»?')}
+                      <span className="block mt-3 text-sm font-normal">{swingCard(more)}</span>
                     </>
                   ) : (
                     <>
-                      {t('Chegaram duas propostas. São iguais em tudo — excepto nestes dois pontos.')}
+                      {t('Só pode melhorar um destes dois até «bom». Qual escolhe?')}
                       <span className="grid sm:grid-cols-2 gap-2.5 mt-3 text-sm font-normal">
-                        {proposalCard(t('Proposta A'), more.id, [more, less])}
-                        {proposalCard(t('Proposta B'), less.id, [more, less])}
-                      </span>
-                      <span className="block text-xs font-normal text-gray-400 mt-2">
-                        {t('Em todos os outros critérios as duas estão exactamente no mesmo nível.')}
+                        {swingCard(more)}
+                        {swingCard(less)}
                       </span>
                     </>
                   )
@@ -569,6 +553,17 @@ function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; on
                 </div>
               )}
 
+              {/* An empty column beside the first question says nothing. Say
+                  what will appear there, so the link between answering and the
+                  importance is made before the first answer. */}
+              {!weights && (
+                <div className="border-2 border-dashed border-gray-200 rounded-2xl px-5 py-7 text-center space-y-1">
+                  <p className="text-sm font-semibold text-gray-600">{t('A importância aparece aqui')}</p>
+                  <p className="text-xs text-gray-400 leading-relaxed">
+                    {t('Cada resposta à esquerda move estas barras. Calcula-se sozinha assim que responder a todas.')}
+                  </p>
+                </div>
+              )}
               {weights && (() => {
                 const groupFactor = groupEffectiveWeight(model, group.parentId);
                 // Show the global column only for nested groups (where local ≠ global).
@@ -713,6 +708,7 @@ export default function Weighting() {
     );
   }
 
+  const subject = subjectNoun(model);
   const allReady = groups.every((g) => groupConsistent(model, g));
   const multiGroup = groups.length > 1;
 
@@ -720,16 +716,19 @@ export default function Weighting() {
     <div className="max-w-6xl mx-auto py-6 px-4 space-y-6">
       {/* A screen with no title is a screen you can land in the middle of and
           not know where you are. */}
-      <header>
+      <header className="flex items-start gap-3 flex-wrap">
         <h2 className="text-xl font-bold text-gray-800 tracking-tight">{t('Importância')}</h2>
-        <p className="text-sm text-gray-500 mt-1 max-w-2xl leading-relaxed">
-          {t('Quanto conta cada critério. Cada pergunta é uma escolha entre duas propostas que diferem só em dois pontos — responda ao que escolheria, e a importância sai daí.')}
-        </p>
-        {multiGroup && (
-          <p className="text-xs text-gray-400 mt-1.5 max-w-2xl leading-relaxed">
-            {t('Há critérios agrupados em fatores: cada grupo reparte a sua importância entre os seus. A importância final de cada critério é o produto ao longo do caminho.')}
+        <p className="text-sm text-gray-500 mt-1 flex-1 min-w-[14rem]">{t('Quanto conta cada critério.')}</p>
+        <Why className="mt-1 basis-full">
+          <p>
+            {t('Cada pergunta compara duas melhorias: um critério a subir do nível «nem bom nem mau» até «bom», contra outro a fazer o mesmo. Tudo o resto fica igual nos dois casos, por isso a resposta diz quanto cada critério conta — e não quanto vale {{art}} {{one}} em geral.', { art: subject.art, one: subject.one })}
           </p>
-        )}
+          {multiGroup && (
+            <p>
+              {t('Há critérios agrupados em fatores: cada grupo reparte a sua importância entre os seus, e a importância final de um critério é o produto ao longo do caminho.')}
+            </p>
+          )}
+        </Why>
       </header>
 
       <div className="space-y-3">
