@@ -18,6 +18,8 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import ScreenNav from '../components/ScreenNav';
+import Why from '../components/Why';
+import { subjectNoun } from '../../domain/subject';
 
 /**
  * One line per alternative. Drawn from the palette's own ramps rather than raw
@@ -81,6 +83,7 @@ export default function Sensitivity() {
   const scorableIds = new Set(
     computeSensitivity(evaluation, qualCriteria[0].id).points.flatMap((p) => Object.keys(p.optionValues)),
   );
+  const subject = subjectNoun(model);
   const options = evaluation.options.filter((o) => scorableIds.has(o.id));
   if (options.length === 0) {
     return (
@@ -95,17 +98,19 @@ export default function Sensitivity() {
 
   return (
     <div className="max-w-5xl mx-auto py-6 px-4 space-y-6">
-      {/* Header + plain-language explanation */}
-      <div>
+      <div className="flex items-start gap-3 flex-wrap">
         <h2 className="text-xl font-semibold text-gray-800">{t('E se mudar de ideias?')}</h2>
-        <div className="mt-2 text-sm text-gray-600 bg-slate-50 border border-slate-200 rounded-xl p-4 leading-relaxed space-y-2">
+        <p className="text-sm text-gray-500 mt-1 flex-1 min-w-[14rem]">
+          {t('Quanto teria de mudar de opinião para o resultado mudar.')}
+        </p>
+        <Why className="mt-1 basis-full">
           <p>
-            <strong className="text-gray-700">{t('O que mostra:')}</strong> {t('cada linha é uma alternativa. O gráfico segue o seu valor global V(p) à medida que o peso do critério selecionado varia de 0 % a 100 %. A linha vertical tracejada (azul) marca o peso atual e as faixas coloridas de fundo são as zonas da política de decisão.')}
+            {t('Cada linha é {{art}} {{one}}. O gráfico segue a sua pontuação à medida que a importância do critério escolhido varia de 0% a 100%; a linha vertical marca a importância actual e as faixas de fundo são as zonas de decisão.', { art: subject.art, one: subject.one })}
           </p>
           <p>
-            <strong className="text-gray-700">{t('O que procurar:')}</strong> {t('se as linhas se cruzam, a ordenação muda nesse peso')}&nbsp;<span className="text-amber-600 font-semibold">⚡</span> {t('— a decisão é sensível a esse critério. Se nunca se cruzam, o resultado é robusto.')}
+            {t('Se as linhas se cruzam, a ordenação muda nesse ponto — a decisão é sensível a esse critério. Se nunca se cruzam, o resultado aguenta qualquer importância que lhe desse.')}
           </p>
-        </div>
+        </Why>
       </div>
 
       {/* Criterion selector — single-select (radio) */}

@@ -1354,4 +1354,18 @@ export const en: Record<string, string> = {
     'Placing values by hand: each position implies an answer — the ones shown beside it — and the resulting scale is, by construction, consistent with them. It is the same scale the questions produce, by another route. “Neither good nor bad” and “good” stay pinned at 0 and 100, and no level can overtake another.',
   'Respostas deduzidas':
     'Deduced answers',
+
+  // ── Varrimento: uma linha de abertura + um «porquê?» por ecrã ──
+  'Quanto teria de mudar de opinião para o resultado mudar.':
+    'How much you would have to change your mind for the result to change.',
+  'Cada linha é {{art}} {{one}}. O gráfico segue a sua pontuação à medida que a importância do critério escolhido varia de 0% a 100%; a linha vertical marca a importância actual e as faixas de fundo são as zonas de decisão.':
+    'Each line is one {{one}}. The chart follows its score as the chosen criterion’s importance runs from 0% to 100%; the vertical line marks the current importance and the bands behind are the decision zones.',
+  'Se as linhas se cruzam, a ordenação muda nesse ponto — a decisão é sensível a esse critério. Se nunca se cruzam, o resultado aguenta qualquer importância que lhe desse.':
+    'If the lines cross, the ranking changes at that point — the decision is sensitive to that criterion. If they never cross, the result holds for any importance you could have given it.',
+  'Quanto é que as suas respostas ainda não decidiram.':
+    'How much your answers have not decided yet.',
+  'Cada barra é o intervalo de valores que continua compatível com o que respondeu: quanto mais estreito, menos ficou por decidir. Responder a mais comparações estreita-o.':
+    'Each bar is the range of values still compatible with your answers: the narrower it is, the less is left undecided. Answering more comparisons narrows it.',
+  'Isto olha só para o modelo e não precisa de alternativas registadas. A pergunta oposta — a que importância é que a ordenação muda — precisa delas, e por isso vive no passo «E se mudar de ideias?».':
+    'This looks only at the model and needs no alternatives registered. The opposite question — at what importance does the ranking change — does need them, and so lives in “What if I change my mind?”.',
 };

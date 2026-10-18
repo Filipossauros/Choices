@@ -13,6 +13,7 @@ import { modelRobustness, modelReadiness, type RangeReading } from '../../domain
 import { resolveBands } from '../../engine/aggregation';
 import { sortBands } from '../../domain/decision';
 import ScreenNav from '../components/ScreenNav';
+import Why from '../components/Why';
 
 /** A range bar: the admissible interval as a band, the optimum as a dot. */
 /**
@@ -136,11 +137,19 @@ export default function Robustness() {
 
   return (
     <div className="max-w-6xl mx-auto py-6 px-4 space-y-5">
-      <div className="space-y-2">
+      <div className="flex items-start gap-3 flex-wrap">
         <h2 className="text-lg font-semibold text-gray-800">{t('O que ficou em aberto')}</h2>
-        <p className="text-sm text-gray-500 leading-relaxed max-w-3xl">
-          {t('Quanta liberdade os seus juízos deixaram em aberto. Cada barra mostra o intervalo de valores que continuam compatíveis com o que respondeu — quanto mais estreito, mais o modelo está determinado. Não precisa de propostas: isto olha só para o modelo.')}
+        <p className="text-sm text-gray-500 mt-0.5 flex-1 min-w-[14rem]">
+          {t('Quanto é que as suas respostas ainda não decidiram.')}
         </p>
+        <Why className="mt-0.5 basis-full">
+          <p>
+            {t('Cada barra é o intervalo de valores que continua compatível com o que respondeu: quanto mais estreito, menos ficou por decidir. Responder a mais comparações estreita-o.')}
+          </p>
+          <p>
+            {t('Isto olha só para o modelo e não precisa de alternativas registadas. A pergunta oposta — a que importância é que a ordenação muda — precisa delas, e por isso vive no passo «E se mudar de ideias?».')}
+          </p>
+        </Why>
       </div>
 
       <div className="grid lg:grid-cols-[1fr_20rem] gap-5 items-start">
@@ -227,10 +236,6 @@ export default function Robustness() {
             </div>
           </div>
 
-          <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 text-xs text-blue-800 leading-relaxed">
-            <strong>{t('Porque é que isto vem antes de aplicar?')}</strong>{' '}
-            {t('Esta análise olha só para o modelo. A sensibilidade do ranking — a que peso as propostas trocam de posição — precisa de propostas e por isso vive no fluxo de aplicação.')}
-          </div>
         </div>
       </div>
 
