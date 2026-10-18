@@ -57,6 +57,11 @@ export function normalizeModel(raw: Record<string, unknown>): EvaluationModel {
     subWeights: r.subWeights,
     weightOrder: r.weightOrder,
     decisionScale,
+    // Optional since v3.1. Absent in every model written before them, so they
+    // stay undefined rather than being defaulted into existence — an empty
+    // scenario list and "no bench yet" are not the same statement.
+    scenarios: r.scenarios,
+    penaltyRules: r.penaltyRules,
   };
 }
 

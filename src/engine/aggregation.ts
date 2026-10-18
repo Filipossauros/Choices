@@ -240,18 +240,6 @@ export function aggregate(evaluation: Evaluation): AggregationResult {
       if (verdict === 'fail' && !rejectedByGate) rejectedByGate = critId;
     }
 
-    if (rejectedByGate) {
-      return {
-        optionId: option.id,
-        globalValue: null,
-        bandId: null,
-        hardRejected: true,
-        gateResults,
-        criterionScores: {},
-        rejectedByGate,
-      };
-    }
-
     // ── Tier 2: MACBETH qualification (recursive over the hierarchy) ─────
     const leafScore: LeafScore = (critId, crit) => {
       const entry = perf.get(critId);
@@ -269,6 +257,23 @@ export function aggregate(evaluation: Evaluation): AggregationResult {
     };
 
     const { global, nodeScores, missing } = treeValue(model, leafScore);
+    // Computed before the rejection branches so a blocked option can still say
+    // what it would have scored. Never classified, never ranked — see
+    // `OptionResult.indicativeValue`.
+    const indicativeValue = global === null ? null : round2(global);
+
+    if (rejectedByGate) {
+      return {
+        optionId: option.id,
+        globalValue: null,
+        bandId: null,
+        hardRejected: true,
+        gateResults,
+        criterionScores: nodeScores,
+        rejectedByGate,
+        indicativeValue,
+      };
+    }
 
     // Veto: a qualification leaf scoring below its veto level rejects upstream.
     // Checked before completeness: a triggered veto is decisive on its own, so
@@ -294,6 +299,7 @@ export function aggregate(evaluation: Evaluation): AggregationResult {
         gateResults,
         criterionScores: nodeScores,
         vetoedByCriterion,
+        indicativeValue,
       };
     }
 

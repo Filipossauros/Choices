@@ -265,6 +265,16 @@ export interface OptionResult {
    * would hard-reject the option regardless of its score.
    */
   pendingGates?: string[];
+  /**
+   * V(p) computed *despite* a hard rejection — the score the option would have
+   * had if the gate or veto had not fired. Deliberately a separate field from
+   * `globalValue`: a rejected option must never enter a ranking or a decision
+   * band, and every consumer that filters on `hardRejected` keeps working. It
+   * exists because "rejected, and would have scored 26.8" tells the author far
+   * more about their model than "rejected" alone. Null when it cannot be
+   * computed (criteria still unanswered).
+   */
+  indicativeValue?: number | null;
 }
 
 export interface AggregationResult {
@@ -300,6 +310,101 @@ export interface ConsistencyReport {
   isConsistent: boolean;
   consistencyMargin: number;
   inconsistentPairs: InconsistentPair[];
+}
+
+// ─── Test scenarios ────────────────────────────────────────────────────────
+
+/**
+ * A hand-written trial of the model: one fictitious alternative described by the
+ * same `Performance[]` the apply flow uses, so running it goes through
+ * `aggregate` unchanged. That is the point — a bench that scored scenarios with
+ * its own arithmetic would prove nothing about the model that gets exported.
+ *
+ * Scenarios live on the model (not on an Evaluation) because they belong to the
+ * model's own validation: they are exported as test vectors for whoever
+ * implements the model elsewhere.
+ */
+export interface TestScenario {
+  id: string;
+  label: string;
+  description?: string;
+  /** Performances for this scenario; every `optionId` equals this scenario's id. */
+  performances: Performance[];
+  /** Incidents used by the penalty rules. Empty/absent = no penalty to compute. */
+  incidents?: TestIncident[];
+  updatedAt: string;
+}
+
+/**
+ * A fictitious breach inside a scenario. Severity is read from the incident's
+ * own facts (duration × operational impact), NOT from the criterion's value
+ * scale: the value scale says how good the performance is, severity says how bad
+ * this particular event was. Keeping them apart is what stops money from leaking
+ * into the MACBETH value functions.
+ */
+export interface TestIncident {
+  id: string;
+  label: string;
+  /** The criterion whose rule prices this incident. */
+  criterionId: string;
+  /** 0–100, from the incident severity matrix. */
+  severity: number;
+  /** 1 = first occurrence in the recurrence window, 2 = second, … */
+  occurrence?: number;
+  /** Incidents sharing a root cause may be collapsed by the accumulation rule. */
+  rootCauseId?: string;
+}
+
+// ─── Penalty rules ─────────────────────────────────────────────────────────
+
+/** A named severity band over the 0–100 severity axis. */
+export interface SeverityBand {
+  id: string;
+  label: string;
+  /** Inclusive lower bound on the severity axis. */
+  minSeverity: number;
+  /** Below this band, no penalty is due at all. */
+  exempt?: boolean;
+}
+
+/** Per-criterion money parameters. Nothing here touches the value scale. */
+export interface PenaltyCriterionRule {
+  criterionId: string;
+  /** Amount before any factor, in `PenaltyRules.currency`. */
+  baseAmount: number;
+  /** Incidents below this severity band are not priced for this criterion. */
+  minSeverityBandId?: string;
+  perIncidentCap?: number;
+  /** Free text: the contract clause this rule implements. */
+  reference?: string;
+}
+
+/**
+ * The consequence layer. Lives on the model so it travels in the exported
+ * package, but is applied by whoever runs the model — the app only computes it
+ * for scenarios, to show the author what the rules they just wrote produce.
+ */
+export interface PenaltyRules {
+  /** The rules' own version, quoted in every computed amount. */
+  version: string;
+  currency: string;
+  severityBands: SeverityBand[];
+  /** Global multiplier per decision band id — the only place the index meets money. */
+  zoneMultipliers: Record<string, number>;
+  criterionRules: PenaltyCriterionRule[];
+  recurrence: {
+    /** Factor for the 2nd occurrence inside the window. */
+    secondFactor: number;
+    /** Factor for the 3rd and further occurrences. */
+    furtherFactor: number;
+    windowDays: number;
+    enabled: boolean;
+  };
+  /** Incidents sharing a root cause count once — the most severe one. */
+  commonCauseNoAccumulation: boolean;
+  /** A failed gate replaces the proportional calculation with a fixed amount. */
+  criticalRegime?: { amount: number; enabled: boolean };
+  periodCap?: number;
 }
 
 // ─── Top-level entities ──────────────────────────────────────────────────────
@@ -352,6 +457,16 @@ export interface EvaluationModel {
    */
   weightOrder?: Record<string, string[]>;
   decisionScale: DecisionBand[];
+  /**
+   * Hand-written trials of this model. Not evaluations: no real measurement ever
+   * enters them, and they are never presented as results about anything.
+   */
+  scenarios?: TestScenario[];
+  /**
+   * The consequence layer that travels with the model. Absent until the author
+   * writes it; a model without it is still a complete MACBETH model.
+   */
+  penaltyRules?: PenaltyRules;
 }
 
 /**
