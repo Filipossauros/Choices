@@ -6,6 +6,7 @@ import type { DocMeta } from '../../repository';
 import type { EvaluationModel } from '../../domain/types';
 import { MODEL_VERSION } from '../../domain/types';
 import { modelReadiness } from '../../domain/tree';
+import { buildDemoModel } from '../../engine/demo';
 import MethodPage from './MethodPage';
 import ManifestPage from './ManifestPage';
 import { IconPencil, IconClipboard, IconArchitecture, IconMonitor, IconImport, IconScale, IconExport } from '../components/icons';
@@ -411,6 +412,7 @@ export default function Home() {
   const [showAllModels, setShowAllModels] = useState(false);
   const [showAllEvals, setShowAllEvals] = useState(false);
   const [pickModel, setPickModel] = useState(false);
+  const [demoState, setDemoState] = useState<'idle' | 'loading'>('idle');
 
   const refresh = useCallback(() => {
     repository.listModels().then(setModels).catch(() => {});
@@ -423,6 +425,37 @@ export default function Home() {
 
   function fromTemplate(factory: () => EvaluationModel) {
     dispatch({ type: 'EDIT_MODEL', model: factory() });
+  }
+
+  /**
+   * Load the filled-in example.
+   *
+   * The scales and weights are solved here rather than shipped, which takes a
+   * moment (several LPs through the WASM solver) — hence the pending state. If
+   * the solver fails to pin something down, say so instead of opening a model
+   * that looks finished and is not.
+   */
+  async function loadDemo() {
+    setDemoState('loading');
+    try {
+      const { model, unsolvedScales, unsolvedGroups } = await buildDemoModel();
+      await repository.saveModel(model);
+      const unsolved = [...unsolvedScales, ...unsolvedGroups];
+      if (unsolved.length > 0) {
+        await dialogs.alert({
+          title: t('O exemplo abriu incompleto.'),
+          body: t('O motor não conseguiu derivar: {{list}}. O modelo abre na mesma, mas sem índice — e isso é um problema a investigar, não uma limitação do exemplo.', { list: unsolved.join(', ') }),
+        });
+      }
+      dispatch({ type: 'EDIT_MODEL', model });
+    } catch (err) {
+      await dialogs.alert({
+        title: t('Não foi possível construir o exemplo.'),
+        body: t('Detalhe: {{err}}', { err: String(err) }),
+      });
+    } finally {
+      setDemoState('idle');
+    }
   }
 
   async function editModel(id: string) {
@@ -669,9 +702,35 @@ export default function Home() {
 
         {/* ── Sidebar: templates + links ── */}
         <div className="space-y-4">
+          {/* The templates below are structure only — opening one says nothing
+              about whether the engine works. This one is filled in and solved,
+              so it can be used to check the app's behaviour end to end. */}
+          <div className="bg-white border border-accent/40 ring-1 ring-accent/20 rounded-2xl p-4">
+            <h3 className="font-semibold text-gray-800 text-sm mb-1">{t('Exemplo completo')}</h3>
+            <p className="text-xs text-gray-400 mb-3">
+              {t('Um modelo inteiro, já preenchido: hierarquia, condição eliminatória, juízos, zonas, regras de consequência e cinco cenários de ensaio. Dados fictícios.')}
+            </p>
+            <button
+              onClick={loadDemo}
+              disabled={demoState === 'loading'}
+              className="w-full text-left p-3 rounded-xl border border-accent/40 bg-accent/[0.06] hover:bg-accent/[0.12] transition-colors group disabled:opacity-60 disabled:cursor-wait"
+            >
+              <div className="font-medium text-gray-800 text-sm group-hover:text-accent-strong flex items-center gap-2">
+                <IconMonitor className="w-4 h-4 text-accent" />
+                {demoState === 'loading' ? t('A derivar escalas e pesos…') : t('Carregar exemplo preenchido')}
+              </div>
+              <div className="text-xs text-gray-400 mt-0.5 pl-6">
+                {t('6 critérios · 2 fatores · 1 eliminatória · 5 cenários')}
+              </div>
+            </button>
+            <p className="text-[11px] text-gray-400 mt-2 leading-relaxed">
+              {t('As escalas e os pesos não vêm escritos no exemplo: são derivados pelo motor a partir dos juízos, como em qualquer modelo seu.')}
+            </p>
+          </div>
+
           <div className="bg-white border border-gray-200 rounded-2xl p-4">
             <h3 className="font-semibold text-gray-800 text-sm mb-1">{t('Modelos-base')}</h3>
-            <p className="text-xs text-gray-400 mb-3">{t('Arranca de um exemplo completo e adapta.')}</p>
+            <p className="text-xs text-gray-400 mb-3">{t('Estrutura inicial para adaptar — sem juízos nem escalas.')}</p>
             <div className="space-y-2">
               {TEMPLATES.map((tpl) => (
                 <button

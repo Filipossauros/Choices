@@ -410,7 +410,13 @@ function PerformanceInput({
 
   if (crit.continuous && hasNumericAxis(crit.descriptor)) {
     const pos = perf?.position ?? (perf?.value ? levelPosition(crit.descriptor, perf.value) : null);
-    const shown = perf?.measured ?? (pos != null ? positionToNumeric(crit.descriptor, pos) : null);
+    // A reading derived from a level comes back through two floating-point
+    // conversions, so the exact 30 the descriptor declares arrives as
+    // 30.000000000000004 and fills the field with noise. Only what the user
+    // typed is shown verbatim; anything derived is trimmed back to the
+    // precision the axis actually carries.
+    const derived = pos != null ? positionToNumeric(crit.descriptor, pos) : null;
+    const shown = perf?.measured ?? (derived != null ? Number(derived.toPrecision(10)) : null);
     return (
       <span className="inline-flex items-center gap-1">
         <input
