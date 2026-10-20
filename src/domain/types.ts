@@ -402,7 +402,12 @@ export interface PenaltyRules {
   };
   /** Incidents sharing a root cause count once — the most severe one. */
   commonCauseNoAccumulation: boolean;
-  /** A failed gate replaces the proportional calculation with a fixed amount. */
+  /**
+   * A fixed amount charged when an eliminating condition fails. It is added to
+   * the period, not substituted for it: the other incidents keep their lines.
+   * It exists because an eliminating condition has no value scale, so there is
+   * no proportional amount it could otherwise be priced by.
+   */
   criticalRegime?: { amount: number; enabled: boolean };
   periodCap?: number;
 }

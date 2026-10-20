@@ -305,7 +305,7 @@ function AccumulationCard({ rules, setRules }: { rules: PenaltyRules; setRules: 
         />
         <span className="flex-1">
           <span className="font-medium text-gray-700">{t('Regime crítico')}</span>
-          <span className="block text-xs text-gray-400">{t('Condição eliminatória em falha: montante fixo, em substituição do cálculo proporcional.')}</span>
+          <span className="block text-xs text-gray-400">{t('Condição eliminatória em falha: acrescenta um montante fixo, porque uma eliminatória não tem escala que permita calcular um valor proporcional. Não substitui os restantes incidentes do período — soma-se a eles.')}</span>
           {critical.enabled && (
             <span className="block mt-1">
               <NumberCell value={critical.amount} suffix={rules.currency}

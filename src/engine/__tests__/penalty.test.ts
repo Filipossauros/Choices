@@ -120,11 +120,27 @@ describe('penalty', () => {
     expect(r.capApplied).toBe(true);
   });
 
-  it('a failed gate adds the critical regime as a replacement line', () => {
+  it('a failed gate adds a fixed critical-regime line', () => {
     const r = computePenalties({ rules: rules(), incidents: [], band, gateFailed: true, gateLabel: 'Interrupção total', labelOf });
     expect(r.lines).toHaveLength(1);
     expect(r.lines[0].amount).toBe(3000);
     expect(r.lines[0].label).toContain('Interrupção total');
+  });
+
+  it('the critical regime does not suppress the period’s other incidents', () => {
+    const r = computePenalties({
+      rules: rules(),
+      incidents: [incident({ id: 'i1', occurrence: 2 })],
+      band,
+      gateFailed: true,
+      gateLabel: 'Interrupção total',
+      labelOf,
+    });
+    expect(r.lines).toHaveLength(2);
+    // 3 000 fixed + the latency incident priced as it would have been anyway.
+    expect(r.lines[0].amount).toBe(3000);
+    expect(r.lines[1].amount).toBeCloseTo(870.83, 2);
+    expect(r.total).toBeCloseTo(3870.83, 2);
   });
 
   it('without a band, uses ×1 and says why instead of assuming a zone', () => {

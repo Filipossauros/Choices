@@ -96,10 +96,20 @@ export interface PenaltyInput {
 /**
  * Price a set of incidents under a set of rules.
  *
- * Order matters and is fixed: severity → severity factor → base → zone
- * multiplier → recurrence → per-incident cap → accumulation → period cap. It is
- * the order the steps are shown in, because an amount you cannot replay in the
- * order it was computed is not auditable.
+ * Order matters and is fixed. Per incident, each of the first three checks can
+ * end it at zero, and the rest are then never reached:
+ *
+ *   1. severity band
+ *   2. common cause → absorbed, stop
+ *   3. no money rule for the criterion → stop (and say so in `notes`)
+ *   4. below the criterion's minimum band → stop
+ *   5. severity factor
+ *   6. base × factor — the first amount in money
+ *   7. × zone multiplier, × recurrence, then the per-incident cap
+ *
+ * Then once for the period: the critical-regime line, the subtotal, the period
+ * cap. The steps are reported in that same order, because an amount you cannot
+ * replay in the order it was computed is not auditable.
  */
 export function computePenalties(input: PenaltyInput): PenaltyResult {
   const { rules, incidents, band, gateFailed, labelOf } = input;
@@ -254,8 +264,12 @@ export function computePenalties(input: PenaltyInput): PenaltyResult {
     };
   });
 
-  // The critical regime replaces the proportional calculation for the criterion
-  // whose gate failed — it does not add to it.
+  // A fixed line for the failed eliminating condition.
+  //
+  // It is not a substitute for the period's other incidents: those keep their
+  // own lines and are summed on top of it. What it stands in for is narrower —
+  // an eliminating condition has no value scale, so it could never have had a
+  // proportional calculation of its own to be priced by.
   if (gateFailed && rules.criticalRegime?.enabled) {
     lines.unshift({
       incidentId: 'critical-regime',
@@ -269,7 +283,7 @@ export function computePenalties(input: PenaltyInput): PenaltyResult {
         {
           label: 'Regime crítico',
           detail:
-            'Condição eliminatória em falha: aplica-se o montante fixo, em substituição do cálculo proporcional desse critério.',
+            'Condição eliminatória em falha: montante fixo, porque uma eliminatória não tem escala de valor que permita calcular um montante proporcional. Os restantes incidentes do período continuam a contar e somam-se a este.',
           formula: `${rules.criticalRegime.amount.toFixed(2)}`,
           amount: rules.criticalRegime.amount,
           applied: true,
