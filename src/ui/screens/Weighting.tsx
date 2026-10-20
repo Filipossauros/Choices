@@ -26,7 +26,6 @@ function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; on
   const { t } = useTranslation();
   const { state, dispatch } = useApp();
   const model = state.model!;
-  const technical = state.uiMode === 'technical';
   const [deriving, setDeriving] = useState(false);
   const [activePairKey, setActivePairKey] = useState<string | null>(null);
   // Direct-weight mode: a second input surface writing the same judgments.
@@ -502,7 +501,7 @@ function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; on
                 onChange={updateJudgments}
                 onActivePairChange={setActivePairKey}
                 context="preference"
-                showCodes={technical}
+                showCodes
                 onInvert={invertPair}
                 canInvert={(_more, less) => less.id !== ALL_NEUTRAL}
                 emptyHint="São necessários pelo menos 2 critérios."
@@ -529,19 +528,16 @@ function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; on
               {/* The grid is the power-user view of the same judgments the
                   questions above collect — kept for auditing, out of the way of
                   anyone who is simply answering. */}
-              {technical && (
               <details className="border-t border-gray-100 pt-3 group">
                 <summary className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 cursor-pointer select-none flex items-center gap-1.5 hover:text-gray-700">
                   <span className="transition-transform group-open:rotate-90">▸</span> {t('Matriz de juízos')}
                 </summary>
                 <JudgmentMatrixEditor items={matrixItems} judgments={matrix.judgments} onChange={updateJudgments} activePairKey={activePairKey ?? undefined} />
               </details>
-              )}
 
               {/* Both shortcuts produce weights nobody stated, which then have to
                   be confirmed. Useful when you know the method; a trap when you
                   are meeting it for the first time. */}
-              {technical && (
               <div className="flex flex-wrap items-center gap-2.5">
                 <span className="text-xs text-gray-400 flex-1 min-w-[14rem]">
                   {deriving
@@ -562,7 +558,6 @@ function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; on
                   ⇄ {t('Definir pesos à mão')}
                 </button>
               </div>
-              )}
 
               </div>
 
@@ -623,9 +618,7 @@ function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; on
                       </div>
                     </div>
                     <p className="text-[11px] text-gray-400">
-                      {technical
-                        ? t('A faixa clara é o intervalo de pesos ainda compatível com as respostas dadas — quanto mais larga, mais falta decidir.')
-                        : t('De cada 100 pontos da avaliação, estes são os que vêm de cada critério.')}
+                      {t('A faixa clara é o intervalo de pesos ainda compatível com as respostas dadas — quanto mais larga, mais falta decidir.')}
                     </p>
                     {showGlobal && (
                       <div className="flex items-center gap-3 text-[10px] uppercase tracking-wide text-gray-400 font-semibold">
@@ -648,7 +641,6 @@ function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; on
                                 from 38% to 64% is a different fact from a 50%
                                 that is pinned. */}
                             <div className="flex-1 bg-gray-100 rounded-full h-4 relative overflow-hidden">
-                              {technical && (
                               <div
                                 className="absolute inset-y-0 bg-indigo-100 border-x border-indigo-300"
                                 style={{
@@ -657,7 +649,6 @@ function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; on
                                 }}
                                 aria-hidden="true"
                               />
-                              )}
                               <div className="absolute inset-y-0 left-0 rounded-full bg-blue-500/80" style={{ width: `${(w.weight * 100).toFixed(1)}%` }} />
                             </div>
                             <span
@@ -676,11 +667,11 @@ function GroupPanel({ group, open, onToggle }: { group: Group; open: boolean; on
                                   {global != null ? `${(global * 100).toFixed(1)}%` : '—'}
                                 </span>
                               </span>
-                            ) : technical ? (
+                            ) : (
                               <span className="w-36 text-xs text-gray-400 font-mono">
                                 [{(w.admissibleRange[0] * 100).toFixed(1)}%, {(w.admissibleRange[1] * 100).toFixed(1)}%]
                               </span>
-                            ) : null}
+                            )}
                           </div>
                         );
                       })}

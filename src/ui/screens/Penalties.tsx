@@ -13,6 +13,7 @@
  */
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import i18n from '../../i18n';
 import { useApp } from '../store';
 import type {
   EvaluationModel, PenaltyRules, TestIncident, DecisionBand,
@@ -26,8 +27,11 @@ import ScreenNav from '../components/ScreenNav';
 import Why from '../components/Why';
 import { useDialogs } from '../components/Dialog';
 
+/** Grouping and symbol placement follow the reading language, not the currency. */
 const money = (n: number, currency: string) =>
-  new Intl.NumberFormat('pt-PT', { style: 'currency', currency, minimumFractionDigits: 2 }).format(n);
+  new Intl.NumberFormat(i18n.language || 'pt-PT', {
+    style: 'currency', currency, minimumFractionDigits: 2,
+  }).format(n);
 
 export default function Penalties() {
   const { t } = useTranslation();
@@ -525,7 +529,7 @@ function Walkthrough({ model, rules }: { model: EvaluationModel; rules: PenaltyR
                     {i + 1}
                   </span>
                   <span className="text-sm text-gray-700 leading-snug">
-                    <strong className="font-medium">{s.label}.</strong> {s.detail}
+                    <strong className="font-medium">{t(s.label)}.</strong> {t(s.detail.key, s.detail.params)}
                     {s.formula && <code className="block text-[11px] font-mono text-gray-400 mt-0.5">{s.formula}</code>}
                   </span>
                   <span className="text-right font-mono text-sm font-semibold text-gray-700">
@@ -561,7 +565,7 @@ function Walkthrough({ model, rules }: { model: EvaluationModel; rules: PenaltyR
           </div>
 
           {penalty.notes.map((n, i) => (
-            <p key={i} className="text-xs text-gray-500 leading-relaxed">{n}</p>
+            <p key={i} className="text-xs text-gray-500 leading-relaxed">{t(n.key, n.params)}</p>
           ))}
 
           {penalty.lines.length > 1 && (

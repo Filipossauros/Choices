@@ -26,11 +26,25 @@ import type {
   EvaluationModel,
 } from '../domain/types';
 
+/**
+ * A sentence the engine produces, in the project's natural-key form: the
+ * Portuguese source string with `{{placeholders}}`, plus the values to fill in.
+ *
+ * The engine stays free of i18n — it names a key, it does not translate. The
+ * interface renders `t(key, params)`; everything else (exports, tests, a
+ * non-UI consumer) reads `text`, already filled in.
+ */
+export interface PenaltyText {
+  key: string;
+  params?: Record<string, string | number>;
+  text: string;
+}
+
 export interface PenaltyStep {
-  /** Short name of the rule applied ("Factor de gravidade"). */
+  /** Short name of the rule applied — also its own translation key. */
   label: string;
   /** What it did, in words. */
-  detail: string;
+  detail: PenaltyText;
   /** The arithmetic, as it should read in an audit trail. */
   formula?: string;
   /** Running amount after this step, or null for a step that produces no amount. */
@@ -64,10 +78,18 @@ export interface PenaltyResult {
   /** Multiplier used, and where it came from. Null when no band was reached. */
   zone: { bandId: string | null; bandLabel: string | null; multiplier: number } | null;
   /** Reasons the calculation is incomplete rather than zero. */
-  notes: string[];
+  notes: PenaltyText[];
 }
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
+
+/** Fill a natural key's `{{placeholders}}`, so `text` reads without i18n. */
+function say(key: string, params?: Record<string, string | number>): PenaltyText {
+  const text = params
+    ? key.replace(/\{\{(\w+)\}\}/g, (_, k: string) => String(params[k] ?? ''))
+    : key;
+  return params ? { key, params, text } : { key, text };
+}
 
 /** The highest severity band this severity reaches. */
 export function severityBandFor(severity: number, rules: PenaltyRules): SeverityBand | null {
@@ -113,14 +135,14 @@ export interface PenaltyInput {
  */
 export function computePenalties(input: PenaltyInput): PenaltyResult {
   const { rules, incidents, band, gateFailed, labelOf } = input;
-  const notes: string[] = [];
+  const notes: PenaltyText[] = [];
   const multiplier = band ? rules.zoneMultipliers[band.id] ?? 1 : 1;
   const zone = band
     ? { bandId: band.id, bandLabel: band.label, multiplier }
     : null;
   if (!band) {
     notes.push(
-      'Sem zona de decisão: o multiplicador global não se aplica e o cálculo usa ×1. Um índice retido ou bloqueado não produz zona.',
+      say('Sem zona de decisão: o multiplicador global não se aplica e o cálculo usa ×1. Um índice retido ou bloqueado não produz zona.'),
     );
   }
 
@@ -142,7 +164,9 @@ export function computePenalties(input: PenaltyInput): PenaltyResult {
 
     steps.push({
       label: 'Gravidade do incidente',
-      detail: sevBand ? `Faixa ${sevBand.label}.` : 'Sem faixa de gravidade correspondente.',
+      detail: sevBand
+        ? say('Faixa {{band}}.', { band: sevBand.label })
+        : say('Sem faixa de gravidade correspondente.'),
       formula: `G = ${inc.severity}`,
       amount: null,
       applied: true,
@@ -152,7 +176,7 @@ export function computePenalties(input: PenaltyInput): PenaltyResult {
     if (absorber && absorber.id !== inc.id) {
       steps.push({
         label: 'Acumulação por causa comum',
-        detail: `Mesma causa-raiz de «${absorber.label}», que tem gravidade superior. Esta ocorrência não acumula.`,
+        detail: say('Mesma causa-raiz de «{{other}}», que tem gravidade superior. Esta ocorrência não acumula.', { other: absorber.label }),
         formula: `causa ${inc.rootCauseId}`,
         amount: 0,
         applied: true,
@@ -163,11 +187,11 @@ export function computePenalties(input: PenaltyInput): PenaltyResult {
     if (!rule) {
       steps.push({
         label: 'Montante-base',
-        detail: `«${criterionLabel}» não tem montante-base definido nas regras, por isso não há nada a calcular.`,
+        detail: say('«{{crit}}» não tem montante-base definido nas regras, por isso não há nada a calcular.', { crit: criterionLabel }),
         amount: 0,
         applied: false,
       });
-      notes.push(`«${criterionLabel}» não tem montante-base: o incidente «${inc.label}» ficou por valorizar.`);
+      notes.push(say('«{{crit}}» não tem montante-base: o incidente «{{inc}}» ficou por valorizar.', { crit: criterionLabel, inc: inc.label }));
       return { incidentId: inc.id, label: inc.label, criterionId: inc.criterionId, criterionLabel, severity: inc.severity, severityBand: sevBand, amount: 0, steps };
     }
 
@@ -181,8 +205,8 @@ export function computePenalties(input: PenaltyInput): PenaltyResult {
       steps.push({
         label: 'Faixa mínima',
         detail: minBand
-          ? `Abaixo de «${minBand.label}» (G ≥ ${minBand.minSeverity}) não há penalização para este critério.`
-          : 'A faixa de gravidade atingida está isenta.',
+          ? say('Abaixo de «{{band}}» (G ≥ {{min}}) não há penalização para este critério.', { band: minBand.label, min: minBand.minSeverity })
+          : say('A faixa de gravidade atingida está isenta.'),
         formula: minBand ? `${inc.severity} < ${minBand.minSeverity}` : undefined,
         amount: 0,
         applied: true,
@@ -197,7 +221,7 @@ export function computePenalties(input: PenaltyInput): PenaltyResult {
     const factor = span > 0 ? (inc.severity - floor) / span : 1;
     steps.push({
       label: 'Factor de gravidade',
-      detail: 'Posição de G dentro da faixa penalizável, a contar da base.',
+      detail: say('Posição de G dentro da faixa penalizável, a contar da base.'),
       formula: `(${inc.severity} − ${floor}) ÷ (100 − ${floor}) = ${factor.toFixed(4)}`,
       amount: null,
       applied: true,
@@ -206,7 +230,9 @@ export function computePenalties(input: PenaltyInput): PenaltyResult {
     let amount = rule.baseAmount * factor;
     steps.push({
       label: 'Montante-base do critério',
-      detail: rule.reference ? `«${criterionLabel}», ${rule.reference}.` : `«${criterionLabel}».`,
+      detail: rule.reference
+        ? say('«{{crit}}», {{ref}}.', { crit: criterionLabel, ref: rule.reference })
+        : say('«{{crit}}».', { crit: criterionLabel }),
       formula: `${rule.baseAmount.toFixed(2)} × ${factor.toFixed(4)}`,
       amount: round2(amount),
       applied: true,
@@ -217,8 +243,8 @@ export function computePenalties(input: PenaltyInput): PenaltyResult {
     steps.push({
       label: 'Multiplicador global do período',
       detail: zone
-        ? `Índice na zona «${zone.bandLabel}» → ×${multiplier}. Único ponto em que o índice toca no montante.`
-        : 'Sem zona apurada — multiplicador ×1.',
+        ? say('Índice na zona «{{band}}» → ×{{m}}. Único ponto em que o índice toca no montante.', { band: zone.bandLabel ?? '', m: multiplier })
+        : say('Sem zona apurada — multiplicador ×1.'),
       formula: `${round2(beforeZone).toFixed(2)} × ${multiplier}`,
       amount: round2(amount),
       applied: multiplier !== 1,
@@ -229,11 +255,11 @@ export function computePenalties(input: PenaltyInput): PenaltyResult {
     amount *= rFactor;
     steps.push({
       label: 'Reincidência',
-      detail: rules.recurrence.enabled
-        ? rFactor === 1
-          ? `Primeira ocorrência na janela de ${rules.recurrence.windowDays} dias — sem agravamento.`
-          : `${inc.occurrence}.ª ocorrência na janela de ${rules.recurrence.windowDays} dias.`
-        : 'Regra de reincidência desactivada.',
+      detail: !rules.recurrence.enabled
+        ? say('Regra de reincidência desactivada.')
+        : rFactor === 1
+          ? say('Primeira ocorrência na janela de {{days}} dias — sem agravamento.', { days: rules.recurrence.windowDays })
+          : say('{{n}}.ª ocorrência na janela de {{days}} dias.', { n: inc.occurrence ?? 2, days: rules.recurrence.windowDays }),
       formula: rFactor === 1 ? undefined : `${round2(beforeRec).toFixed(2)} × ${rFactor}`,
       amount: round2(amount),
       applied: rFactor !== 1,
@@ -244,7 +270,9 @@ export function computePenalties(input: PenaltyInput): PenaltyResult {
     if (cap != null) {
       steps.push({
         label: 'Tecto por incidente',
-        detail: capped ? `Montante limitado ao tecto deste critério.` : 'Abaixo do tecto deste critério.',
+        detail: capped
+          ? say('Montante limitado ao tecto deste critério.')
+          : say('Abaixo do tecto deste critério.'),
         formula: `min(${round2(amount).toFixed(2)} ; ${cap.toFixed(2)})`,
         amount: round2(capped ? cap : amount),
         applied: capped,
@@ -282,8 +310,9 @@ export function computePenalties(input: PenaltyInput): PenaltyResult {
       steps: [
         {
           label: 'Regime crítico',
-          detail:
+          detail: say(
             'Condição eliminatória em falha: montante fixo, porque uma eliminatória não tem escala de valor que permita calcular um montante proporcional. Os restantes incidentes do período continuam a contar e somam-se a este.',
+          ),
           formula: `${rules.criticalRegime.amount.toFixed(2)}`,
           amount: rules.criticalRegime.amount,
           applied: true,

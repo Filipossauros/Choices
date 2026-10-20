@@ -146,14 +146,14 @@ describe('penalty', () => {
   it('without a band, uses ×1 and says why instead of assuming a zone', () => {
     const r = computePenalties({ rules: rules(), incidents: [incident()], band: null, gateFailed: false, labelOf });
     expect(r.zone).toBeNull();
-    expect(r.notes.join(' ')).toContain('Sem zona');
+    expect(r.notes.map((n) => n.text).join(' ')).toContain('Sem zona');
     expect(r.lines[0].amount).toBeCloseTo(633.33, 2);
   });
 
   it('an incident on a criterion with no money rule is reported, not priced at zero in silence', () => {
     const r = computePenalties({ rules: rules(), incidents: [incident({ criterionId: 'err' })], band, gateFailed: false, labelOf });
     expect(r.total).toBe(0);
-    expect(r.notes.join(' ')).toContain('Erros 5xx');
+    expect(r.notes.map((n) => n.text).join(' ')).toContain('Erros 5xx');
   });
 
   it('severityBandFor picks the highest band reached', () => {

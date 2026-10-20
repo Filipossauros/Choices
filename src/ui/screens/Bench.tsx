@@ -13,6 +13,7 @@
  */
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import i18n from '../../i18n';
 import { v4 as uuidv4 } from 'uuid';
 import { useApp } from '../store';
 import type {
@@ -36,8 +37,11 @@ import { useDialogs } from '../components/Dialog';
 const fmt = (n: number | null | undefined, d = 1) =>
   n == null ? '—' : n.toFixed(d);
 
+/** Grouping and symbol placement follow the reading language, not the currency. */
 const money = (n: number, currency: string) =>
-  new Intl.NumberFormat('pt-PT', { style: 'currency', currency, minimumFractionDigits: 2 }).format(n);
+  new Intl.NumberFormat(i18n.language || 'pt-PT', {
+    style: 'currency', currency, minimumFractionDigits: 2,
+  }).format(n);
 
 /** Scenarios worth having in every model: the two that catch normalisation bugs. */
 function starterScenarios(model: EvaluationModel): TestScenario[] {
@@ -834,8 +838,8 @@ function PenaltyCard({ result }: { result: BenchResult | null }) {
             <ol className="mt-1.5 space-y-1">
               {l.steps.map((st, i) => (
                 <li key={i} className={`text-[11px] leading-snug ${st.applied ? 'text-gray-600' : 'text-gray-400'}`}>
-                  <span className="font-medium">{st.label}.</span>{' '}
-                  {st.formula ? <code className="font-mono">{st.formula}</code> : st.detail}
+                  <span className="font-medium">{t(st.label)}.</span>{' '}
+                  {st.formula ? <code className="font-mono">{st.formula}</code> : t(st.detail.key, st.detail.params)}
                   {st.amount != null && (
                     <span className="float-right font-mono">{money(st.amount, penalty.currency)}</span>
                   )}
@@ -847,7 +851,7 @@ function PenaltyCard({ result }: { result: BenchResult | null }) {
       ))}
 
       {penalty.notes.map((n, i) => (
-        <p key={i} className="text-[11px] text-amber-700 leading-relaxed border-t border-gray-100 pt-2">{n}</p>
+        <p key={i} className="text-[11px] text-amber-700 leading-relaxed border-t border-gray-100 pt-2">{t(n.key, n.params)}</p>
       ))}
 
       <p className="text-[11px] text-gray-400 leading-relaxed border-t border-gray-100 pt-2">

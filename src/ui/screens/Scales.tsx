@@ -51,12 +51,9 @@ function fitText(text: string, maxPx: number, fontPx: number): string {
 function ScaleRuler({
   scale,
   criterion,
-  technical,
 }: {
   scale: DerivedScale;
   criterion: QualificationCriterion;
-  /** Show the admissible range column — and give the labels less room. */
-  technical: boolean;
 }) {
   const { t } = useTranslation();
   const levels = criterion.descriptor.levels;
@@ -84,10 +81,8 @@ function ScaleRuler({
   const PILL_W = 52;
   const PILL_X = 368;        // Bom/Neutro pill left edge
   const PILL_MID = PILL_X + PILL_W / 2;
-  const RANGE_X = 276;       // admissible range start (technical only)
-  // Without the range column the score can move right, which is where the room
-  // for long level names comes from.
-  const VAL_X = technical ? 270 : PILL_X - 14;
+  const RANGE_X = 276;       // admissible range start
+  const VAL_X = 270;
   // Widest a level name may draw before it would reach the score.
   const LABEL_MAX = VAL_X - 40 - LABEL_X;
 
@@ -108,11 +103,9 @@ function ScaleRuler({
       <text x={VAL_X} y={HDR_Y} fontSize="9" fill="currentColor" className="text-gray-400" fontWeight="600" textAnchor="end" letterSpacing="0.8">
         {t('PONTOS')}
       </text>
-      {technical && (
-        <text x={RANGE_X} y={HDR_Y} fontSize="9" letterSpacing="0" fill="currentColor" className="text-gray-300">
-          {t('intervalo')}
-        </text>
-      )}
+      <text x={RANGE_X} y={HDR_Y} fontSize="9" letterSpacing="0" fill="currentColor" className="text-gray-300">
+        {t('intervalo')}
+      </text>
       {/* Header separator */}
       <line x1={AX} y1={SEP_Y} x2={VIEW_W - 4} y2={SEP_Y} strokeWidth={1} className="stroke-gray-100" />
 
@@ -180,15 +173,13 @@ function ScaleRuler({
               </text>
 
               {/* ── Admissible range ── */}
-              {technical && (
-                <text
-                  x={RANGE_X} y={4}
-                  fontSize="8.5" fill="currentColor"
-                  className="text-gray-300"
-                >
-                  [{sv.admissibleRange[0].toFixed(0)}, {sv.admissibleRange[1].toFixed(0)}]
-                </text>
-              )}
+              <text
+                x={RANGE_X} y={4}
+                fontSize="8.5" fill="currentColor"
+                className="text-gray-300"
+              >
+                [{sv.admissibleRange[0].toFixed(0)}, {sv.admissibleRange[1].toFixed(0)}]
+              </text>
 
               {/* ── Bom / Neutro pill ── */}
               {isGood && (
@@ -351,7 +342,6 @@ export default function Scales() {
   const { t } = useTranslation();
   const { state, dispatch } = useApp();
   const model = state.model!;
-  const technical = state.uiMode === 'technical';
   const [derivingId, setDerivingId] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [activePairKey, setActivePairKey] = useState<string | null>(null);
@@ -840,7 +830,7 @@ export default function Scales() {
             onChange={(j) => updateMatrix(activeCrit.id, j)}
             onActivePairChange={setActivePairKey}
             context="improvement"
-            showCodes={technical}
+            showCodes
             showAnswerChips={false}
             emptyHint="São necessários pelo menos 2 níveis."
             renderQuestion={(more, less) => (
@@ -871,9 +861,8 @@ export default function Scales() {
             )}
           />
 
-          {/* The grid is the power-user view of the same judgments the questions
-              above collect — kept for auditing, hidden while simply answering. */}
-          {technical && (
+          {/* The grid is the same judgments the questions above collect, as a
+              matrix — kept for auditing and for answering out of order. */}
           <details className="border-t border-gray-100 pt-4 group">
             <summary className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 cursor-pointer select-none flex items-center gap-1.5 hover:text-gray-700">
               <span className="transition-transform group-open:rotate-90">▸</span> {t('Matriz de juízos')}
@@ -885,7 +874,6 @@ export default function Scales() {
               activePairKey={activePairKey ?? undefined}
             />
           </details>
-          )}
             </div>
 
             <div className="lg:sticky lg:top-4 min-w-0 space-y-6">
@@ -938,7 +926,7 @@ export default function Scales() {
                   <p className="text-xs text-gray-500 mb-3">
                     {t('Régua de valor — níveis posicionados proporcionalmente ao seu valor cardinal')}
                   </p>
-                  <ScaleRuler scale={scale} criterion={activeCrit} technical={technical} />
+                  <ScaleRuler scale={scale} criterion={activeCrit} />
                 </div>
 
                 {/* Formula + Chart */}

@@ -4,6 +4,9 @@
  */
 export const en: Record<string, string> = {
   // ── Global chrome / header ──────────────────────────────────────────────
+  // The badge beside the document name in the header.
+  Modelo: 'Model',
+  Avaliação: 'Evaluation',
   'Criação do modelo': 'Model creation',
   'Aplicação do modelo': 'Model application',
   'Editar modelo (cópia)': 'Edit model (copy)',
@@ -1087,7 +1090,7 @@ export const en: Record<string, string> = {
   'Um percurso maior não pode melhorar menos do que uma parte dele.':
     'A longer stretch cannot improve less than a part of it.',
 
-  // ── Modo simples / técnico e renomeação dos passos ──
+  // ── Renomeação dos passos ──
   'Zonas de decisão':
     'Decision zones',
   'Níveis e valores':
@@ -1098,16 +1101,6 @@ export const en: Record<string, string> = {
     'What is still open',
   'E se mudar de ideias?':
     'What if I change my mind?',
-  'Modo técnico: mostra a matriz de juízos, as gamas admissíveis e os atalhos de cálculo.':
-    'Technical mode: shows the judgment matrix, the admissible ranges and the calculation shortcuts.',
-  'Modo simples: só as perguntas e os resultados. Nada é removido do modelo nem do relatório.':
-    'Simple mode: just the questions and the results. Nothing is removed from the model or the report.',
-  'TÉC':
-    'TECH',
-  'SIMPLES':
-    'SIMPLE',
-  'De cada 100 pontos da avaliação, estes são os que vêm de cada critério.':
-    'Out of every 100 points of the evaluation, these are the ones coming from each criterion.',
 
   // ── «Faz sentido?» — o modelo por palavras ──
   'Faz sentido?':
@@ -1380,4 +1373,344 @@ export const en: Record<string, string> = {
     'Optional: it only makes the questions start close to what you already think. You can change your mind on any question — choosing the improvement on the right reorders this list for you, and the answers you have given are kept.',
   'O que fazer nesta zona? (ex.: aceitar, rever, rejeitar…)':
     'What happens in this zone? (e.g. accept, review, reject…)',
+  // ── Banco de ensaio ──
+  'Banco de ensaio':
+    'Test bench',
+  'Escreva valores à mão e veja o que o modelo faz com eles.':
+    'Write values by hand and see what the model does with them.',
+  'para que serve?':
+    'what is it for?',
+  'Este modelo vai ser aplicado noutro lado — não aqui. O ensaio é a forma de o experimentar antes de o exportar: escreve um valor, vê o nível que lhe é atribuído, o valor MACBETH, o peso e a contribuição para o índice.':
+    'This model will be applied somewhere else — not here. The bench is how you try it out before exporting it: you write a value and see the level it is assigned, its MACBETH value, its weight and its contribution to the index.',
+  'Os cenários também são exportados como vectores de ensaio: quem implementar o modelo corre os mesmos valores e compara. Se um número diferir, a implementação está errada — não o modelo.':
+    'Scenarios are also exported as test vectors: whoever implements the model runs the same values and compares. If a number differs, the implementation is wrong — not the model.',
+  'Dois cenários valem sempre a pena: «tudo no neutro», que tem de dar exactamente 0, e um colocado em cima de um limiar de zona. São os que apanham erros de normalização e de arredondamento.':
+    'Two scenarios are always worth having: “everything at neutral”, which must give exactly 0, and one placed right on a zone threshold. They are the ones that catch normalisation and rounding errors.',
+  'O modelo ainda não está completo, por isso o ensaio não produz índice.':
+    'The model is not complete yet, so the bench produces no index.',
+  'Faltam escalas: {{list}}.':
+    'Missing scales: {{list}}.',
+  'Faltam pesos.':
+    'Weights are missing.',
+  'Pode escrever os cenários na mesma — ficam à espera.':
+    'You can write the scenarios anyway — they will wait.',
+  'Ainda não há cenários.':
+    'No scenarios yet.',
+  'Um cenário é uma alternativa fictícia descrita por si, para experimentar o modelo. Não é uma medição e nunca é apresentada como tal.':
+    'A scenario is a fictitious alternative you describe yourself, to try the model out. It is not a measurement and is never presented as one.',
+  'Começar com dois cenários':
+    'Start with two scenarios',
+  'Cenário vazio':
+    'Empty scenario',
+  'Cenário {{n}}':
+    'Scenario {{n}}',
+  '{{label}} (cópia)':
+    '{{label}} (copy)',
+  'Nome do cenário':
+    'Scenario name',
+  'valores escritos à mão':
+    'values written by hand',
+  'Duplicar':
+    'Duplicate',
+  'Apagar':
+    'Delete',
+  'Apagar «{{label}}»?':
+    'Delete “{{label}}”?',
+  'O cenário e os valores que escreveu nele desaparecem. O modelo não é afectado.':
+    'The scenario and the values you wrote in it are gone. The model is not affected.',
+  'O que escreve → o que o modelo faz com isso':
+    'What you write → what the model does with it',
+  'recalcula a cada alteração':
+    'recalculates on every change',
+  'Valor que escreve':
+    'Value you write',
+  'Nível atribuído':
+    'Level assigned',
+  'Contribuição':
+    'Contribution',
+  'não atribuído':
+    'not assigned',
+  'posição {{p}}':
+    'position {{p}}',
+  'condição eliminatória':
+    'eliminatory condition',
+  'Falha — bloqueia a classificação':
+    'Fails — blocks the classification',
+  'por responder':
+    'unanswered',
+  'bloqueia':
+    'blocks',
+  'Índice do cenário':
+    'Scenario index',
+  'Sem índice: {{list}} por preencher. O valor em falta não é convertido em zero nem em neutro, e os pesos não são renormalizados — o índice fica retido até o cenário estar completo.':
+    'No index: {{list}} still to fill in. A missing value is not turned into a zero or a neutral, and the weights are not renormalised — the index is withheld until the scenario is complete.',
+  '— em branco':
+    '— blank',
+  'Resultado deste cenário':
+    'Result of this scenario',
+  'Veto accionado':
+    'Veto triggered',
+  '«{{label}}» impede a classificação: nenhum bom resultado noutro critério a compensa.':
+    '“{{label}}” prevents the classification: no good result on another criterion makes up for it.',
+  'Teria ficado em {{v}}':
+    'It would have scored {{v}}',
+  ' — zona «{{band}}»':
+    ' — zone “{{band}}”',
+  '. Mostrado por ser informativo, nunca usado como classificação.':
+    '. Shown because it is informative, never used as a classification.',
+  'Classificação provisória: {{list}} por responder.':
+    'Provisional classification: {{list}} still unanswered.',
+  'Contribuições':
+    'Contributions',
+  'Vectores de ensaio':
+    'Test vectors',
+  'Cada cenário sai como entradas + resultados esperados. Quem implementar este modelo corre os mesmos cenários e compara — se um número diferir, a implementação está errada, não o modelo.':
+    'Each scenario is exported as inputs plus expected results. Whoever implements this model runs the same scenarios and compares — if a number differs, the implementation is wrong, not the model.',
+  'Exportar {{n}} vector(es)':
+    'Export {{n}} vector(s)',
+  'Todos os cenários':
+    'All scenarios',
+  'Índice':
+    'Index',
+  'Zona':
+    'Zone',
+  'Estado':
+    'State',
+  'bloqueado':
+    'blocked',
+  'bloqueado por «{{label}}»':
+    'blocked by “{{label}}”',
+  '{{n}} critério(s) por preencher':
+    '{{n}} criterion(s) still to fill in',
+  'Os cenários ficam guardados no modelo e saem no pacote como vectores de ensaio.':
+    'Scenarios are stored in the model and leave in the package as test vectors.',
+
+  // ── Incidentes de um cenário ──
+  'Incidentes deste cenário':
+    'Incidents in this scenario',
+  'a gravidade vem dos factos do incidente, não da escala de valor':
+    'severity comes from the facts of the incident, not from the value scale',
+  'Incidente':
+    'Incident',
+  'Incidente {{n}}':
+    'Incident {{n}}',
+  'Sem incidentes, este cenário não gera penalização. Acrescente um para ver as regras funcionarem.':
+    'With no incidents this scenario produces no penalty. Add one to see the rules at work.',
+  'Nome do incidente':
+    'Incident name',
+  'Critério do incidente':
+    'Incident criterion',
+  'Gravidade':
+    'Severity',
+  'Ocorrência':
+    'Occurrence',
+  'Causa-raiz':
+    'Root cause',
+  'Montante':
+    'Amount',
+  'nenhuma':
+    'none',
+  'não acumula':
+    'does not accumulate',
+  'Remover incidente':
+    'Remove incident',
+  'Penalização do cenário':
+    'Scenario penalty',
+  'Zona «{{band}}» → multiplicador ×{{m}}.':
+    'Zone “{{band}}” → multiplier ×{{m}}.',
+  'Sem zona apurada: multiplicador ×1.':
+    'No zone established: multiplier ×1.',
+  'Tecto do período aplicado: {{sub}} → {{total}}.':
+    'Period cap applied: {{sub}} → {{total}}.',
+  'O montante não entra no índice nem em qualquer escala de valor. Sai no pacote junto com o resultado esperado do cenário.':
+    'The amount does not enter the index or any value scale. It leaves in the package alongside the scenario’s expected result.',
+  'Penalização':
+    'Penalty',
+
+  // ── Consequências: regras de decisão e cálculo financeiro ──
+  'Consequências':
+    'Consequences',
+  'Alguns modelos não terminam numa classificação: a zona em que o resultado cai tem consequências com custo — penalizações contratuais, por exemplo. Se for o caso deste modelo, defina-as aqui.':
+    'Some models do not end at a classification: the zone the result falls in carries consequences that cost money — contractual penalties, for example. If that is the case here, define them on this screen.',
+  'Nenhum montante entra nas funções de valor MACBETH. As regras vivem à parte e viajam no pacote exportado.':
+    'No amount enters the MACBETH value functions. The rules live apart and travel in the exported package.',
+  'Definir regras de consequência':
+    'Define consequence rules',
+  'Mudar um valor aqui muda o montante — e deixa o índice exactamente onde estava.':
+    'Changing a value here changes the amount — and leaves the index exactly where it was.',
+  'porquê em camadas?':
+    'why in layers?',
+  'Avaliação multicritério':
+    'Multicriteria evaluation',
+  'diz quanto vale o desempenho (0–100, neutro–bom).':
+    'says how good the performance is (0–100, neutral–good).',
+  'dizem o que isso significa.':
+    'say what that means.',
+  'Estas regras':
+    'These rules',
+  'dizem quanto custa.':
+    'say what it costs.',
+  'As duas últimas consomem a primeira; nenhuma delas lhe altera os números. O único ponto em que o índice toca no montante é o multiplicador de zona — e o cálculo mostra-o como um passo próprio.':
+    'The last two consume the first; neither changes its numbers. The only point where the index touches the amount is the zone multiplier — and the calculation shows it as a step of its own.',
+  'A gravidade de um incidente é lida dos factos do próprio incidente, não da escala de valor do critério: um critério pode estar em nível aceitável no conjunto e ainda assim ter tido um incidente grave.':
+    'An incident’s severity is read from the facts of the incident itself, not from the criterion’s value scale: a criterion can sit at an acceptable level overall and still have had one severe incident.',
+  'Versão das regras':
+    'Rules version',
+  'Moeda':
+    'Currency',
+  'Remover regras':
+    'Remove rules',
+  'Remover as regras de consequência?':
+    'Remove the consequence rules?',
+  'O modelo volta a terminar na classificação por zonas. As regras e os montantes que escreveu desaparecem; os critérios, escalas e pesos ficam intactos.':
+    'The model goes back to ending at the zone classification. The rules and amounts you wrote are gone; the criteria, scales and weights are untouched.',
+  'Remover':
+    'Remove',
+  'Multiplicador por zona':
+    'Multiplier by zone',
+  'É o único ponto em que o índice entra no montante. Uma zona a ×0 não gera penalização nenhuma.':
+    'This is the only point where the index enters the amount. A zone at ×0 produces no penalty at all.',
+  'Faixas de gravidade':
+    'Severity bands',
+  'G vem dos factos do incidente — duração, impacto —, não da escala de valor do critério. São duas leituras independentes do mesmo facto.':
+    'G comes from the facts of the incident — duration, impact — not from the criterion’s value scale. They are two independent readings of the same fact.',
+  'Faixa':
+    'Band',
+  'G ≥':
+    'G ≥',
+  'Isenta':
+    'Exempt',
+  'Acumulação, reincidência e tectos':
+    'Accumulation, recurrence and caps',
+  'Causa comum não acumula':
+    'Common cause does not accumulate',
+  'Incidentes com a mesma causa-raiz contam uma vez — o de maior gravidade.':
+    'Incidents sharing a root cause count once — the most severe one.',
+  'Reincidência':
+    'Recurrence',
+  '2.ª':
+    '2nd',
+  '3.ª+':
+    '3rd+',
+  'janela':
+    'window',
+  'dias':
+    'days',
+  'Regime crítico':
+    'Critical regime',
+  'Condição eliminatória em falha: acrescenta um montante fixo, porque uma eliminatória não tem escala que permita calcular um valor proporcional. Não substitui os restantes incidentes do período — soma-se a eles.':
+    'Eliminatory condition failed: adds a fixed amount, because an eliminatory condition has no scale from which a proportional amount could be calculated. It does not replace the period’s other incidents — it is added to them.',
+  'Tecto do período':
+    'Period cap',
+  'Montantes-base por critério':
+    'Base amounts by criterion',
+  'por incidente, antes de qualquer factor':
+    'per incident, before any factor',
+  'Base':
+    'Base',
+  'Faixa mínima':
+    'Minimum band',
+  'Tecto/incidente':
+    'Cap per incident',
+  'Fundamento':
+    'Basis',
+  'qualquer':
+    'any',
+  'cláusula…':
+    'clause…',
+  'O modelo ainda não tem critérios de qualificação.':
+    'The model has no qualification criteria yet.',
+  'Ensaio do cálculo':
+    'Calculation walkthrough',
+  'do incumprimento ao montante, passo a passo':
+    'from the breach to the amount, step by step',
+  'incidente inventado':
+    'invented incident',
+  'do cenário — editam-se no banco de ensaio':
+    'from the scenario — edited in the test bench',
+  'Incidente de ensaio':
+    'Trial incident',
+  'Escolha um critério para ver o cálculo.':
+    'Choose a criterion to see the calculation.',
+  'Penalização deste incidente':
+    'Penalty for this incident',
+  'O que entrou no cálculo':
+    'What went into the calculation',
+  'Gravidade G':
+    'Severity G',
+  'Multiplicador':
+    'Multiplier',
+  'O valor MACBETH do critério não aparece nesta escada. A gravidade é lida do incidente; o índice entra apenas como multiplicador de zona.':
+    'The criterion’s MACBETH value does not appear anywhere in this ladder. Severity is read from the incident; the index enters only as the zone multiplier.',
+  'Total do cenário':
+    'Scenario total',
+  'Total':
+    'Total',
+  'Tecto do período aplicado.':
+    'Period cap applied.',
+  'Condição eliminatória em falha':
+    'Eliminatory condition failed',
+  'As regras viajam no pacote exportado. Experimente-as num cenário antes de exportar.':
+    'The rules travel in the exported package. Try them on a scenario before exporting.',
+  'Experimente o modelo com valores escritos à mão antes de o fechar.':
+    'Try the model out with hand-written values before closing it.',
+  'Estas zonas têm consequências com custo?':
+    'Do these zones carry consequences that cost money?',
+  'Penalizações contratuais, por exemplo. Definem-se à parte do modelo e nunca entram nas escalas de valor.':
+    'Contractual penalties, for example. They are defined apart from the model and never enter the value scales.',
+  // ── Passos do cálculo de penalizações (produzidos pelo motor) ──
+  'Gravidade do incidente':
+    'Incident severity',
+  'Faixa {{band}}.':
+    'Band {{band}}.',
+  'Sem faixa de gravidade correspondente.':
+    'No matching severity band.',
+  'Acumulação por causa comum':
+    'Common-cause accumulation',
+  'Mesma causa-raiz de «{{other}}», que tem gravidade superior. Esta ocorrência não acumula.':
+    'Same root cause as “{{other}}”, which is more severe. This occurrence does not accumulate.',
+  'Montante-base':
+    'Base amount',
+  '«{{crit}}» não tem montante-base definido nas regras, por isso não há nada a calcular.':
+    '“{{crit}}” has no base amount in the rules, so there is nothing to calculate.',
+  'Abaixo de «{{band}}» (G ≥ {{min}}) não há penalização para este critério.':
+    'Below “{{band}}” (G ≥ {{min}}) there is no penalty for this criterion.',
+  'A faixa de gravidade atingida está isenta.':
+    'The severity band reached is exempt.',
+  'Factor de gravidade':
+    'Severity factor',
+  'Posição de G dentro da faixa penalizável, a contar da base.':
+    'Where G sits inside the penalisable range, counted from the floor.',
+  'Montante-base do critério':
+    'Criterion base amount',
+  '«{{crit}}», {{ref}}.':
+    '“{{crit}}”, {{ref}}.',
+  '«{{crit}}».':
+    '“{{crit}}”.',
+  'Multiplicador global do período':
+    'Global period multiplier',
+  'Índice na zona «{{band}}» → ×{{m}}. Único ponto em que o índice toca no montante.':
+    'Index in zone “{{band}}” → ×{{m}}. The only point where the index touches the amount.',
+  'Sem zona apurada — multiplicador ×1.':
+    'No zone established — multiplier ×1.',
+  'Regra de reincidência desactivada.':
+    'Recurrence rule disabled.',
+  'Primeira ocorrência na janela de {{days}} dias — sem agravamento.':
+    'First occurrence within the {{days}}-day window — no increase.',
+  '{{n}}.ª ocorrência na janela de {{days}} dias.':
+    'Occurrence no. {{n}} within the {{days}}-day window.',
+  'Tecto por incidente':
+    'Per-incident cap',
+  'Montante limitado ao tecto deste critério.':
+    'Amount limited to this criterion’s cap.',
+  'Abaixo do tecto deste critério.':
+    'Below this criterion’s cap.',
+  'Condição eliminatória em falha: montante fixo, porque uma eliminatória não tem escala de valor que permita calcular um montante proporcional. Os restantes incidentes do período continuam a contar e somam-se a este.':
+    'Eliminatory condition failed: a fixed amount, because an eliminatory condition has no value scale from which a proportional amount could be calculated. The period’s other incidents still count and are added to this one.',
+  'Sem zona de decisão: o multiplicador global não se aplica e o cálculo usa ×1. Um índice retido ou bloqueado não produz zona.':
+    'No decision zone: the global multiplier does not apply and the calculation uses ×1. A withheld or blocked index produces no zone.',
+  '«{{crit}}» não tem montante-base: o incidente «{{inc}}» ficou por valorizar.':
+    '“{{crit}}” has no base amount: the incident “{{inc}}” was left unpriced.',
+  'Regime crítico — {{gate}}':
+    'Critical regime — {{gate}}',
 };
