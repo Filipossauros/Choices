@@ -19,6 +19,7 @@ import type {
   EvaluationModel,
   QualificationCriterion,
   TestScenario,
+  TestIncident,
   Performance,
 } from '../../domain/types';
 import { qualificationCriteria } from '../../domain/tree';
@@ -34,6 +35,9 @@ import { useDialogs } from '../components/Dialog';
 
 const fmt = (n: number | null | undefined, d = 1) =>
   n == null ? '—' : n.toFixed(d);
+
+const money = (n: number, currency: string) =>
+  new Intl.NumberFormat('pt-PT', { style: 'currency', currency, minimumFractionDigits: 2 }).format(n);
 
 /** Scenarios worth having in every model: the two that catch normalisation bugs. */
 function starterScenarios(model: EvaluationModel): TestScenario[] {
@@ -114,6 +118,14 @@ export default function Bench() {
       updatedAt: new Date().toISOString(),
     };
     patchScenarios(scenarios.map((s) => (s.id === scenario.id ? next : s)));
+  }
+
+  function setIncidents(scenario: TestScenario, incidents: TestIncident[]) {
+    patchScenarios(
+      scenarios.map((s) =>
+        s.id === scenario.id ? { ...s, incidents, updatedAt: new Date().toISOString() } : s,
+      ),
+    );
   }
 
   function rename(scenario: TestScenario, label: string) {
@@ -225,6 +237,13 @@ export default function Bench() {
                   </button>
                 </div>
 
+                <IncidentsCard
+                  model={model}
+                  scenario={active}
+                  result={activeResult}
+                  onChange={(incidents) => setIncidents(active, incidents)}
+                />
+
                 <ScenarioTable
                   model={model}
                   scenario={active}
@@ -235,6 +254,7 @@ export default function Bench() {
 
               <aside className="space-y-4">
                 <ResultCard result={activeResult} />
+                <PenaltyCard result={activeResult} />
                 <VectorsCard model={model} scenarios={scenarios} />
               </aside>
             </div>
@@ -542,6 +562,7 @@ function VectorsCard({ model, scenarios }: { model: EvaluationModel; scenarios: 
 function ScenarioComparison({ results }: { results: BenchResult[] }) {
   const { t } = useTranslation();
   if (results.length < 2) return null;
+  const withMoney = results.some((r) => r.penalty);
   return (
     <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
       <h3 className="text-sm font-semibold text-gray-800 px-4 py-2.5 border-b border-gray-100">
@@ -554,6 +575,7 @@ function ScenarioComparison({ results }: { results: BenchResult[] }) {
               <th className="px-4 py-2 text-left font-semibold">{t('Cenário')}</th>
               <th className="px-4 py-2 text-right font-semibold">{t('Índice')}</th>
               <th className="px-4 py-2 text-left font-semibold">{t('Zona')}</th>
+              {withMoney && <th className="px-4 py-2 text-right font-semibold">{t('Penalização')}</th>}
               <th className="px-4 py-2 text-left font-semibold">{t('Estado')}</th>
             </tr>
           </thead>
@@ -573,6 +595,11 @@ function ScenarioComparison({ results }: { results: BenchResult[] }) {
                     <span className="text-xs text-gray-400">—</span>
                   )}
                 </td>
+                {withMoney && (
+                  <td className="px-4 py-2 text-right font-mono text-gray-700">
+                    {r.penalty ? money(r.penalty.total, r.penalty.currency) : '—'}
+                  </td>
+                )}
                 <td className="px-4 py-2 text-xs text-gray-500">
                   {r.blocked
                     ? t('bloqueado por «{{label}}»', { label: r.blockedBy?.label ?? '' })
@@ -585,6 +612,241 @@ function ScenarioComparison({ results }: { results: BenchResult[] }) {
           </tbody>
         </table>
       </div>
+    </div>
+  );
+}
+
+// ─── Incidents and what they cost ────────────────────────────────────────────
+
+/**
+ * The breaches a scenario describes.
+ *
+ * Only appears for models that carry consequence rules: in a model that just
+ * classifies, there is nothing an incident could mean. Severity is typed here
+ * rather than read from the criterion's value — they are two readings of the
+ * same month, and collapsing them would put money inside the value function.
+ */
+function IncidentsCard({
+  model, scenario, result, onChange,
+}: {
+  model: EvaluationModel;
+  scenario: TestScenario;
+  result: BenchResult | null;
+  onChange: (incidents: TestIncident[]) => void;
+}) {
+  const { t } = useTranslation();
+  const rules = model.penaltyRules;
+  if (!rules) return null;
+
+  const incidents = scenario.incidents ?? [];
+  const quals = qualificationCriteria(model);
+  const lineFor = (id: string) => result?.penalty?.lines.find((l) => l.incidentId === id);
+
+  function patch(id: string, p: Partial<TestIncident>) {
+    onChange(incidents.map((i) => (i.id === id ? { ...i, ...p } : i)));
+  }
+
+  return (
+    <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
+      <div className="px-4 py-2.5 border-b border-gray-100 flex items-center gap-2 flex-wrap">
+        <h3 className="text-sm font-semibold text-gray-800">{t('Incidentes deste cenário')}</h3>
+        <span className="text-xs text-gray-400">{t('a gravidade vem dos factos do incidente, não da escala de valor')}</span>
+        <button
+          onClick={() =>
+            onChange([
+              ...incidents,
+              {
+                id: uuidv4(),
+                label: t('Incidente {{n}}', { n: incidents.length + 1 }),
+                criterionId: quals[0]?.id ?? '',
+                severity: 70,
+                occurrence: 1,
+              },
+            ])
+          }
+          className="ml-auto px-2.5 py-1 text-xs rounded-lg border border-gray-300 hover:bg-gray-50"
+        >
+          + {t('Incidente')}
+        </button>
+      </div>
+
+      {incidents.length === 0 ? (
+        <p className="px-4 py-3 text-xs text-gray-400">
+          {t('Sem incidentes, este cenário não gera penalização. Acrescente um para ver as regras funcionarem.')}
+        </p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-sm">
+            <thead>
+              <tr className="bg-gray-50 text-[10px] font-mono uppercase tracking-wider text-gray-400">
+                <th className="px-3 py-2 text-left font-semibold">{t('Incidente')}</th>
+                <th className="px-3 py-2 text-left font-semibold">{t('Critério')}</th>
+                <th className="px-3 py-2 text-right font-semibold">{t('Gravidade')}</th>
+                <th className="px-3 py-2 text-right font-semibold">{t('Ocorrência')}</th>
+                <th className="px-3 py-2 text-left font-semibold">{t('Causa-raiz')}</th>
+                <th className="px-3 py-2 text-right font-semibold">{t('Montante')}</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {incidents.map((inc) => {
+                const line = lineFor(inc.id);
+                return (
+                  <tr key={inc.id} className="border-t border-gray-100">
+                    <td className="px-3 py-2">
+                      <input
+                        value={inc.label}
+                        aria-label={t('Nome do incidente')}
+                        onChange={(e) => patch(inc.id, { label: e.target.value })}
+                        className="w-36 text-sm border border-transparent hover:border-gray-200 focus:border-gray-300 rounded px-1.5 py-1"
+                      />
+                    </td>
+                    <td className="px-3 py-2">
+                      <select
+                        value={inc.criterionId}
+                        aria-label={t('Critério do incidente')}
+                        onChange={(e) => patch(inc.id, { criterionId: e.target.value })}
+                        className="text-xs border border-gray-200 rounded px-2 py-1 bg-white max-w-[11rem]"
+                      >
+                        {quals.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
+                      </select>
+                    </td>
+                    <td className="px-3 py-2 text-right">
+                      <input
+                        type="number"
+                        value={inc.severity}
+                        aria-label={t('Gravidade')}
+                        onChange={(e) => {
+                          const n = Number(e.target.value);
+                          if (Number.isFinite(n)) patch(inc.id, { severity: n });
+                        }}
+                        className="w-16 text-right font-mono text-sm border border-gray-200 rounded px-2 py-1"
+                      />
+                      {line?.severityBand && (
+                        <span className="block text-[10px] text-gray-400 uppercase tracking-wider">
+                          {line.severityBand.label}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2 text-right">
+                      <input
+                        type="number"
+                        value={inc.occurrence ?? 1}
+                        aria-label={t('Ocorrência')}
+                        onChange={(e) => {
+                          const n = Number(e.target.value);
+                          if (Number.isFinite(n)) patch(inc.id, { occurrence: n });
+                        }}
+                        className="w-14 text-right font-mono text-sm border border-gray-200 rounded px-2 py-1"
+                      />
+                    </td>
+                    <td className="px-3 py-2">
+                      <input
+                        value={inc.rootCauseId ?? ''}
+                        placeholder={t('nenhuma')}
+                        aria-label={t('Causa-raiz')}
+                        onChange={(e) => patch(inc.id, { rootCauseId: e.target.value || undefined })}
+                        className="w-24 text-xs font-mono border border-transparent hover:border-gray-200 focus:border-gray-300 rounded px-1.5 py-1"
+                      />
+                    </td>
+                    <td className="px-3 py-2 text-right font-mono font-semibold text-gray-700">
+                      {line ? money(line.amount, rules.currency) : '—'}
+                      {line?.absorbedBy && (
+                        <span className="block text-[10px] text-gray-400 font-sans">{t('não acumula')}</span>
+                      )}
+                    </td>
+                    <td className="px-2 py-2">
+                      <button
+                        onClick={() => onChange(incidents.filter((i) => i.id !== inc.id))}
+                        aria-label={t('Remover incidente')}
+                        className="text-rose-400 hover:text-rose-600 text-sm"
+                      >
+                        ✕
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** The amount this scenario produces, with the steps that produced it. */
+function PenaltyCard({ result }: { result: BenchResult | null }) {
+  const { t } = useTranslation();
+  const [openId, setOpenId] = useState<string | null>(null);
+  const penalty = result?.penalty;
+  if (!penalty) return null;
+
+  const priced = penalty.lines.filter((l) => l.amount > 0 || l.steps.length > 0);
+
+  return (
+    <div className="border border-gray-200 rounded-xl bg-white p-4 space-y-2.5">
+      <div className="flex items-baseline gap-2">
+        <p className="text-[10px] font-mono uppercase tracking-wider text-gray-400">{t('Penalização do cenário')}</p>
+        <span className="ml-auto text-[10px] font-mono text-gray-400">{penalty.rulesVersion}</span>
+      </div>
+
+      <p className="font-mono font-bold text-2xl text-gray-800">
+        {money(penalty.total, penalty.currency)}
+      </p>
+
+      {penalty.zone ? (
+        <p className="text-xs text-gray-500">
+          {t('Zona «{{band}}» → multiplicador ×{{m}}.', { band: penalty.zone.bandLabel ?? '', m: penalty.zone.multiplier })}
+        </p>
+      ) : (
+        <p className="text-xs text-amber-700">{t('Sem zona apurada: multiplicador ×1.')}</p>
+      )}
+
+      {penalty.capApplied && (
+        <p className="text-xs text-amber-700">
+          {t('Tecto do período aplicado: {{sub}} → {{total}}.', {
+            sub: money(penalty.subtotal, penalty.currency),
+            total: money(penalty.total, penalty.currency),
+          })}
+        </p>
+      )}
+
+      {priced.map((l) => (
+        <div key={l.incidentId} className="border-t border-gray-100 pt-2">
+          <button
+            onClick={() => setOpenId(openId === l.incidentId ? null : l.incidentId)}
+            className="w-full flex justify-between items-baseline gap-2 text-left"
+          >
+            <span className="text-xs text-gray-600 truncate">{l.label}</span>
+            <span className="font-mono text-xs font-semibold text-gray-700 shrink-0">
+              {money(l.amount, penalty.currency)}
+              <span className="ml-1 text-gray-400">{openId === l.incidentId ? '▴' : '▾'}</span>
+            </span>
+          </button>
+          {openId === l.incidentId && (
+            <ol className="mt-1.5 space-y-1">
+              {l.steps.map((st, i) => (
+                <li key={i} className={`text-[11px] leading-snug ${st.applied ? 'text-gray-600' : 'text-gray-400'}`}>
+                  <span className="font-medium">{st.label}.</span>{' '}
+                  {st.formula ? <code className="font-mono">{st.formula}</code> : st.detail}
+                  {st.amount != null && (
+                    <span className="float-right font-mono">{money(st.amount, penalty.currency)}</span>
+                  )}
+                </li>
+              ))}
+            </ol>
+          )}
+        </div>
+      ))}
+
+      {penalty.notes.map((n, i) => (
+        <p key={i} className="text-[11px] text-amber-700 leading-relaxed border-t border-gray-100 pt-2">{n}</p>
+      ))}
+
+      <p className="text-[11px] text-gray-400 leading-relaxed border-t border-gray-100 pt-2">
+        {t('O montante não entra no índice nem em qualquer escala de valor. Sai no pacote junto com o resultado esperado do cenário.')}
+      </p>
     </div>
   );
 }

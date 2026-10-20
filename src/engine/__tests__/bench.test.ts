@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { runScenario, runScenarios } from '../bench';
+import { runScenario, runScenarios, buildTestVectors } from '../bench';
 import type { EvaluationModel, TestScenario, ValueTree } from '../../domain/types';
 import { MODEL_VERSION } from '../../domain/types';
 
@@ -142,5 +142,93 @@ describe('bench', () => {
       ],
     };
     expect(runScenario(model(), copied).globalValue).toBeCloseTo(100, 5);
+  });
+});
+
+describe('bench + consequences', () => {
+  function withRules(over: Partial<import('../../domain/types').PenaltyRules> = {}) {
+    const m = model();
+    m.penaltyRules = {
+      version: 'v1',
+      currency: 'EUR',
+      severityBands: [
+        { id: 'light', label: 'Ligeira', minSeverity: 0, exempt: true },
+        { id: 'moderate', label: 'Moderada', minSeverity: 40 },
+        { id: 'serious', label: 'Grave', minSeverity: 70 },
+      ],
+      zoneMultipliers: { top: 0, mid: 1.1, bot: 1.5 },
+      criterionRules: [{ criterionId: 'a', baseAmount: 1000, minSeverityBandId: 'moderate' }],
+      recurrence: { secondFactor: 1.25, furtherFactor: 1.5, windowDays: 90, enabled: true },
+      commonCauseNoAccumulation: true,
+      criticalRegime: { amount: 3000, enabled: true },
+      ...over,
+    };
+    return m;
+  }
+
+  const incident = (over: Partial<import('../../domain/types').TestIncident> = {}) => ({
+    id: 'i1', label: 'Incidente', criterionId: 'a', severity: 78, ...over,
+  });
+
+  it('prices a scenario’s incidents with the zone its own index reached', () => {
+    const m = withRules();
+    const s = scenario('s1', [
+      { criterionId: 'a', value: 'mid' },
+      { criterionId: 'b', value: 'mid' },
+      { criterionId: 'g', value: 'pass' },
+    ]);
+    s.incidents = [incident()];
+    const r = runScenario(m, s);
+    expect(r.globalValue).toBe(50);
+    expect(r.band?.id).toBe('mid');
+    // (78 − 40)/60 = 0.6333 → ×1000 = 633.33 → ×1.1 (zona «mid»)
+    expect(r.penalty!.total).toBeCloseTo(696.67, 2);
+    expect(r.penalty!.zone!.multiplier).toBe(1.1);
+  });
+
+  it('a different index moves the amount without touching any value', () => {
+    const m = withRules();
+    const lowish = scenario('s1', [
+      { criterionId: 'a', value: 'lo' }, { criterionId: 'b', value: 'lo' }, { criterionId: 'g', value: 'pass' },
+    ]);
+    lowish.incidents = [incident()];
+    const r = runScenario(m, lowish);
+    expect(r.band?.id).toBe('bot');
+    expect(r.penalty!.total).toBeCloseTo(950, 2); // 633.33 × 1.5
+    // …and the criterion values are the same ones the model would give anyway.
+    expect(r.rows.find((x) => x.criterionId === 'a')!.value).toBe(0);
+  });
+
+  it('a blocked scenario gets the critical regime and no zone multiplier', () => {
+    const m = withRules();
+    const s = scenario('s1', [
+      { criterionId: 'a', value: 'hi' }, { criterionId: 'b', value: 'hi' }, { criterionId: 'g', value: 'fail' },
+    ]);
+    s.incidents = [];
+    const r = runScenario(m, s);
+    expect(r.blocked).toBe(true);
+    expect(r.penalty!.total).toBe(3000);
+    expect(r.penalty!.zone).toBeNull();
+  });
+
+  it('no rules means no amount at all — not an amount of zero', () => {
+    const s = scenario('s1', [
+      { criterionId: 'a', value: 'hi' }, { criterionId: 'b', value: 'hi' }, { criterionId: 'g', value: 'pass' },
+    ]);
+    expect(runScenario(model(), s).penalty).toBeUndefined();
+  });
+
+  it('carries the incidents and the expected amount into the test vectors', () => {
+    const m = withRules();
+    const s = scenario('s1', [
+      { criterionId: 'a', value: 'mid' }, { criterionId: 'b', value: 'mid' }, { criterionId: 'g', value: 'pass' },
+    ]);
+    s.incidents = [incident({ occurrence: 2, rootCauseId: 'rc-1' })];
+    const v = buildTestVectors(m, [s]).vectors[0];
+    expect(v.incidents).toEqual([{ id: 'i1', criterionId: 'a', severity: 78, occurrence: 2, rootCauseId: 'rc-1' }]);
+    expect(v.expected.penalty!.zoneMultiplier).toBe(1.1);
+    expect(v.expected.penalty!.total).toBeCloseTo(870.83, 2);
+    expect(v.expected.penalty!.perIncident.i1).toBeCloseTo(870.83, 2);
+    expect(v.expected.penalty!.rulesVersion).toBe('v1');
   });
 });

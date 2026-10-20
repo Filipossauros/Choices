@@ -405,10 +405,16 @@ function BaseAmountsCard({ model, rules, setRules }: { model: EvaluationModel; r
 // ─── The worked example ──────────────────────────────────────────────────────
 
 /**
- * An invented incident, walked through the rules step by step. It is the
- * fastest way for the author to see what the numbers they just typed produce —
- * and the only way to notice a rule that is never reached, since the steps that
- * did not fire stay in the trace, greyed out.
+ * One incident walked through the rules step by step.
+ *
+ * It reads the incidents a *scenario* carries, so what is traced here is the
+ * same calculation the bench shows and the package exports — not a parallel
+ * example that could drift from it. A model with no scenario yet still gets a
+ * trace, from a probe incident typed right here, because the author needs to
+ * see the effect of a rule while writing it, before any scenario exists.
+ *
+ * Either way the steps that were evaluated and did not fire stay in the trace,
+ * greyed out: that is the only way to notice a rule that is never reached.
  */
 function Walkthrough({ model, rules }: { model: EvaluationModel; rules: PenaltyRules }) {
   const { t } = useTranslation();
@@ -418,31 +424,39 @@ function Walkthrough({ model, rules }: { model: EvaluationModel; rules: PenaltyR
   const [severity, setSeverity] = useState(78);
   const [criterionId, setCriterionId] = useState<string>(quals[0]?.id ?? '');
   const [occurrence, setOccurrence] = useState(1);
+  const [incidentId, setIncidentId] = useState<string>('');
 
   const results = useMemo(() => runScenarios(model, scenarios), [model, scenarios]);
   const chosen = results.find((r) => r.scenarioId === scenarioId) ?? results[0] ?? null;
   const band: DecisionBand | null = chosen?.band ?? null;
+  const chosenScenario = scenarios.find((s) => s.id === chosen?.scenarioId);
+  const scenarioIncidents = chosenScenario?.incidents ?? [];
+  const fromScenario = scenarioIncidents.length > 0;
 
-  const incidents: TestIncident[] = criterionId
+  const probe: TestIncident[] = criterionId
     ? [{ id: 'walk', label: t('Incidente de ensaio'), criterionId, severity, occurrence }]
     : [];
 
   const penalty = useMemo(
     () =>
-      computePenalties({
-        rules,
-        incidents,
-        band,
-        gateFailed: chosen?.blockedBy?.kind === 'gate',
-        gateLabel: chosen?.blockedBy?.label,
-        labelOf: (id) => model.valueTree.criteria[id]?.label ?? id,
-      }),
+      fromScenario && chosen?.penalty
+        ? chosen.penalty
+        : computePenalties({
+            rules,
+            incidents: probe,
+            band,
+            gateFailed: chosen?.blockedBy?.kind === 'gate',
+            gateLabel: chosen?.blockedBy?.label,
+            labelOf: (id) => model.valueTree.criteria[id]?.label ?? id,
+          }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [rules, criterionId, severity, occurrence, band, chosen],
+    [rules, criterionId, severity, occurrence, band, chosen, fromScenario],
   );
 
-  const line = penalty.lines.find((l) => l.incidentId === 'walk');
-  const sevBand = severityBandFor(severity, rules);
+  const line = fromScenario
+    ? penalty.lines.find((l) => l.incidentId === incidentId) ?? penalty.lines[0]
+    : penalty.lines.find((l) => l.incidentId === 'walk');
+  const sevBand = severityBandFor(fromScenario ? line?.severity ?? severity : severity, rules);
 
   return (
     <section className="border border-accent/40 rounded-xl bg-white overflow-hidden">
@@ -457,29 +471,46 @@ function Walkthrough({ model, rules }: { model: EvaluationModel; rules: PenaltyR
       <div className="p-4 grid lg:grid-cols-[minmax(0,1fr)_19rem] gap-5 items-start">
         <div>
           <div className="flex items-center gap-2 flex-wrap text-sm pb-3 mb-1 border-b border-gray-100">
-            <label className="text-xs text-gray-500">{t('Critério')}</label>
-            <select
-              value={criterionId}
-              onChange={(e) => setCriterionId(e.target.value)}
-              className="text-xs border border-gray-200 rounded px-2 py-1 bg-white"
-            >
-              {quals.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
-            </select>
-            <label className="text-xs text-gray-500 ml-1">{t('Gravidade')}</label>
-            <NumberCell value={severity} width="w-16" onChange={setSeverity} />
-            {sevBand && <span className="text-[10px] text-gray-400 uppercase tracking-wider">{sevBand.label}</span>}
-            <label className="text-xs text-gray-500 ml-1">{t('Ocorrência')}</label>
-            <NumberCell value={occurrence} width="w-14" onChange={setOccurrence} />
             {results.length > 0 && (
               <>
-                <label className="text-xs text-gray-500 ml-1">{t('Cenário')}</label>
+                <label className="text-xs text-gray-500">{t('Cenário')}</label>
                 <select
                   value={chosen?.scenarioId ?? ''}
-                  onChange={(e) => setScenarioId(e.target.value)}
+                  onChange={(e) => { setScenarioId(e.target.value); setIncidentId(''); }}
                   className="text-xs border border-gray-200 rounded px-2 py-1 bg-white max-w-[12rem]"
                 >
                   {results.map((r) => <option key={r.scenarioId} value={r.scenarioId}>{r.label}</option>)}
                 </select>
+              </>
+            )}
+            {fromScenario ? (
+              <>
+                <label className="text-xs text-gray-500 ml-1">{t('Incidente')}</label>
+                <select
+                  value={line?.incidentId ?? ''}
+                  onChange={(e) => setIncidentId(e.target.value)}
+                  className="text-xs border border-gray-200 rounded px-2 py-1 bg-white max-w-[12rem]"
+                >
+                  {penalty.lines.map((l) => <option key={l.incidentId} value={l.incidentId}>{l.label}</option>)}
+                </select>
+                {sevBand && <span className="text-[10px] text-gray-400 uppercase tracking-wider">{sevBand.label}</span>}
+                <span className="text-xs text-gray-400 ml-auto">{t('do cenário — editam-se no banco de ensaio')}</span>
+              </>
+            ) : (
+              <>
+                <label className="text-xs text-gray-500 ml-1">{t('Critério')}</label>
+                <select
+                  value={criterionId}
+                  onChange={(e) => setCriterionId(e.target.value)}
+                  className="text-xs border border-gray-200 rounded px-2 py-1 bg-white"
+                >
+                  {quals.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
+                </select>
+                <label className="text-xs text-gray-500 ml-1">{t('Gravidade')}</label>
+                <NumberCell value={severity} width="w-16" onChange={setSeverity} />
+                {sevBand && <span className="text-[10px] text-gray-400 uppercase tracking-wider">{sevBand.label}</span>}
+                <label className="text-xs text-gray-500 ml-1">{t('Ocorrência')}</label>
+                <NumberCell value={occurrence} width="w-14" onChange={setOccurrence} />
               </>
             )}
           </div>
@@ -517,7 +548,7 @@ function Walkthrough({ model, rules }: { model: EvaluationModel; rules: PenaltyR
           <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 space-y-2">
             <p className="text-[10px] font-mono uppercase tracking-wider text-gray-400">{t('O que entrou no cálculo')}</p>
             <dl className="text-xs space-y-1">
-              <Row label={t('Gravidade G')} value={String(severity)} />
+              <Row label={t('Gravidade G')} value={String(line?.severity ?? severity)} />
               <Row label={t('Índice do cenário')} value={chosen?.globalValue != null ? chosen.globalValue.toFixed(1) : '—'} />
               <Row label={t('Zona')} value={band?.label ?? t('nenhuma')} />
               <Row label={t('Multiplicador')} value={`×${penalty.zone?.multiplier ?? 1}`} />

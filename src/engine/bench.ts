@@ -21,6 +21,7 @@ import { MODEL_VERSION } from '../domain/types';
 import { effectiveWeights, qualificationCriteria } from '../domain/tree';
 import { classify } from '../domain/decision';
 import { aggregate, resolveBands } from './aggregation';
+import { computePenalties, type PenaltyResult } from './penalty';
 import { positionToNumeric } from './scaling';
 
 /** One criterion's line in the trace. */
@@ -62,6 +63,12 @@ export interface BenchResult {
   /** Qualification criteria left blank — the index is withheld, not guessed. */
   missing: { criterionId: string; label: string }[];
   pendingGates: { criterionId: string; label: string }[];
+  /**
+   * What this scenario's incidents cost under the model's rules. Absent when
+   * the model has no consequence rules — a model that only classifies has no
+   * amount, which is different from an amount of zero.
+   */
+  penalty?: PenaltyResult;
   raw: OptionResult;
 }
 
@@ -112,6 +119,8 @@ export function runScenarios(model: EvaluationModel, scenarios: TestScenario[]):
   const gates = Object.values(model.valueTree.criteria).filter((c) => c.type === 'gate');
   const byId = new Map(result.optionResults.map((r) => [r.optionId, r]));
 
+  const labelOf = (id: string) => model.valueTree.criteria[id]?.label ?? id;
+
   return scenarios.map((scenario) => {
     const r = byId.get(scenario.id)!;
     const perfByCrit = new Map(scenario.performances.map((p) => [p.criterionId, p]));
@@ -150,7 +159,6 @@ export function runScenarios(model: EvaluationModel, scenarios: TestScenario[]):
       };
     });
 
-    const labelOf = (id: string) => model.valueTree.criteria[id]?.label ?? id;
     const blockedBy = r.rejectedByGate
       ? ({ kind: 'gate', criterionId: r.rejectedByGate, label: labelOf(r.rejectedByGate) } as const)
       : r.vetoedByCriterion
@@ -158,6 +166,20 @@ export function runScenarios(model: EvaluationModel, scenarios: TestScenario[]):
         : null;
 
     const indicativeValue = r.globalValue ?? r.indicativeValue ?? null;
+
+    // The consequence layer consumes the result; it never feeds back into it.
+    // Note which band is passed: the one actually reached, so a blocked or
+    // withheld index yields no zone multiplier rather than a guessed one.
+    const penalty = model.penaltyRules
+      ? computePenalties({
+          rules: model.penaltyRules,
+          incidents: scenario.incidents ?? [],
+          band: r.bandId ? bands.find((b) => b.id === r.bandId) ?? null : null,
+          gateFailed: !!r.rejectedByGate,
+          gateLabel: r.rejectedByGate ? labelOf(r.rejectedByGate) : undefined,
+          labelOf,
+        })
+      : undefined;
 
     return {
       scenarioId: scenario.id,
@@ -172,6 +194,7 @@ export function runScenarios(model: EvaluationModel, scenarios: TestScenario[]):
       blockedBy,
       missing: (r.missingCriteria ?? []).map((id) => ({ criterionId: id, label: labelOf(id) })),
       pendingGates: (r.pendingGates ?? []).map((id) => ({ criterionId: id, label: labelOf(id) })),
+      ...(penalty ? { penalty } : {}),
       raw: r,
     };
   });
@@ -201,6 +224,8 @@ export interface TestVectors {
     id: string;
     label: string;
     inputs: Record<string, string | number | null>;
+    /** The breaches this scenario describes, as the rules will read them. */
+    incidents?: { id: string; criterionId: string; severity: number; occurrence?: number; rootCauseId?: string }[];
     expected: {
       index: number | null;
       band: string | null;
@@ -212,6 +237,20 @@ export interface TestVectors {
       missing: string[];
       /** Per-criterion values, so a mismatch can be located instead of guessed. */
       criterionValues: Record<string, number | null>;
+      /**
+       * The amount the consequence rules produce, when the model has any. Per
+       * incident as well as in total: a total that differs is a bug somewhere,
+       * and only the per-incident lines say where.
+       */
+      penalty?: {
+        currency: string;
+        rulesVersion: string;
+        zoneMultiplier: number;
+        subtotal: number;
+        total: number;
+        capApplied: boolean;
+        perIncident: Record<string, number>;
+      };
     };
   }[];
 }
@@ -239,10 +278,23 @@ export function buildTestVectors(
               : row.levelLabel;
         if (row.type === 'qualification') criterionValues[row.criterionId] = row.value;
       }
+      const scenario = scenarios.find((s) => s.id === r.scenarioId);
+      const incidents = scenario?.incidents ?? [];
       return {
         id: r.scenarioId,
         label: r.label,
         inputs,
+        ...(incidents.length > 0
+          ? {
+              incidents: incidents.map((i) => ({
+                id: i.id,
+                criterionId: i.criterionId,
+                severity: i.severity,
+                ...(i.occurrence != null ? { occurrence: i.occurrence } : {}),
+                ...(i.rootCauseId ? { rootCauseId: i.rootCauseId } : {}),
+              })),
+            }
+          : {}),
         expected: {
           index: r.globalValue,
           band: r.band?.label ?? null,
@@ -252,6 +304,19 @@ export function buildTestVectors(
           incomplete: r.missing.length > 0,
           missing: r.missing.map((m) => m.label),
           criterionValues,
+          ...(r.penalty
+            ? {
+                penalty: {
+                  currency: r.penalty.currency,
+                  rulesVersion: r.penalty.rulesVersion,
+                  zoneMultiplier: r.penalty.zone?.multiplier ?? 1,
+                  subtotal: r.penalty.subtotal,
+                  total: r.penalty.total,
+                  capApplied: r.penalty.capApplied,
+                  perIncident: Object.fromEntries(r.penalty.lines.map((l) => [l.incidentId, l.amount])),
+                },
+              }
+            : {}),
         },
       };
     }),
